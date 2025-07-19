@@ -2,8 +2,9 @@ import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
 import { X, MapPin, Users, Flame, Droplets, Mountain, Wind, Crown, Sword } from 'lucide-react'
+import './InventoryPanel.css'
 
-const MapPanel = ({ onClose }) => {
+const MapPanel = ({ isOpen, onClose, player }) => {
   const mapRegions = [
     {
       id: 'fire_realm',
@@ -73,8 +74,10 @@ const MapPanel = ({ onClose }) => {
     }
   }
 
+  if (!isOpen) return null
+
   return (
-    <div className="absolute top-4 right-4 w-96 h-[calc(100vh-2rem)] bg-black/80 backdrop-blur-lg rounded-lg border border-purple-500/30 z-20">
+    <div className="hud-panel-glass absolute top-2 sm:top-4 right-2 sm:right-4 w-[calc(100vw-1rem)] sm:w-96 h-[calc(100vh-1rem)] sm:h-[calc(100vh-2rem)] bg-black/30 backdrop-blur-sm rounded-2xl border border-purple-500/20 shadow-lg z-20" data-ui-element="map-panel">
       <Card className="h-full bg-transparent border-none">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <CardTitle className="text-xl text-white">خريطة العالم</CardTitle>

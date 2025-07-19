@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import GameEngine from '../lib/GameEngine'
 import PlayerManager from '../lib/PlayerManager'
 import WorldManager from '../lib/WorldManager'
@@ -8,7 +8,7 @@ import ExplorationSystem from '../lib/ExplorationSystem'
 import ResourceManager from '../lib/ResourceManager'
 import StorySystem from '../lib/StorySystem'
 
-const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate }) => {
+const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGameEngineReady }) => {
   const mountRef = useRef(null)
   const gameEngineRef = useRef(null)
   const playerManagerRef = useRef(null)
@@ -18,118 +18,232 @@ const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate }) =>
   const explorationSystemRef = useRef(null)
   const resourceManagerRef = useRef(null)
   const storySystemRef = useRef(null)
+  const [gameStats, setGameStats] = useState({ 
+    fps: 0, 
+    playerPosition: { x: 0, y: 0, z: 0 },
+    cameraRotation: { y: 0, x: 0 }
+  })
+  const isInitializedRef = useRef(false)
+  const [mouseLocked, setMouseLocked] = useState(false)
 
   useEffect(() => {
-    if (!mountRef.current) return
-
-    // Initialize game engine
-    const gameEngine = new GameEngine()
-    gameEngineRef.current = gameEngine
+    console.log('GameScene: Initializing 3D game...')
+    console.log('GameScene: Player data:', player)
     
-    if (!gameEngine.init(mountRef.current)) {
-      console.error('Failed to initialize game engine')
+    if (!mountRef.current) {
+      console.error('GameScene: Mount ref is null')
       return
     }
 
-    // Initialize player manager
-    const playerManager = new PlayerManager(gameEngine)
-    playerManagerRef.current = playerManager
-    
-    // Load or create player
-    let playerData = playerManager.loadPlayerData()
-    if (!playerData) {
-      playerData = playerManager.createPlayer(player)
-    } else {
-      // Update with current player data
-      playerManager.updatePlayer('local_player', player)
+    // Prevent multiple initializations
+    if (isInitializedRef.current) {
+      console.log('GameScene: Already initialized, skipping...')
+      return
     }
 
-    // Create player in 3D world
-    gameEngine.createPlayer(playerData)
-
-    // Initialize world manager
-    const worldManager = new WorldManager(gameEngine)
-    worldManagerRef.current = worldManager
-    worldManager.init()
-
-    // Initialize combat system
-    const combatSystem = new CombatSystem(gameEngine, playerManager)
-    combatSystemRef.current = combatSystem
-
-    // Initialize skill manager
-    const skillManager = new SkillManager(playerManager, combatSystem)
-    skillManagerRef.current = skillManager
-
-    // Initialize exploration system
-    const explorationSystem = new ExplorationSystem(gameEngine, playerManager, worldManager)
-    explorationSystemRef.current = explorationSystem
-    explorationSystem.loadExplorationData()
-
-    // Initialize resource manager
-    const resourceManager = new ResourceManager(playerManager, worldManager)
-    resourceManagerRef.current = resourceManager
-
-    // Initialize story system
-    const storySystem = new StorySystem(gameEngine, playerManager, worldManager)
-    storySystemRef.current = storySystem
-    storySystem.loadStoryProgress()
-    storySystem.autoStartInitialQuest()
-
-    // Apply passive effects
-    skillManager.applyPassiveEffects('local_player')
-
-    // Set up event listeners
-    gameEngine.on('keydown', (event) => {
-      handleKeyDown(event, gameEngine, playerManager, worldManager, combatSystem, skillManager, explorationSystem, resourceManager, storySystem)
+    // Test container dimensions
+    const containerRect = mountRef.current.getBoundingClientRect()
+    console.log('GameScene: Container dimensions:', {
+      width: containerRect.width,
+      height: containerRect.height,
+      top: containerRect.top,
+      left: containerRect.left
     })
 
-    gameEngine.on('update', (deltaTime) => {
-      worldManager.update(deltaTime)
-      skillManager.updateBuffs()
-      explorationSystem.update(deltaTime)
+    try {
+      // Initialize game engine
+      console.log('GameScene: Creating GameEngine...')
+      const gameEngine = new GameEngine()
+      gameEngineRef.current = gameEngine
       
-      // Update player stats in UI
-      if (onPlayerUpdate) {
-        const updatedPlayer = playerManager.getLocalPlayer()
-        onPlayerUpdate(updatedPlayer)
+      console.log('GameScene: Initializing GameEngine...')
+      if (!gameEngine.init(mountRef.current)) {
+        console.error('GameScene: Failed to initialize game engine')
+        return
+      }
+      console.log('GameScene: GameEngine initialized successfully')
+
+      // Initialize player manager
+      console.log('GameScene: Creating PlayerManager...')
+      const playerManager = new PlayerManager(gameEngine)
+      playerManagerRef.current = playerManager
+      
+      // Load or create player
+      let playerData = playerManager.loadPlayerData()
+      if (!playerData) {
+        console.log('GameScene: Creating new player...')
+        playerData = playerManager.createPlayer(player)
+      } else {
+        console.log('GameScene: Updating existing player...')
+        // Update with current player data
+        playerManager.updatePlayer('local_player', player)
       }
 
-      // Update quest info in UI
-      if (onQuestUpdate) {
-        const activeQuests = storySystem.getActiveQuests()
-        const storyProgress = storySystem.getStoryProgress()
-        onQuestUpdate({ activeQuests, storyProgress })
-      }
-    })
+      // Create player in 3D world
+      console.log('GameScene: Creating player in 3D world...')
+      const playerMesh = gameEngine.createPlayer(playerData)
+      console.log('GameScene: Player created:', playerMesh)
 
-    // Start the game
-    gameEngine.start()
+      // Initialize world manager
+      console.log('GameScene: Creating WorldManager...')
+      const worldManager = new WorldManager(gameEngine)
+      worldManagerRef.current = worldManager
+      worldManager.init()
+
+      // Initialize combat system
+      console.log('GameScene: Creating CombatSystem...')
+      const combatSystem = new CombatSystem(gameEngine, playerManager)
+      combatSystemRef.current = combatSystem
+
+      // Initialize skill manager
+      console.log('GameScene: Creating SkillManager...')
+      const skillManager = new SkillManager(playerManager, combatSystem)
+      skillManagerRef.current = skillManager
+
+      // Initialize exploration system
+      console.log('GameScene: Creating ExplorationSystem...')
+      const explorationSystem = new ExplorationSystem(gameEngine, playerManager, worldManager)
+      explorationSystemRef.current = explorationSystem
+      explorationSystem.loadExplorationData()
+
+      // Initialize resource manager
+      console.log('GameScene: Creating ResourceManager...')
+      const resourceManager = new ResourceManager(playerManager, worldManager)
+      resourceManagerRef.current = resourceManager
+
+      // Initialize story system
+      console.log('GameScene: Creating StorySystem...')
+      const storySystem = new StorySystem(gameEngine, playerManager, worldManager)
+      storySystemRef.current = storySystem
+      storySystem.loadStoryProgress()
+      storySystem.autoStartInitialQuest()
+
+      // Apply passive effects
+      console.log('GameScene: Applying passive effects...')
+      skillManager.applyPassiveEffects('local_player')
+
+      // Set up event listeners
+      console.log('GameScene: Setting up event listeners...')
+      gameEngine.on('keydown', (event) => {
+        handleKeyDown(event, gameEngine, playerManager, worldManager, combatSystem, skillManager, explorationSystem, resourceManager, storySystem)
+      })
+
+      gameEngine.on('update', (deltaTime) => {
+        worldManager.update(deltaTime)
+        skillManager.updateBuffs()
+        explorationSystem.update(deltaTime)
+        
+        // Update game stats
+        if (gameEngine.currentFPS !== undefined) {
+          setGameStats(prev => ({
+            fps: gameEngine.currentFPS,
+            playerPosition: gameEngine.player ? {
+              x: Math.round(gameEngine.player.position.x * 100) / 100,
+              y: Math.round(gameEngine.player.position.y * 100) / 100,
+              z: Math.round(gameEngine.player.position.z * 100) / 100
+            } : { x: 0, y: 0, z: 0 },
+            cameraRotation: gameEngine.camera?.userData?.orbitControl ? {
+              y: Math.round(gameEngine.camera.userData.orbitControl.rotationY * 180 / Math.PI),
+              x: Math.round(gameEngine.camera.userData.orbitControl.rotationX * 180 / Math.PI)
+            } : { y: 0, x: 0 }
+          }))
+        }
+        
+        // Update mouse lock status
+        setMouseLocked(gameEngine.mouse?.isLocked || false)
+        
+        // Debug camera state - only log occasionally to reduce spam
+        if (gameEngine.camera && gameEngine.camera.userData.orbitControl && Math.random() < 0.01) {
+          const orbit = gameEngine.camera.userData.orbitControl
+          console.log('Camera orbit:', {
+            distance: orbit.distance.toFixed(2),
+            height: orbit.height.toFixed(2),
+            rotationY: (orbit.rotationY * 180 / Math.PI).toFixed(1) + '°',
+            rotationX: (orbit.rotationX * 180 / Math.PI).toFixed(1) + '°',
+            mouseLocked: gameEngine.mouse?.isLocked
+          })
+        }
+        
+        // Update player stats in UI
+        if (onPlayerUpdate) {
+          const updatedPlayer = playerManager.getLocalPlayer()
+          onPlayerUpdate(updatedPlayer)
+        }
+
+        // Update quest info in UI
+        if (onQuestUpdate) {
+          const activeQuests = storySystem.getActiveQuests()
+          const storyProgress = storySystem.getStoryProgress()
+          onQuestUpdate({ activeQuests, storyProgress })
+        }
+      })
+
+      // Start the game
+      console.log('GameScene: Starting game...')
+      gameEngine.start()
+      console.log('GameScene: Game started successfully!')
+
+      // Mark as initialized
+      isInitializedRef.current = true
+
+      // Notify parent that game engine is ready
+      if (onGameEngineReady) {
+        onGameEngineReady(gameEngine)
+      }
+
+      // Test if renderer is working
+      setTimeout(() => {
+        const canvas = mountRef.current?.querySelector('canvas')
+        if (canvas && document.contains(canvas)) {
+          console.log('GameScene: Canvas found and mounted:', {
+            width: canvas.width,
+            height: canvas.height,
+            style: canvas.style.cssText
+          })
+        } else {
+          console.error('GameScene: No canvas found or canvas not in DOM')
+        }
+      }, 1000)
+
+    } catch (error) {
+      console.error('GameScene: Error during initialization:', error)
+    }
 
     // Cleanup function
     return () => {
+      console.log('GameScene: Cleaning up...')
+      isInitializedRef.current = false
+      
       if (gameEngineRef.current) {
         gameEngineRef.current.dispose()
+        gameEngineRef.current = null
       }
       if (worldManagerRef.current) {
         worldManagerRef.current.dispose()
+        worldManagerRef.current = null
       }
       if (combatSystemRef.current) {
         combatSystemRef.current.dispose()
+        combatSystemRef.current = null
       }
       if (skillManagerRef.current) {
         skillManagerRef.current.dispose()
+        skillManagerRef.current = null
       }
       if (explorationSystemRef.current) {
         explorationSystemRef.current.dispose()
+        explorationSystemRef.current = null
       }
       if (resourceManagerRef.current) {
         resourceManagerRef.current.dispose()
+        resourceManagerRef.current = null
       }
       if (storySystemRef.current) {
         storySystemRef.current.dispose()
+        storySystemRef.current = null
       }
     }
-  }, [player, onPlayerUpdate, onDialogueOpen, onQuestUpdate])
+  }, []) // Remove dependencies to prevent re-initialization
 
   // Handle keyboard input
   const handleKeyDown = (event, gameEngine, playerManager, worldManager, combatSystem, skillManager, explorationSystem, resourceManager, storySystem) => {
@@ -305,7 +419,32 @@ const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate }) =>
     }
   }
 
-  return <div ref={mountRef} className="absolute inset-0" />
+  return (
+    <div className="absolute inset-0 w-full h-full">
+      <div 
+        ref={mountRef} 
+        className="w-full h-full"
+        style={{ 
+          width: '100%', 
+          height: '100%',
+          position: 'relative'
+        }}
+      />
+      {/* Debug overlay */}
+      <div className="absolute top-4 left-4 bg-black/70 text-white p-2 rounded text-xs z-10">
+        <div>3D Game Scene Active</div>
+        <div>Player: {player?.name || 'None'}</div>
+        <div>Element: {player?.element?.name || 'None'}</div>
+        <div>FPS: {gameStats.fps}</div>
+        <div>Position: ({gameStats.playerPosition?.x || 0}, {gameStats.playerPosition?.y || 0}, {gameStats.playerPosition?.z || 0})</div>
+        <div>Camera: Y:{gameStats.cameraRotation?.y || 0}° X:{gameStats.cameraRotation?.x || 0}°</div>
+        <div>Mouse: {mouseLocked ? '🔒 Locked' : '🔓 Unlocked'}</div>
+        <div>Controls: WASD to move (camera-relative)</div>
+        <div>Mouse: Click to look around, ESC to unlock</div>
+        <div>Space to jump</div>
+      </div>
+    </div>
+  )
 }
 
 export default GameScene

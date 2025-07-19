@@ -8,48 +8,82 @@ import SkillsPanel from './components/SkillsPanel'
 import MapPanel from './components/MapPanel'
 import DialoguePanel from './components/DialoguePanel'
 import QuestPanel from './components/QuestPanel'
+import AdminPanel from './components/AdminPanel'
+import AdminAccess from './components/AdminAccess'
+import CombatTestPanel from './components/CombatTestPanel'
+import StoryTestPanel from './components/StoryTestPanel'
+import ModelTestPanel from './components/ModelTestPanel'
+import { Flame, Droplets, Mountain, Wind } from 'lucide-react'
 
 function App() {
-  const [gameState, setGameState] = useState('menu') // 'menu', 'character-selection', 'playing'
+  const [gameState, setGameState] = useState('menu') // 'menu', 'character-selection', 'playing', 'admin-access', 'admin'
   const [player, setPlayer] = useState(null)
+  const [selectedElement, setSelectedElement] = useState(null)
   const [activePanel, setActivePanel] = useState(null)
   const [dialogueData, setDialogueData] = useState(null)
   const [currentCharacter, setCurrentCharacter] = useState(null)
   const [questData, setQuestData] = useState({ activeQuests: [], storyProgress: {} })
+  const [showCombatTest, setShowCombatTest] = useState(false)
+  const [showStoryTest, setShowStoryTest] = useState(false)
+  const [showModelTest, setShowModelTest] = useState(false)
+  const [gameEngine, setGameEngine] = useState(null)
 
   const elements = [
     {
       id: 'fire',
       name: 'النار',
-      description: 'عنصر القوة والشغف، يمنح قدرات هجومية قوية',
-      color: '#ff4444',
-      skills: ['كرة النار', 'درع اللهب', 'عاصفة نارية']
+      description: 'قوة مدمرة، تلتهم الأعداء بلهيبها الحارق.',
+      color: '#FF4500',
+      abilities: ['كرة النار', 'درع اللهب', 'عاصفة نارية'],
+      icon: Flame
     },
     {
       id: 'water',
       name: 'الماء',
-      description: 'عنصر الشفاء والحكمة، يمنح قدرات دفاعية وشفائية',
-      color: '#4444ff',
-      skills: ['الشفاء', 'جدار جليدي', 'تسونامي']
+      description: 'مرونة لا تضاهى، تشفي الحلفاء وتغرق الأعداء.',
+      color: '#1E90FF',
+      abilities: ['الشفاء', 'جدار جليدي', 'تسونامي'],
+      icon: Droplets
     },
     {
       id: 'earth',
       name: 'الأرض',
-      description: 'عنصر الثبات والقوة، يمنح قدرات دفاعية ومقاومة',
-      color: '#44aa44',
-      skills: ['درع حجري', 'زلزال', 'أشواك حجرية']
+      description: 'صلابة لا تتزعزع، تحمي الحلفاء وتسحق الخصوم.',
+      color: '#8B4513',
+      abilities: ['درع حجري', 'زلزال', 'أشواك حجرية'],
+      icon: Mountain
     },
     {
       id: 'air',
       name: 'الهواء',
-      description: 'عنصر السرعة والحرية، يمنح قدرات حركية وسرعة',
-      color: '#44aaaa',
-      skills: ['شفرة الرياح', 'الطيران', 'إعصار']
+      description: 'خفة وسرعة، تتلاعب بالرياح لتفوق الأعداء.',
+      color: '#E6E6FA',
+      abilities: ['شفرة الرياح', 'الطيران', 'إعصار'],
+      icon: Wind
     }
   ]
 
   const handleStartGame = () => {
+    console.log('Starting game, changing state to character-selection')
     setGameState('character-selection')
+  }
+
+  const handleBackToMenu = () => {
+    console.log('Going back to menu')
+    setGameState('menu')
+    setSelectedElement(null)
+  }
+
+  const handleElementSelect = (element) => {
+    console.log('Element selected:', element)
+    setSelectedElement(element)
+  }
+
+  const handleStartGameWithElement = () => {
+    if (selectedElement) {
+      console.log('Starting game with element:', selectedElement)
+      handleCharacterSelect(selectedElement)
+    }
   }
 
   const handleCharacterSelect = (selectedElement) => {
@@ -92,6 +126,22 @@ function App() {
     setActivePanel(activePanel === panelName ? null : panelName)
   }
 
+  const handleAdminAccess = () => {
+    setGameState('admin-access')
+  }
+
+  const handleAdminLogin = () => {
+    setGameState('admin')
+  }
+
+  const handleBackFromAdmin = () => {
+    setGameState('menu')
+  }
+
+  const handleGameEngineReady = (engine) => {
+    setGameEngine(engine)
+  }
+
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (event) => {
@@ -110,47 +160,74 @@ function App() {
         case 'KeyQ':
           handlePanelToggle('quests')
           break
+        case 'KeyC':
+          // Combat test panel
+          setShowCombatTest(!showCombatTest)
+          break
+        case 'KeyS':
+          // Story test panel
+          setShowStoryTest(!showStoryTest)
+          break
+        case 'KeyV':
+          // Model test panel
+          setShowModelTest(!showModelTest)
+          break
         case 'Escape':
           setActivePanel(null)
           setDialogueData(null)
+          setShowCombatTest(false)
+          setShowStoryTest(false)
+          setShowModelTest(false)
           break
       }
     }
 
     window.addEventListener('keydown', handleKeyPress)
     return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [gameState, activePanel])
+  }, [gameState, activePanel, showCombatTest, showStoryTest, showModelTest])
 
   return (
-    <div className="w-full h-screen bg-black overflow-hidden">
+    <div className="w-full min-h-screen bg-black">
       {gameState === 'menu' && (
-        <MainMenu onStartGame={handleStartGame} />
+        <MainMenu onStartGame={handleStartGame} onAdminAccess={handleAdminAccess} />
+      )}
+      
+      {gameState === 'admin-access' && (
+        <AdminAccess onAccess={handleAdminLogin} onBack={handleBackFromAdmin} />
+      )}
+      
+      {gameState === 'admin' && (
+        <AdminPanel onBack={handleBackFromAdmin} />
       )}
       
       {gameState === 'character-selection' && (
-        <CharacterSelection 
-          elements={elements}
-          onSelectElement={handleCharacterSelect}
-        />
+        <div className="h-screen overflow-y-auto">
+          <CharacterSelection 
+            elements={elements}
+            selectedElement={selectedElement}
+            onSelectElement={handleElementSelect}
+            onStartGame={handleStartGameWithElement}
+            onBack={handleBackToMenu}
+          />
+        </div>
       )}
       
       {gameState === 'playing' && player && (
-        <>
+        <div className="relative w-full h-screen overflow-hidden">
           {/* 3D Game Scene */}
           <GameScene 
             player={player} 
             onPlayerUpdate={handlePlayerUpdate}
             onDialogueOpen={handleDialogueOpen}
             onQuestUpdate={handleQuestUpdate}
+            onGameEngineReady={handleGameEngineReady}
           />
           
           {/* Game HUD */}
           <GameHUD 
             player={player}
-            onInventoryClick={() => handlePanelToggle('inventory')}
-            onSkillsClick={() => handlePanelToggle('skills')}
-            onMapClick={() => handlePanelToggle('map')}
-            onQuestsClick={() => handlePanelToggle('quests')}
+            onTogglePanel={handlePanelToggle}
+            activePanel={activePanel}
           />
 
           {/* Panels */}
@@ -171,30 +248,54 @@ function App() {
             onClose={() => setActivePanel(null)}
             player={player}
           />
-
+          
           <QuestPanel 
             isOpen={activePanel === 'quests'}
             onClose={() => setActivePanel(null)}
-            activeQuests={questData.activeQuests}
-            storyProgress={questData.storyProgress}
+            questData={questData}
           />
 
-          {/* Dialogue System */}
-          <DialoguePanel 
-            isOpen={!!dialogueData}
-            onClose={() => {
-              setDialogueData(null)
-              setCurrentCharacter(null)
-            }}
-            character={currentCharacter}
-            dialogue={dialogueData}
-            onChoiceSelect={handleDialogueChoice}
+          {/* Test Panels */}
+          <CombatTestPanel
+            isOpen={showCombatTest}
+            onClose={() => setShowCombatTest(false)}
+            player={player}
           />
-        </>
+
+          <StoryTestPanel
+            isOpen={showStoryTest}
+            onClose={() => setShowStoryTest(false)}
+          />
+
+          <ModelTestPanel
+            isOpen={showModelTest}
+            onClose={() => setShowModelTest(false)}
+            gameEngine={gameEngine}
+          />
+
+          {/* Dialogue Panel */}
+          {dialogueData && (
+            <DialoguePanel 
+              dialogue={dialogueData}
+              characterId={currentCharacter}
+              onChoice={handleDialogueChoice}
+              onClose={() => setDialogueData(null)}
+            />
+          )}
+
+          {/* Test Instructions */}
+          <div className="absolute bottom-4 left-4 text-white text-sm bg-black/50 p-2 rounded">
+            <div>اختبار القتال: <kbd className="px-1 bg-gray-700 rounded">C</kbd></div>
+            <div>اختبار القصة: <kbd className="px-1 bg-gray-700 rounded">S</kbd></div>
+            <div>اختبار النماذج: <kbd className="px-1 bg-gray-700 rounded">V</kbd></div>
+            <div>إغلاق: <kbd className="px-1 bg-gray-700 rounded">ESC</kbd></div>
+          </div>
+        </div>
       )}
     </div>
   )
 }
 
 export default App
+
 

@@ -53,8 +53,8 @@ const DialoguePanel = ({ isOpen, onClose, character, dialogue, onChoiceSelect })
   if (!isOpen || !currentDialogue) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-gray-900 border-2 border-blue-500 rounded-lg p-6 max-w-2xl w-full mx-4 shadow-2xl">
+    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50" data-ui-element="dialogue-panel">
+      <div className="bg-black/30 backdrop-blur-sm border-2 border-blue-500/20 rounded-2xl p-6 max-w-2xl w-full mx-4 shadow-lg">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">

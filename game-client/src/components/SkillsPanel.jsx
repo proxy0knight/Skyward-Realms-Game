@@ -3,8 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.j
 import { Badge } from '@/components/ui/badge.jsx'
 import { Progress } from '@/components/ui/progress.jsx'
 import { X, Star, Plus, Lock, Flame, Droplets, Mountain, Wind } from 'lucide-react'
+import './InventoryPanel.css'
 
-const SkillsPanel = ({ player, onClose }) => {
+const SkillsPanel = ({ isOpen, player, onClose }) => {
   const availableSkillPoints = 5
 
   const skillTrees = {
@@ -61,8 +62,10 @@ const SkillsPanel = ({ player, onClose }) => {
     return skill.level < skill.maxLevel && availableSkillPoints >= skill.cost
   }
 
+  if (!isOpen) return null
+
   return (
-    <div className="absolute top-4 right-4 w-96 h-[calc(100vh-2rem)] bg-black/80 backdrop-blur-lg rounded-lg border border-purple-500/30 z-20">
+    <div className="hud-panel-glass absolute top-2 sm:top-4 right-2 sm:right-4 w-[calc(100vw-1rem)] sm:w-96 h-[calc(100vh-1rem)] sm:h-[calc(100vh-2rem)] bg-black/30 backdrop-blur-sm rounded-2xl border border-purple-500/20 shadow-lg z-20" data-ui-element="skills-panel">
       <Card className="h-full bg-transparent border-none">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <div className="flex items-center space-x-3 rtl:space-x-reverse">

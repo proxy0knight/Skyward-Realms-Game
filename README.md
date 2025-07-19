@@ -1,169 +1,230 @@
-# Skyward Realms: Echo of Elements
+# 🏰 Skyward Realms Game
 
-## نظرة عامة
-لعبة مغامرات ثلاثية الأبعاد تعتمد على العناصر الأربعة (النار، الماء، الأرض، الهواء) مع نظام قتال متقدم وقصة غنية.
+A modern 3D fantasy RPG game built with React, Three.js, and cutting-edge web technologies. Features an advanced admin dashboard with 2D map editor and 3D asset management system.
 
-## الميزات الرئيسية
+![Skyward Realms Game](assets/images/game-logo.png)
 
-### 🔥 نظام العناصر
-- **النار**: مهارات هجومية قوية (كرة النار، درع اللهب، عاصفة نارية، شكل العنقاء)
-- **الماء**: مهارات شفائية ودفاعية (الشفاء، جدار جليدي، تسونامي، إتقان الماء)
-- **الأرض**: مهارات دفاعية وقوة (درع حجري، زلزال، أشواك حجرية، شكل الجبل)
-- **الهواء**: مهارات حركية وسرعة (شفرة الرياح، الطيران، إعصار، إتقان الهواء)
+## ✨ Features
 
-### 🌍 العالم ثلاثي الأبعاد
-- خمس مناطق مختلفة (النار، الماء، الأرض، الهواء، المركز)
-- فيزياء حقيقية مع الجاذبية والتصادمات
-- دورة النهار والليل الديناميكية
-- بيئة تفاعلية مع موارد قابلة للجمع
+### 🎮 Core Game Features
+- **3D World Rendering**: Immersive 3D environment with Three.js
+- **Character Selection**: Choose from 4 elemental characters (Fire, Water, Earth, Air)
+- **Combat System**: Real-time combat mechanics with elemental abilities
+- **Story System**: Dynamic dialogue and quest management
+- **Inventory Management**: Complete item and equipment system
+- **Skills Panel**: Character progression and ability management
+- **Map Navigation**: Interactive world exploration
 
-### ⚔️ نظام القتال
-- مهارات متنوعة لكل عنصر
-- تأثيرات بصرية مذهلة
-- نظام فترات الانتظار (Cooldowns)
-- أرقام الضرر والشفاء
-- تعزيزات وتأثيرات سلبية
+### 🛠️ Admin Dashboard
+- **2D Map Editor**: Visual map creation with drag-and-drop interface
+- **3D Asset Management**: Comprehensive asset library with categories:
+  - 🏔️ **Terrain**: Ground, rocks, trees, water features
+  - 🏗️ **Structures**: Buildings, castles, monuments, ruins
+  - 👥 **Living Things**: NPCs, animals, monsters, spawn points
+- **External Asset Loading**: Support for GLTF/GLB, OBJ, FBX formats
+- **Real-time 2D-3D Sync**: Bidirectional synchronization between map editor and 3D world
+- **Asset Replacement**: Automatic replacement of existing assets
+- **User Management**: Player accounts and analytics
+- **Game Settings**: Server configuration and maintenance tools
 
-### 🎒 إدارة الموارد
-- 12 نوع مورد مختلف
-- نظام صناعة شامل مع 7 وصفات
-- أسلحة ودروع وجرعات
-- نظام بيع وشراء
-- مخزون منظم بالفئات
+### 🎨 Technical Features
+- **Modern React**: Built with React 18 and functional components
+- **Three.js Integration**: Advanced 3D graphics and scene management
+- **Tailwind CSS**: Beautiful, responsive UI design
+- **Event-Driven Architecture**: Custom event system for game mechanics
+- **Modular Design**: Separated systems for combat, story, assets, and world management
+- **Keyboard Shortcuts**: Quick access to game features and admin tools
 
-### 🗺️ الاستكشاف
-- 15 سراً مخفياً موزعة على المناطق
-- نظام اكتشاف المناطق التلقائي
-- علامات المهام والنقاط المرجعية
-- إحصائيات الاستكشاف المفصلة
+## 🚀 Quick Start
 
-### 📖 القصة والشخصيات
-- قصة رئيسية من 5 فصول
-- 6 شخصيات رئيسية مع حوارات تفاعلية
-- 12 مهمة متنوعة (رئيسية وعنصرية)
-- نظام حوار تفاعلي مع خيارات متعددة
+### Prerequisites
+- Node.js (v16 or higher)
+- npm or pnpm
 
-## التحكم
+### Installation
 
-### الحركة الأساسية
-- **WASD**: الحركة
-- **Space**: القفز
-- **Mouse**: التحكم في الكاميرا
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/Skyward-Realms-Game.git
+   cd Skyward-Realms-Game
+   ```
 
-### المهارات والقتال
-- **1-5**: استخدام المهارات
-- **R**: ترقية المهارات تلقائياً
-- **H**: استخدام عناصر الشفاء
+2. **Install dependencies**
+   ```bash
+   cd game-client
+   npm install
+   # or
+   pnpm install
+   ```
 
-### الواجهات
-- **I**: فتح المخزون
-- **K**: فتح المهارات
-- **M**: فتح الخريطة
-- **Q**: فتح المهام
-- **E**: التفاعل مع الكائنات والشخصيات
+3. **Start the development server**
+   ```bash
+   npm run dev
+   # or
+   pnpm dev
+   ```
 
-### الاختبار والتطوير
-- **T**: كسب الخبرة (للاختبار)
-- **G**: عرض إحصائيات الاستكشاف
-- **V**: عرض إحصائيات الصناعة
-- **C**: اختبار الصناعة التلقائية
-- **N**: اختبار تقدم المهام
+4. **Open your browser**
+   - Navigate to `http://localhost:5173`
+   - The game will load automatically
 
-## التشغيل
+## 🎯 How to Play
 
-### متطلبات النظام
-- متصفح حديث يدعم WebGL
-- ذاكرة وصول عشوائي: 4 جيجابايت على الأقل
-- معالج رسوميات متوافق مع WebGL 2.0
+### Main Menu
+- **Start Game**: Begin your adventure
+- **Admin Access**: Access the admin dashboard (requires admin privileges)
 
-### طريقة التشغيل
-1. انتقل إلى مجلد `game-client`
-2. شغل الأمر: `pnpm run dev`
-3. افتح المتصفح على: `http://localhost:5173`
+### Character Selection
+Choose your elemental character:
+- 🔥 **Fire Elemental**: Fire magic and offensive abilities
+- 💧 **Water Elemental**: Healing and defensive magic
+- 🏔️ **Earth Elemental**: Stone magic and protection
+- 💨 **Air Elemental**: Wind magic and mobility
 
-### للإنتاج
-1. شغل الأمر: `pnpm run build`
-2. انتقل إلى مجلد `dist`
-3. شغل خادم محلي: `python3 -m http.server 8000`
-4. افتح المتصفح على: `http://localhost:8000`
+### In-Game Controls
+- **WASD**: Move character
+- **Mouse**: Look around
+- **I**: Open inventory
+- **K**: Open skills panel
+- **M**: Open map
+- **Q**: Open quests
+- **C**: Combat test panel
+- **S**: Story test panel
+- **V**: Model test panel
+- **A**: Admin dashboard
+- **ESC**: Close panels
 
-## هيكل المشروع
+## 🛠️ Admin Dashboard Usage
+
+### Accessing Admin Panel
+1. From main menu: Click "Admin Access"
+2. In-game: Press 'A' key
+
+### 2D Map Editor
+1. **Navigate to Assets Tab** → **2D Map Editor**
+2. **Asset Palette**: Drag assets from the left panel
+3. **Tools**:
+   - **Select**: Click to select objects
+   - **Place Asset**: Drag assets to place them
+   - **Move**: Drag existing objects
+   - **Delete**: Remove selected objects
+4. **Controls**:
+   - **Zoom**: Use zoom buttons or slider
+   - **Grid**: Adjustable grid size
+   - **3D Sync**: Real-time synchronization with 3D world
+
+### 3D Asset Management
+1. **Upload External Assets**:
+   - Go to "External Assets" tab
+   - Enter asset URL (GLTF/GLB, OBJ, FBX)
+   - Set asset name and type
+   - Click "Load Asset"
+
+2. **Local File Upload**:
+   - Use "Upload Asset" buttons in Legacy Assets
+   - Supports images, audio, video, and 3D models
+   - Automatic replacement of existing assets
+
+3. **Asset Categories**:
+   - **Terrain**: Environmental objects (trees, rocks, water)
+   - **Structures**: Buildings and architectural elements
+   - **Living Things**: Characters, animals, and spawn points
+
+### 3D World Synchronization
+- **Connection Status**: Green dot indicates 3D world connection
+- **Sync Modes**:
+  - **Bidirectional**: Changes sync both ways
+  - **2D → 3D Only**: Only map changes affect 3D world
+  - **3D → 2D Only**: Only 3D changes affect map
+- **Manual Controls**:
+  - **Sync All to 3D**: Manually sync all objects
+  - **Clear 3D Objects**: Remove all 3D objects
+
+## 📁 Project Structure
 
 ```
-skyward_realms/
-├── game-client/           # تطبيق React الرئيسي
+Skyward-Realms-Game/
+├── assets/                 # Game assets (images, audio)
+├── game-client/           # Main React application
 │   ├── src/
-│   │   ├── components/    # مكونات الواجهة
-│   │   ├── lib/          # محركات اللعبة
-│   │   └── assets/       # الأصول المرئية
-│   ├── dist/             # النسخة المبنية للإنتاج
-│   └── package.json      # تبعيات المشروع
-├── assets/               # الأصول الأصلية
-└── README.md            # هذا الملف
+│   │   ├── components/    # React components
+│   │   │   ├── ui/        # Reusable UI components
+│   │   │   └── ...        # Game-specific components
+│   │   ├── lib/           # Game systems and utilities
+│   │   │   ├── GameEngine.js
+│   │   │   ├── CombatSystem.js
+│   │   │   ├── StorySystem.js
+│   │   │   └── ...
+│   │   └── main.jsx       # Application entry point
+│   ├── package.json       # Dependencies and scripts
+│   └── vite.config.js     # Build configuration
+├── README.md              # This file
+└── ...                    # Documentation and guides
 ```
 
-## المحركات والأنظمة
+## 🎨 Asset Management
 
-### محرك اللعبة الأساسي (`GameEngine.js`)
-- حلقة اللعبة الرئيسية
-- نظام الفيزياء
-- إدارة الإضاءة والكاميرا
-- نظام الأحداث
+### Supported Formats
+- **3D Models**: GLTF/GLB, OBJ, FBX
+- **Images**: JPG, PNG, WebP
+- **Audio**: MP3, WAV, OGG
+- **Data**: JSON, CSV
 
-### مدير اللاعبين (`PlayerManager.js`)
-- إدارة بيانات اللاعب
-- نظام المخزون والمهارات
-- حفظ وتحميل البيانات
+### Asset Categories
+- **Player Assets**: Character models, animations, textures
+- **Environment Assets**: Terrain, buildings, props
+- **Item Assets**: Weapons, armor, consumables
+- **Other Assets**: UI elements, audio, effects
 
-### مدير العالم (`WorldManager.js`)
-- توليد البيئة
-- إدارة الموارد والكائنات
-- الشخصيات غير القابلة للعب
+## 🔧 Development
 
-### نظام القتال (`CombatSystem.js`)
-- مهارات العناصر الأربعة
-- التأثيرات البصرية
-- حساب الضرر والشفاء
+### Available Scripts
+```bash
+# Development
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run preview      # Preview production build
 
-### نظام الاستكشاف (`ExplorationSystem.js`)
-- اكتشاف المناطق
-- الأسرار المخفية
-- علامات المهام
+# Testing
+npm run test         # Run tests
+npm run lint         # Lint code
+```
 
-### مدير الموارد (`ResourceManager.js`)
-- جمع الموارد
-- نظام الصناعة
-- الاقتصاد والتجارة
+### Key Technologies
+- **Frontend**: React 18, Vite, Tailwind CSS
+- **3D Graphics**: Three.js, GLTF Loader
+- **State Management**: React Hooks, Context API
+- **Build Tool**: Vite
+- **Package Manager**: npm/pnpm
 
-### نظام القصة (`StorySystem.js`)
-- القصة الرئيسية
-- الحوارات التفاعلية
-- إدارة المهام
+## 🤝 Contributing
 
-## التقنيات المستخدمة
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-- **React 18**: إطار العمل الأساسي
-- **Three.js**: الرسوميات ثلاثية الأبعاد
-- **Vite**: أداة البناء والتطوير
-- **TailwindCSS**: تصميم الواجهة
-- **Lucide Icons**: الأيقونات
-- **LocalStorage**: حفظ البيانات
+## 📝 License
 
-## الإنجازات
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-✅ نظام عناصر متكامل مع 16 مهارة فريدة
-✅ عالم ثلاثي الأبعاد تفاعلي مع فيزياء حقيقية
-✅ نظام قتال متقدم مع تأثيرات بصرية
-✅ اقتصاد موارد متكامل مع 12 نوع مورد
-✅ قصة غنية مع 6 شخصيات و12 مهمة
-✅ واجهة مستخدم عربية كاملة
-✅ نظام حفظ وتحميل تلقائي
-✅ أداء محسن (60 FPS)
+## 🙏 Acknowledgments
 
-## المطور
-تم تطوير هذه اللعبة بواسطة Manus AI باستخدام أحدث التقنيات في تطوير الألعاب على الويب.
+- **Three.js**: 3D graphics library
+- **React**: UI framework
+- **Tailwind CSS**: Styling framework
+- **Lucide React**: Icon library
+- **Vite**: Build tool
+
+## 📞 Support
+
+If you encounter any issues or have questions:
+1. Check the [Issues](https://github.com/YOUR_USERNAME/Skyward-Realms-Game/issues) page
+2. Create a new issue with detailed description
+3. Include system information and error logs
 
 ---
 
-**استمتع باللعب في عالم Skyward Realms! 🎮**
+**Made with ❤️ for the gaming community**
 

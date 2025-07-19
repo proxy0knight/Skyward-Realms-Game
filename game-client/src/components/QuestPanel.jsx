@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { X, Target, CheckCircle, Clock, Star, Sword, Book, Zap } from 'lucide-react'
+import './InventoryPanel.css'
 
 const QuestPanel = ({ isOpen, onClose, activeQuests, storyProgress, onQuestSelect }) => {
   const [selectedTab, setSelectedTab] = useState('active')
@@ -32,8 +33,8 @@ const QuestPanel = ({ isOpen, onClose, activeQuests, storyProgress, onQuestSelec
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-gray-900 border-2 border-purple-500 rounded-lg w-full max-w-4xl h-5/6 mx-4 shadow-2xl flex flex-col">
+    <div className="hud-panel-glass fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50" data-ui-element="quest-panel">
+      <div className="bg-black/30 backdrop-blur-sm border-2 border-purple-500/20 rounded-2xl w-full max-w-4xl h-5/6 mx-4 shadow-lg flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-700">
           <div className="flex items-center space-x-3">

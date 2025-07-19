@@ -1,0 +1,83 @@
+.hud-panel-glass {
+  position: relative;
+  background: rgba(30, 30, 60, 0.60);
+  border-radius: 24px;
+  box-shadow: 0 8px 40px 0 rgba(0,0,0,0.25), 0 1.5px 8px 0 rgba(0,212,255,0.08);
+  backdrop-filter: blur(24px) saturate(1.2);
+  border: 1.5px solid rgba(142,45,226,0.18);
+  overflow: hidden;
+  z-index: 2;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+
+.hud-panel-glass.panel-enter {
+  opacity: 0;
+  transform: translateX(100%) scale(0.95);
+}
+
+.hud-panel-glass.panel-exit {
+  opacity: 0;
+  transform: translateX(100%) scale(0.95);
+}
+
+.hud-panel-glass::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  background: linear-gradient(270deg, #0f0c29, #302b63, #8e2de2, #00d4ff, #24243e, #ff00ff, #0f0c29);
+  background-size: 400% 400%;
+  animation: fantasyGradient 18s ease-in-out infinite;
+  opacity: 0.18;
+  filter: blur(2.5px) brightness(0.93);
+}
+
+@keyframes fantasyGradient {
+  0% { background-position: 0% 50%; }
+  25% { background-position: 50% 100%; }
+  50% { background-position: 100% 50%; }
+  75% { background-position: 50% 0%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Button Ripple Effect */
+.ripple-button {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.ripple-button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.ripple-button:active::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* Enhanced Hover Effects */
+.hud-panel-glass button:hover {
+  box-shadow: 0 0 16px 4px #00d4ff99, 0 8px 24px rgba(142,45,226,0.18);
+  filter: brightness(1.08) saturate(1.2);
+  transform: translateY(-2px);
+}
+
+.hud-panel-glass .card:hover {
+  box-shadow: 0 0 20px 6px rgba(0,212,255,0.15);
+  transform: translateY(-1px);
+} 

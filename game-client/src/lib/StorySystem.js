@@ -15,13 +15,89 @@ export class StorySystem {
     }
     this.characters = new Map()
     this.dialogues = new Map()
+    this.characterRelationships = new Map()
+    this.playerChoices = new Map()
+    this.storyFlags = new Set()
     
     this.initializeStory()
     this.initializeCharacters()
     this.initializeQuests()
+    this.initializeRelationships()
   }
 
-  // Initialize main story
+  // Initialize character relationships
+  initializeRelationships() {
+    this.characterRelationships = new Map()
+    
+    // Initialize relationship levels (0-100)
+    const characters = ['eldric', 'pyra', 'aqua', 'terra', 'zephyr']
+    characters.forEach(charId => {
+      this.characterRelationships.set(charId, {
+        level: 0,
+        trust: 0,
+        respect: 0,
+        friendship: 0,
+        dialogueHistory: [],
+        gifts: [],
+        questsCompleted: 0
+      })
+    })
+  }
+
+  // Update relationship with character
+  updateRelationship(characterId, type, amount) {
+    const relationship = this.characterRelationships.get(characterId)
+    if (!relationship) return
+
+    switch (type) {
+      case 'trust':
+        relationship.trust = Math.max(0, Math.min(100, relationship.trust + amount))
+        break
+      case 'respect':
+        relationship.respect = Math.max(0, Math.min(100, relationship.respect + amount))
+        break
+      case 'friendship':
+        relationship.friendship = Math.max(0, Math.min(100, relationship.friendship + amount))
+        break
+    }
+
+    // Update overall level
+    relationship.level = Math.floor((relationship.trust + relationship.respect + relationship.friendship) / 3)
+    
+    // Check for relationship milestones
+    this.checkRelationshipMilestones(characterId, relationship.level)
+  }
+
+  // Check relationship milestones
+  checkRelationshipMilestones(characterId, level) {
+    const milestones = [25, 50, 75, 100]
+    const character = this.characters.get(characterId)
+    
+    if (milestones.includes(level) && character) {
+      this.addStoryFlag(`relationship_${characterId}_${level}`)
+      
+      // Unlock special dialogue or quests
+      switch (level) {
+        case 25:
+          this.unlockDialogue(characterId, 'friendly_chat')
+          break
+        case 50:
+          this.unlockDialogue(characterId, 'personal_story')
+          this.unlockQuest(`${characterId}_personal_quest`)
+          break
+        case 75:
+          this.unlockDialogue(characterId, 'deep_trust')
+          this.unlockQuest(`${characterId}_trust_quest`)
+          break
+        case 100:
+          this.unlockDialogue(characterId, 'ultimate_bond')
+          this.unlockQuest(`${characterId}_ultimate_quest`)
+          break
+      }
+    }
+  }
+
+  // Initialize main story with enhanced branching
   initializeStory() {
     this.mainStory = {
       title: 'صدى العناصر',
@@ -40,6 +116,19 @@ export class StorySystem {
             experience: 1000,
             items: ['عصا المبتدئ', 'جرعة شفاء كبيرة'],
             skillPoints: 3
+          },
+          choices: {
+            element_choice: {
+              fire: { trust: 10, respect: 5, storyFlag: 'chose_fire' },
+              water: { trust: 10, respect: 5, storyFlag: 'chose_water' },
+              earth: { trust: 10, respect: 5, storyFlag: 'chose_earth' },
+              air: { trust: 10, respect: 5, storyFlag: 'chose_air' }
+            },
+            first_meeting_style: {
+              aggressive: { respect: -5, trust: -10, storyFlag: 'aggressive_approach' },
+              diplomatic: { respect: 10, trust: 5, storyFlag: 'diplomatic_approach' },
+              cautious: { respect: 0, trust: 5, storyFlag: 'cautious_approach' }
+            }
           }
         },
         2: {
@@ -55,6 +144,19 @@ export class StorySystem {
             experience: 2000,
             items: ['تاج العناصر', 'درع الحماية الأسطوري'],
             skillPoints: 5
+          },
+          choices: {
+            corruption_approach: {
+              destroy: { respect: -15, trust: -10, storyFlag: 'destroy_corruption' },
+              purify: { respect: 15, trust: 10, storyFlag: 'purify_corruption' },
+              study: { respect: 5, trust: 5, storyFlag: 'study_corruption' }
+            },
+            alliance_formation: {
+              fire_first: { trust: 20, storyFlag: 'fire_alliance_first' },
+              water_first: { trust: 20, storyFlag: 'water_alliance_first' },
+              earth_first: { trust: 20, storyFlag: 'earth_alliance_first' },
+              air_first: { trust: 20, storyFlag: 'air_alliance_first' }
+            }
           }
         },
         3: {
@@ -70,6 +172,18 @@ export class StorySystem {
             experience: 3000,
             items: ['سيف الضوء', 'عباءة النجوم'],
             skillPoints: 7
+          },
+          choices: {
+            darkness_investigation: {
+              direct: { respect: 10, trust: -5, storyFlag: 'direct_investigation' },
+              stealth: { respect: -5, trust: 10, storyFlag: 'stealth_investigation' },
+              diplomatic: { respect: 5, trust: 5, storyFlag: 'diplomatic_investigation' }
+            },
+            general_confrontation: {
+              fire_general: { storyFlag: 'defeated_fire_general', trust: 15 },
+              water_general: { storyFlag: 'defeated_water_general', trust: 15 },
+              earth_general: { storyFlag: 'defeated_earth_general', trust: 15 }
+            }
           }
         },
         4: {
@@ -85,6 +199,18 @@ export class StorySystem {
             experience: 4000,
             items: ['تاج سيد العناصر', 'جوهرة القوة الأبدية'],
             skillPoints: 10
+          },
+          choices: {
+            final_preparation: {
+              training: { respect: 10, storyFlag: 'intensive_training' },
+              gathering: { trust: 10, storyFlag: 'alliance_gathering' },
+              research: { respect: 5, trust: 5, storyFlag: 'darkness_research' }
+            },
+            castle_approach: {
+              frontal: { respect: 15, storyFlag: 'frontal_assault' },
+              infiltration: { trust: 15, storyFlag: 'stealth_infiltration' },
+              siege: { respect: 10, trust: 10, storyFlag: 'strategic_siege' }
+            }
           }
         },
         5: {
@@ -101,13 +227,27 @@ export class StorySystem {
             items: ['عرش العناصر', 'صولجان التوازن الأبدي'],
             skillPoints: 15,
             title: 'حارس التوازن الأعظم'
+          },
+          choices: {
+            final_confrontation: {
+              destroy: { storyFlag: 'destroyed_darkness', ending: 'destruction' },
+              seal: { storyFlag: 'sealed_darkness', ending: 'sealing' },
+              redeem: { storyFlag: 'redeemed_darkness', ending: 'redemption' }
+            },
+            balance_restoration: {
+              fire_primary: { storyFlag: 'fire_balance_primary', ending: 'fire_dominance' },
+              water_primary: { storyFlag: 'water_balance_primary', ending: 'water_dominance' },
+              earth_primary: { storyFlag: 'earth_balance_primary', ending: 'earth_dominance' },
+              air_primary: { storyFlag: 'air_balance_primary', ending: 'air_dominance' },
+              perfect_balance: { storyFlag: 'perfect_balance', ending: 'true_balance' }
+            }
           }
         }
       }
     }
   }
 
-  // Initialize characters
+  // Initialize characters with enhanced dialogue
   initializeCharacters() {
     const characters = {
       eldric: {
@@ -118,34 +258,100 @@ export class StorySystem {
         location: { x: 0, z: 0 },
         description: 'حكيم عجوز يحمل أسرار العناصر القديمة ويرشد الأبطال الجدد',
         personality: 'حكيم، صبور، غامض',
-        dialogues: {
+        dialogueTree: {
           first_meeting: {
             text: 'أهلاً بك، أيها المختار. لقد كنت أنتظرك منذ زمن طويل. العالم في خطر، والعناصر تصرخ طلباً للمساعدة.',
             options: [
-              { text: 'من أنت؟ وماذا تعني بالمختار؟', response: 'first_meeting_who' },
-              { text: 'أخبرني عن هذا الخطر', response: 'first_meeting_danger' },
-              { text: 'كيف يمكنني المساعدة؟', response: 'first_meeting_help' }
+              { 
+                text: 'من أنت؟ وماذا تعني بالمختار؟', 
+                response: 'first_meeting_who',
+                relationshipEffect: { trust: 5, respect: 0 }
+              },
+              { 
+                text: 'أخبرني عن هذا الخطر', 
+                response: 'first_meeting_danger',
+                relationshipEffect: { trust: 10, respect: 5 }
+              },
+              { 
+                text: 'كيف يمكنني المساعدة؟', 
+                response: 'first_meeting_help',
+                relationshipEffect: { trust: 15, respect: 10 }
+              }
             ]
           },
           first_meeting_who: {
             text: 'أنا إلدريك، آخر حراس المعرفة القديمة. أنت المختار الذي تنبأت به النبوءات القديمة - الوحيد القادر على استعادة التوازن.',
             options: [
-              { text: 'ما هي هذه النبوءة؟', response: 'prophecy_explanation' },
-              { text: 'لست أشعر بأنني مميز', response: 'doubt_response' }
+              { 
+                text: 'ما هي هذه النبوءة؟', 
+                response: 'prophecy_explanation',
+                relationshipEffect: { trust: 5, respect: 5 }
+              },
+              { 
+                text: 'لست أشعر بأنني مميز', 
+                response: 'doubt_response',
+                relationshipEffect: { trust: -5, respect: 0 }
+              }
             ]
           },
           first_meeting_danger: {
             text: 'قوة الظلام القديمة تستيقظ. إنها تفسد العناصر وتخل بالتوازن الذي حافظنا عليه لآلاف السنين. إذا لم نتحرك سريعاً، فسيغرق العالم في الفوضى.',
             options: [
-              { text: 'كيف بدأ هذا؟', response: 'darkness_origin' },
-              { text: 'ما الذي يمكنني فعله؟', response: 'player_role' }
+              { 
+                text: 'كيف بدأ هذا؟', 
+                response: 'darkness_origin',
+                relationshipEffect: { trust: 5, respect: 5 }
+              },
+              { 
+                text: 'ما الذي يمكنني فعله؟', 
+                response: 'player_role',
+                relationshipEffect: { trust: 10, respect: 10 }
+              }
             ]
           },
           first_meeting_help: {
             text: 'أولاً، يجب أن تختار عنصرك الأساسي وتتقن قوته. ثم عليك زيارة عوالم العناصر الأربعة وجمع شظايا القوة القديمة.',
             options: [
-              { text: 'أخبرني عن العناصر', response: 'elements_explanation' },
-              { text: 'أين أجد هذه الشظايا؟', response: 'shards_location' }
+              { 
+                text: 'أخبرني عن العناصر', 
+                response: 'elements_explanation',
+                relationshipEffect: { trust: 5, respect: 5 }
+              },
+              { 
+                text: 'أين أجد هذه الشظايا؟', 
+                response: 'shards_location',
+                relationshipEffect: { trust: 10, respect: 5 }
+              }
+            ]
+          },
+          friendly_chat: {
+            text: 'أرى أن ثقتك بي تزداد، أيها المختار. هل تريد أن أخبرك بقصة من قصص الماضي؟',
+            options: [
+              { 
+                text: 'نعم، أحب أن أسمع', 
+                response: 'ancient_story',
+                relationshipEffect: { trust: 10, friendship: 15 }
+              },
+              { 
+                text: 'ربما في وقت آخر', 
+                response: 'polite_decline',
+                relationshipEffect: { trust: 0, friendship: 5 }
+              }
+            ]
+          },
+          personal_story: {
+            text: 'لقد أصبحت صديقاً عزيزاً، أيها المختار. دعني أخبرك عن الماضي الذي جعلني الحكيم الذي أنا عليه اليوم.',
+            options: [
+              { 
+                text: 'أريد أن أعرف كل شيء', 
+                response: 'full_backstory',
+                relationshipEffect: { trust: 20, friendship: 25 }
+              },
+              { 
+                text: 'أخبرني ما تريد', 
+                response: 'partial_backstory',
+                relationshipEffect: { trust: 10, friendship: 15 }
+              }
             ]
           }
         },
@@ -160,19 +366,50 @@ export class StorySystem {
         location: { x: 75, z: 75 },
         description: 'سيدة عنصر النار، محاربة شرسة بقلب دافئ',
         personality: 'شجاعة، متحمسة، وفية',
-        dialogues: {
+        dialogueTree: {
           first_meeting: {
             text: 'أشعر بقوة النار تتدفق منك! أنت تحمل شعلة الأمل التي انتظرناها طويلاً.',
             options: [
-              { text: 'علميني قوة النار', response: 'fire_training' },
-              { text: 'ما الذي يهدد عالم النار؟', response: 'fire_threat' }
+              { 
+                text: 'علميني قوة النار', 
+                response: 'fire_training',
+                relationshipEffect: { trust: 15, respect: 10 }
+              },
+              { 
+                text: 'ما الذي يهدد عالم النار؟', 
+                response: 'fire_threat',
+                relationshipEffect: { trust: 10, respect: 15 }
+              }
             ]
           },
           fire_training: {
             text: 'النار ليست مجرد تدمير، بل هي الحياة والشغف والتجديد. دعني أعلمك أسرار اللهب الأبدي.',
             options: [
-              { text: 'أريد أن أتعلم', response: 'accept_training' },
-              { text: 'أحتاج وقتاً للتفكير', response: 'delay_training' }
+              { 
+                text: 'أريد أن أتعلم', 
+                response: 'accept_training',
+                relationshipEffect: { trust: 20, respect: 15 }
+              },
+              { 
+                text: 'أحتاج وقتاً للتفكير', 
+                response: 'delay_training',
+                relationshipEffect: { trust: 0, respect: 5 }
+              }
+            ]
+          },
+          friendly_chat: {
+            text: 'أرى أن النار في قلبك تتوهج بقوة! هل تريد أن نتحدث عن شغفك بالقتال؟',
+            options: [
+              { 
+                text: 'أحب القتال الشريف', 
+                response: 'noble_combat',
+                relationshipEffect: { trust: 15, friendship: 20 }
+              },
+              { 
+                text: 'أفضل الدفاع عن الآخرين', 
+                response: 'protective_combat',
+                relationshipEffect: { trust: 20, friendship: 15 }
+              }
             ]
           }
         },
@@ -187,12 +424,20 @@ export class StorySystem {
         location: { x: -75, z: 75 },
         description: 'حارسة عنصر الماء، شافية حكيمة ومحاربة ماهرة',
         personality: 'هادئة، حكيمة، رحيمة',
-        dialogues: {
+        dialogueTree: {
           first_meeting: {
             text: 'المياه تهمس باسمك، أيها المختار. تعال، دعني أشفي جراحك وأعلمك أسرار التدفق الأبدي.',
             options: [
-              { text: 'أحتاج إلى قوة الشفاء', response: 'water_healing' },
-              { text: 'علميني التحكم في الماء', response: 'water_control' }
+              { 
+                text: 'أحتاج إلى قوة الشفاء', 
+                response: 'water_healing',
+                relationshipEffect: { trust: 10, respect: 5 }
+              },
+              { 
+                text: 'علميني التحكم في الماء', 
+                response: 'water_control',
+                relationshipEffect: { trust: 15, respect: 10 }
+              }
             ]
           }
         },
@@ -207,12 +452,20 @@ export class StorySystem {
         location: { x: -75, z: -75 },
         description: 'حارس عنصر الأرض، قوي كالجبال وثابت كالصخر',
         personality: 'صبور، قوي، موثوق',
-        dialogues: {
+        dialogueTree: {
           first_meeting: {
             text: 'الأرض تهتز تحت أقدامك، لكنها تهتز من الفرح لا من الخوف. أنت من ستعيد الاستقرار إلى عالمنا.',
             options: [
-              { text: 'علمني قوة الأرض', response: 'earth_training' },
-              { text: 'كيف أحمي الآخرين؟', response: 'earth_protection' }
+              { 
+                text: 'علمني قوة الأرض', 
+                response: 'earth_training',
+                relationshipEffect: { trust: 10, respect: 5 }
+              },
+              { 
+                text: 'كيف أحمي الآخرين؟', 
+                response: 'earth_protection',
+                relationshipEffect: { trust: 15, respect: 10 }
+              }
             ]
           }
         },
@@ -227,12 +480,20 @@ export class StorySystem {
         location: { x: 75, z: -75 },
         description: 'سيد عنصر الهواء، سريع كالبرق وحر كالريح',
         personality: 'مرح، سريع، مغامر',
-        dialogues: {
+        dialogueTree: {
           first_meeting: {
             text: 'الرياح تحمل أخبارك إلى كل مكان! أنت سريع التعلم، دعني أعلمك كيف تطير مع العاصفة.',
             options: [
-              { text: 'أريد أن أتعلم الطيران', response: 'air_flight' },
-              { text: 'علمني قوة العاصفة', response: 'air_storm' }
+              { 
+                text: 'أريد أن أتعلم الطيران', 
+                response: 'air_flight',
+                relationshipEffect: { trust: 10, respect: 5 }
+              },
+              { 
+                text: 'علمني قوة العاصفة', 
+                response: 'air_storm',
+                relationshipEffect: { trust: 15, respect: 10 }
+              }
             ]
           }
         },
@@ -247,22 +508,28 @@ export class StorySystem {
         location: { x: 0, z: 200 },
         description: 'كائن قديم من الظلام يسعى لتدمير التوازن وإغراق العالم في الفوضى',
         personality: 'شرير، ماكر، قوي',
-        dialogues: {
+        dialogueTree: {
           final_confrontation: {
             text: 'أخيراً، المختار الصغير يأتي ليواجهني. هل تعتقد أن قوتك الضئيلة يمكنها أن توقف الظلام الأبدي؟',
             options: [
-              { text: 'سأوقفك مهما كلف الأمر!', response: 'heroic_defiance' },
-              { text: 'لماذا تريد تدمير العالم؟', response: 'villain_motivation' }
+              { 
+                text: 'سأوقفك مهما كلف الأمر!', 
+                response: 'heroic_defiance',
+                relationshipEffect: { trust: 20, respect: 15 }
+              },
+              { 
+                text: 'لماذا تريد تدمير العالم؟', 
+                response: 'villain_motivation',
+                relationshipEffect: { trust: -10, respect: -5 }
+              }
             ]
           }
         },
         quests: ['final_battle', 'darkness_origin']
       }
     }
-
-    Object.entries(characters).forEach(([id, character]) => {
-      this.characters.set(id, character)
-    })
+    
+    this.characters = new Map(Object.entries(characters))
   }
 
   // Initialize quests
@@ -585,31 +852,165 @@ export class StorySystem {
     }
   }
 
-  // Get character dialogue
-  getCharacterDialogue(characterId, dialogueId = 'first_meeting') {
+  // Process dialogue choice with relationship effects
+  processDialogueChoice(characterId, dialogueId, choiceIndex) {
     const character = this.characters.get(characterId)
-    if (!character || !character.dialogues[dialogueId]) {
-      return null
+    if (!character || !character.dialogueTree[dialogueId]) return null
+
+    const dialogue = character.dialogueTree[dialogueId]
+    const choice = dialogue.options[choiceIndex]
+    
+    if (!choice) return null
+
+    // Apply relationship effects
+    if (choice.relationshipEffect) {
+      Object.entries(choice.relationshipEffect).forEach(([type, amount]) => {
+        this.updateRelationship(characterId, type, amount)
+      })
     }
 
-    return {
-      character: character.name,
-      title: character.title,
-      dialogue: character.dialogues[dialogueId]
+    // Record player choice
+    this.playerChoices.set(`${characterId}_${dialogueId}`, choiceIndex)
+
+    // Return next dialogue
+    return character.dialogueTree[choice.response] || null
+  }
+
+  // Get character dialogue with relationship context
+  getCharacterDialogue(characterId, dialogueId = 'first_meeting') {
+    const character = this.characters.get(characterId)
+    if (!character || !character.dialogueTree[dialogueId]) return null
+
+    const relationship = this.characterRelationships.get(characterId)
+    const dialogue = character.dialogueTree[dialogueId]
+
+    // Modify dialogue based on relationship level
+    let modifiedDialogue = { ...dialogue }
+    
+    if (relationship && relationship.level >= 50) {
+      // High relationship - more personal dialogue
+      modifiedDialogue.text = this.addPersonalTouch(dialogue.text, characterId)
+    }
+
+    return modifiedDialogue
+  }
+
+  // Add personal touch to dialogue based on relationship
+  addPersonalTouch(text, characterId) {
+    const relationship = this.characterRelationships.get(characterId)
+    if (!relationship) return text
+
+    const personalTouches = {
+      eldric: {
+        high: 'صديقي العزيز، ',
+        medium: 'أيها المختار، '
+      },
+      pyra: {
+        high: 'يا شعلتي، ',
+        medium: 'أيها المحارب، '
+      }
+    }
+
+    const touch = personalTouches[characterId]
+    if (touch) {
+      if (relationship.level >= 75) {
+        return touch.high + text
+      } else if (relationship.level >= 25) {
+        return touch.medium + text
+      }
+    }
+
+    return text
+  }
+
+  // Add story flag
+  addStoryFlag(flag) {
+    this.storyFlags.add(flag)
+    this.checkStoryConsequences(flag)
+  }
+
+  // Check story consequences
+  checkStoryConsequences(flag) {
+    switch (flag) {
+      case 'chose_fire':
+        this.updateRelationship('pyra', 'trust', 20)
+        this.updateRelationship('aqua', 'trust', -5)
+        break
+      case 'chose_water':
+        this.updateRelationship('aqua', 'trust', 20)
+        this.updateRelationship('pyra', 'trust', -5)
+        break
+      case 'aggressive_approach':
+        this.updateRelationship('eldric', 'trust', -10)
+        this.updateRelationship('eldric', 'respect', -5)
+        break
+      case 'diplomatic_approach':
+        this.updateRelationship('eldric', 'trust', 10)
+        this.updateRelationship('eldric', 'respect', 5)
+        break
     }
   }
 
-  // Process dialogue choice
-  processDialogueChoice(characterId, dialogueId, choiceIndex) {
-    const dialogue = this.getCharacterDialogue(characterId, dialogueId)
-    if (!dialogue || !dialogue.dialogue.options[choiceIndex]) {
-      return null
+  // Unlock dialogue
+  unlockDialogue(characterId, dialogueId) {
+    const character = this.characters.get(characterId)
+    if (character && character.dialogueTree[dialogueId]) {
+      // Mark dialogue as available
+      if (!character.unlockedDialogues) {
+        character.unlockedDialogues = new Set()
+      }
+      character.unlockedDialogues.add(dialogueId)
+    }
+  }
+
+  // Unlock quest
+  unlockQuest(questId) {
+    // This would integrate with your quest system
+    console.log(`Unlocked quest: ${questId}`)
+  }
+
+  // Get available dialogues for character
+  getAvailableDialogues(characterId) {
+    const character = this.characters.get(characterId)
+    if (!character) return []
+
+    const available = ['first_meeting']
+    const relationship = this.characterRelationships.get(characterId)
+
+    if (relationship) {
+      if (relationship.level >= 25) available.push('friendly_chat')
+      if (relationship.level >= 50) available.push('personal_story')
+      if (relationship.level >= 75) available.push('deep_trust')
+      if (relationship.level >= 100) available.push('ultimate_bond')
     }
 
-    const choice = dialogue.dialogue.options[choiceIndex]
-    const nextDialogueId = choice.response
+    return available.filter(dialogueId => character.dialogueTree[dialogueId])
+  }
 
-    return this.getCharacterDialogue(characterId, nextDialogueId)
+  // Get relationship status
+  getRelationshipStatus(characterId) {
+    const relationship = this.characterRelationships.get(characterId)
+    if (!relationship) return null
+
+    const status = {
+      level: relationship.level,
+      trust: relationship.trust,
+      respect: relationship.respect,
+      friendship: relationship.friendship,
+      status: this.getRelationshipStatusText(relationship.level)
+    }
+
+    return status
+  }
+
+  // Get relationship status text
+  getRelationshipStatusText(level) {
+    if (level >= 90) return 'صديق مقرب'
+    if (level >= 75) return 'صديق موثوق'
+    if (level >= 50) return 'صديق'
+    if (level >= 25) return 'معارف'
+    if (level >= 0) return 'غريب'
+    return 'عدو'
   }
 
   // Get available quests from character

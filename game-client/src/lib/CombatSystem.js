@@ -9,6 +9,9 @@ export class CombatSystem {
     this.combatants = new Map()
     this.damageNumbers = []
     this.combatLog = []
+    this.comboChain = []
+    this.lastComboTime = 0
+    this.comboWindow = 3000 // 3 seconds to maintain combo
     
     // Combat settings
     this.settings = {
@@ -17,6 +20,46 @@ export class CombatSystem {
       skillCooldowns: new Map(),
       globalCooldown: 1000, // 1 second
       lastGlobalCooldown: 0
+    }
+    
+    // Element combinations
+    this.elementCombinations = {
+      fire_air: {
+        name: 'البرق',
+        damage: 120,
+        effects: ['shock', 'chain_lightning'],
+        description: 'مزيج من النار والهواء يخلق برقاً قوياً'
+      },
+      fire_earth: {
+        name: 'البركان',
+        damage: 150,
+        effects: ['burn', 'knockback', 'ground_damage'],
+        description: 'مزيج من النار والأرض يخلق انفجاراً بركانياً'
+      },
+      water_earth: {
+        name: 'الطين',
+        damage: 80,
+        effects: ['slow', 'root', 'mud_pool'],
+        description: 'مزيج من الماء والأرض يخلق بركاً من الطين'
+      },
+      water_air: {
+        name: 'الضباب',
+        damage: 60,
+        effects: ['blind', 'stealth', 'heal_boost'],
+        description: 'مزيج من الماء والهواء يخلق ضباباً شافياً'
+      },
+      air_earth: {
+        name: 'العاصفة الرملية',
+        damage: 90,
+        effects: ['blind', 'dot', 'wind_push'],
+        description: 'مزيج من الهواء والأرض يخلق عاصفة رملية'
+      },
+      fire_water: {
+        name: 'البخار',
+        damage: 70,
+        effects: ['steam_burn', 'heal_reduction', 'vision_obscure'],
+        description: 'مزيج من النار والماء يخلق بخاراً حارقاً'
+      }
     }
     
     this.setupEventListeners()
@@ -33,7 +76,7 @@ export class CombatSystem {
     })
   }
 
-  // Handle combat input
+  // Handle combat input with combo system
   handleCombatInput(event) {
     const player = this.playerManager.getLocalPlayer()
     if (!player || !player.element) return
@@ -60,10 +103,83 @@ export class CombatSystem {
       case 'Digit5':
         skillId = this.getSkillBySlot(player.element.id, 4)
         break
+      case 'KeyQ':
+        // Element combination skill
+        skillId = this.tryElementCombination(player)
+        break
     }
 
     if (skillId) {
       this.castSkill('local_player', skillId)
+      this.updateComboChain(skillId, player.element.id)
+    }
+  }
+
+  // Update combo chain
+  updateComboChain(skillId, elementId) {
+    const now = Date.now()
+    
+    // Clear old combos if too much time has passed
+    if (now - this.lastComboTime > this.comboWindow) {
+      this.comboChain = []
+    }
+    
+    this.comboChain.push({ skillId, elementId, timestamp: now })
+    this.lastComboTime = now
+    
+    // Check for combo bonuses
+    this.checkComboBonuses()
+  }
+
+  // Check for combo bonuses
+  checkComboBonuses() {
+    if (this.comboChain.length >= 3) {
+      const lastThree = this.comboChain.slice(-3)
+      const elements = lastThree.map(combo => combo.elementId)
+      
+      // Check for element variety bonus
+      const uniqueElements = new Set(elements)
+      if (uniqueElements.size >= 3) {
+        this.addCombatLog('مكافأة التنوع العنصري! +50% ضرر', 'bonus')
+        this.applyComboBonus('elemental_variety', 1.5)
+      }
+      
+      // Check for same element chain bonus
+      if (uniqueElements.size === 1) {
+        this.addCombatLog('مكافأة السلسلة العنصرية! +30% ضرر', 'bonus')
+        this.applyComboBonus('elemental_chain', 1.3)
+      }
+    }
+  }
+
+  // Apply combo bonus
+  applyComboBonus(bonusType, multiplier) {
+    // Apply to next skill cast
+    this.activeComboBonus = { type: bonusType, multiplier, duration: 5000 }
+  }
+
+  // Try element combination
+  tryElementCombination(player) {
+    if (this.comboChain.length < 2) {
+      this.addCombatLog('تحتاج إلى مهارتين على الأقل للدمج العنصري', 'warning')
+      return null
+    }
+    
+    const lastTwo = this.comboChain.slice(-2)
+    const element1 = lastTwo[0].elementId
+    const element2 = lastTwo[1].elementId
+    
+    const combinationKey = `${element1}_${element2}`
+    const reverseKey = `${element2}_${element1}`
+    
+    const combination = this.elementCombinations[combinationKey] || this.elementCombinations[reverseKey]
+    
+    if (combination) {
+      this.addCombatLog(`دمج عنصري: ${combination.name}!`, 'combo')
+      return `combo_${combinationKey}`
+    } else {
+      this.addCombatLog('هذا المزيج العنصري غير معروف', 'warning')
+      return null
     }
   }
 
@@ -80,10 +196,15 @@ export class CombatSystem {
     return skills && skills[slot] ? skills[slot] : null
   }
 
-  // Cast a skill
+  // Cast a skill with combo bonuses
   castSkill(playerId, skillId) {
     const player = this.playerManager.getPlayer(playerId)
     if (!player || !player.element) return false
+
+    // Handle combo skills
+    if (skillId.startsWith('combo_')) {
+      return this.castComboSkill(playerId, skillId)
+    }
 
     const skillData = this.getSkillData(player.element.id, skillId)
     if (!skillData) return false
@@ -112,8 +233,15 @@ export class CombatSystem {
       return false
     }
 
+    // Apply combo bonus if active
+    let damageMultiplier = 1.0
+    if (this.activeComboBonus && now - this.lastComboTime < this.activeComboBonus.duration) {
+      damageMultiplier = this.activeComboBonus.multiplier
+      this.activeComboBonus = null // Use once
+    }
+
     // Cast the skill
-    this.executeSkill(playerId, skillId, skillData, playerSkill.level)
+    this.executeSkill(playerId, skillId, skillData, playerSkill.level, damageMultiplier)
     
     // Set cooldowns
     this.settings.skillCooldowns.set(cooldownKey, now)
@@ -121,6 +249,200 @@ export class CombatSystem {
     
     this.addCombatLog(`${player.name} استخدم ${skillData.name}`, 'skill')
     return true
+  }
+
+  // Cast combo skill
+  castComboSkill(playerId, skillId) {
+    const player = this.playerManager.getPlayer(playerId)
+    if (!player) return false
+
+    const comboKey = skillId.replace('combo_', '')
+    const combination = this.elementCombinations[comboKey]
+    
+    if (!combination) return false
+
+    // Check mana cost (higher for combos)
+    const manaCost = 80
+    if (!this.playerManager.useMana(playerId, manaCost)) {
+      this.addCombatLog(`طاقة غير كافية للدمج العنصري`, 'error')
+      return false
+    }
+
+    // Execute combo effect
+    this.executeComboSkill(playerId, combination)
+    
+    // Clear combo chain after use
+    this.comboChain = []
+    
+    this.addCombatLog(`${player.name} استخدم ${combination.name}!`, 'combo')
+    return true
+  }
+
+  // Execute combo skill
+  executeComboSkill(playerId, combination) {
+    const player = this.playerManager.getPlayer(playerId)
+    if (!player) return
+
+    // Create powerful combo effect
+    const position = player.position || { x: 0, y: 0, z: 0 }
+    
+    // Create visual effect
+    this.createComboVisualEffect(combination.name, position)
+    
+    // Apply damage and effects
+    this.createAOEEffect(playerId, 'combo', {
+      ...combination,
+      range: 15,
+      aoe: true
+    }, position, combination.damage)
+    
+    // Special combo effects
+    combination.effects.forEach(effect => {
+      this.applyComboEffect(effect, position, playerId)
+    })
+  }
+
+  // Apply combo effect
+  applyComboEffect(effect, position, casterId) {
+    switch (effect) {
+      case 'chain_lightning':
+        this.createChainLightning(position, casterId)
+        break
+      case 'ground_damage':
+        this.createGroundDamage(position, casterId)
+        break
+      case 'mud_pool':
+        this.createMudPool(position, casterId)
+        break
+      case 'steam_burn':
+        this.createSteamBurn(position, casterId)
+        break
+      default:
+        // Handle other effects
+        break
+    }
+  }
+
+  // Create chain lightning effect
+  createChainLightning(position, casterId) {
+    // Chain lightning jumps between enemies
+    const enemies = this.getNearbyEnemies(position, 20)
+    let currentTarget = position
+    let chainCount = 0
+    const maxChains = 5
+    
+    enemies.forEach(enemy => {
+      if (chainCount >= maxChains) return
+      
+      // Create lightning bolt between current target and enemy
+      this.createLightningBolt(currentTarget, enemy.position)
+      
+      // Deal damage to enemy
+      this.dealDamage(enemy.id, 40, 'lightning')
+      
+      currentTarget = enemy.position
+      chainCount++
+    })
+  }
+
+  // Create lightning bolt visual
+  createLightningBolt(start, end) {
+    // Create lightning bolt geometry
+    const points = []
+    const segments = 10
+    
+    for (let i = 0; i <= segments; i++) {
+      const t = i / segments
+      const x = start.x + (end.x - start.x) * t
+      const y = start.y + (end.y - start.y) * t + (Math.random() - 0.5) * 2
+      const z = start.z + (end.z - start.z) * t
+      points.push(new THREE.Vector3(x, y, z))
+    }
+    
+    const geometry = new THREE.BufferGeometry().setFromPoints(points)
+    const material = new THREE.LineBasicMaterial({ 
+      color: 0x00ffff,
+      transparent: true,
+      opacity: 0.8
+    })
+    
+    const lightning = new THREE.Line(geometry, material)
+    this.gameEngine.scene.add(lightning)
+    
+    // Remove after animation
+    setTimeout(() => {
+      this.gameEngine.scene.remove(lightning)
+      geometry.dispose()
+      material.dispose()
+    }, 500)
+  }
+
+  // Get nearby enemies
+  getNearbyEnemies(position, range) {
+    // This would integrate with your enemy system
+    // For now, return empty array
+    return []
+  }
+
+  // Deal damage to target
+  dealDamage(targetId, damage, type = 'physical') {
+    // This would integrate with your damage system
+    console.log(`Dealing ${damage} ${type} damage to ${targetId}`)
+  }
+
+  // Create combo visual effect
+  createComboVisualEffect(comboName, position) {
+    // Create impressive visual effect based on combo
+    const colors = {
+      'البرق': 0x00ffff,
+      'البركان': 0xff4400,
+      'الطين': 0x8b4513,
+      'الضباب': 0x87ceeb,
+      'العاصفة الرملية': 0xf4a460,
+      'البخار': 0xd3d3d3
+    }
+    
+    const color = colors[comboName] || 0xffffff
+    
+    // Create particle explosion
+    this.createParticleExplosion(position, color, 50)
+  }
+
+  // Create particle explosion
+  createParticleExplosion(position, color, count) {
+    const particles = new THREE.BufferGeometry()
+    const positions = new Float32Array(count * 3)
+    
+    for (let i = 0; i < count * 3; i += 3) {
+      positions[i] = position.x + (Math.random() - 0.5) * 10
+      positions[i + 1] = position.y + Math.random() * 5
+      positions[i + 2] = position.z + (Math.random() - 0.5) * 10
+    }
+    
+    particles.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+    
+    const material = new THREE.PointsMaterial({
+      color: color,
+      size: 2.0,
+      transparent: true,
+      opacity: 0.8
+    })
+    
+    const particleSystem = new THREE.Points(particles, material)
+    this.gameEngine.scene.add(particleSystem)
+    
+    // Animate and remove
+    const animate = () => {
+      material.opacity -= 0.02
+      if (material.opacity > 0) {
+        requestAnimationFrame(animate)
+      } else {
+        this.gameEngine.scene.remove(particleSystem)
+        particles.dispose()
+        material.dispose()
+      }
+    }
+    animate()
   }
 
   // Get skill data
@@ -285,12 +607,12 @@ export class CombatSystem {
   }
 
   // Execute skill effect
-  executeSkill(playerId, skillId, skillData, skillLevel) {
+  executeSkill(playerId, skillId, skillData, skillLevel, damageMultiplier) {
     const player = this.gameEngine.gameObjects.get('player')
     if (!player) return
 
     const position = player.position.clone()
-    const scaledDamage = skillData.damage * (1 + (skillLevel - 1) * 0.2)
+    const scaledDamage = skillData.damage * (1 + (skillLevel - 1) * 0.2) * damageMultiplier
     const scaledHealing = skillData.healing * (1 + (skillLevel - 1) * 0.2)
 
     switch (skillData.type) {

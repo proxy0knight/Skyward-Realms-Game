@@ -1,0 +1,586 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Exo 2', sans-serif;
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 30%, #16213e 70%, #0f3460 100%);
+  color: #ffffff;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Enhanced animated background with stars and nebula effects */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(circle at 15% 85%, rgba(0, 212, 255, 0.4) 0%, transparent 40%),
+    radial-gradient(circle at 85% 15%, rgba(255, 0, 255, 0.3) 0%, transparent 45%),
+    radial-gradient(circle at 45% 45%, rgba(120, 219, 226, 0.2) 0%, transparent 50%),
+    radial-gradient(circle at 70% 80%, rgba(255, 119, 198, 0.15) 0%, transparent 35%);
+  z-index: -2;
+  animation: nebulaShift 25s ease-in-out infinite;
+}
+
+/* Starfield effect */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    radial-gradient(2px 2px at 20px 30px, #eee, transparent),
+    radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,0.8), transparent),
+    radial-gradient(1px 1px at 90px 40px, #fff, transparent),
+    radial-gradient(1px 1px at 130px 80px, rgba(255,255,255,0.6), transparent),
+    radial-gradient(2px 2px at 160px 30px, #ddd, transparent);
+  background-repeat: repeat;
+  background-size: 200px 100px;
+  z-index: -1;
+  animation: starTwinkle 15s linear infinite;
+}
+
+@keyframes nebulaShift {
+  0%, 100% { 
+    opacity: 1; 
+    transform: scale(1) rotate(0deg);
+  }
+  33% { 
+    opacity: 0.8; 
+    transform: scale(1.05) rotate(1deg);
+  }
+  66% { 
+    opacity: 0.9; 
+    transform: scale(0.98) rotate(-0.5deg);
+  }
+}
+
+@keyframes starTwinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Game container */
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* Header styles with logo */
+.game-header {
+  text-align: center;
+  padding: 2rem 1rem;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(15px);
+  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+  position: relative;
+}
+
+.game-logo {
+  max-width: 400px;
+  width: 100%;
+  height: auto;
+  margin-bottom: 1rem;
+  filter: drop-shadow(0 0 20px rgba(0, 212, 255, 0.5));
+  animation: logoGlow 4s ease-in-out infinite;
+}
+
+@keyframes logoGlow {
+  0%, 100% { 
+    filter: drop-shadow(0 0 20px rgba(0, 212, 255, 0.5));
+  }
+  50% { 
+    filter: drop-shadow(0 0 30px rgba(0, 212, 255, 0.8)) drop-shadow(0 0 40px rgba(255, 0, 255, 0.3));
+  }
+}
+
+.game-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 3rem;
+  font-weight: 900;
+  background: linear-gradient(45deg, #00d4ff, #ff00ff, #ffff00);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientShift 3s ease-in-out infinite;
+  text-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+  margin-bottom: 0.5rem;
+  display: none; /* Hide text title when logo is present */
+}
+
+.game-subtitle {
+  font-size: 1.2rem;
+  color: #a0a0a0;
+  font-weight: 300;
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Main menu styles */
+.main-menu {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  gap: 1.5rem;
+}
+
+/* Enhanced Button styles with holographic effects and icons */
+.menu-button {
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, rgba(255, 0, 255, 0.15) 100%);
+  border: 2px solid transparent;
+  border-radius: 16px;
+  padding: 1.2rem 2.5rem;
+  font-family: 'Exo 2', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  position: relative;
+  overflow: hidden;
+  min-width: 220px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  backdrop-filter: blur(10px);
+  box-shadow: 
+    0 8px 32px rgba(0, 212, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+}
+
+.menu-button-icon {
+  width: 24px;
+  height: 24px;
+  filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.6));
+  transition: all 0.4s ease;
+}
+
+.menu-button:hover .menu-button-icon {
+  filter: drop-shadow(0 0 12px rgba(0, 212, 255, 0.8));
+  transform: scale(1.1);
+}
+
+/* Holographic border effect */
+.menu-button::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, 
+    transparent, 
+    rgba(0, 212, 255, 0.5), 
+    transparent, 
+    rgba(255, 0, 255, 0.5), 
+    transparent);
+  border-radius: 16px;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+/* Scanning line effect */
+.menu-button::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255, 255, 255, 0.4), 
+    transparent);
+  transition: left 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  z-index: 1;
+}
+
+.menu-button:hover::before {
+  opacity: 1;
+}
+
+.menu-button:hover::after {
+  left: 100%;
+}
+
+.menu-button:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 
+    0 15px 40px rgba(0, 212, 255, 0.3),
+    0 5px 15px rgba(255, 0, 255, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  border-color: rgba(0, 212, 255, 0.6);
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.25) 0%, rgba(255, 0, 255, 0.25) 100%);
+}
+
+.menu-button:active {
+  transform: translateY(-1px) scale(0.98);
+  transition: all 0.1s ease;
+}
+
+/* Enhanced Primary button (Start Game) with energy core effect */
+.menu-button.primary {
+  background: linear-gradient(135deg, #00d4ff 0%, #ff00ff 50%, #00d4ff 100%);
+  background-size: 200% 200%;
+  font-size: 1.4rem;
+  padding: 1.5rem 3rem;
+  font-weight: 700;
+  position: relative;
+  animation: energyPulse 3s ease-in-out infinite, gradientShift 4s ease-in-out infinite;
+  box-shadow: 
+    0 0 30px rgba(0, 212, 255, 0.6),
+    0 0 60px rgba(255, 0, 255, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.menu-button.primary::before {
+  background: linear-gradient(45deg, 
+    rgba(0, 212, 255, 0.8), 
+    rgba(255, 0, 255, 0.8), 
+    rgba(0, 212, 255, 0.8));
+  animation: borderPulse 2s ease-in-out infinite;
+}
+
+.menu-button.primary:hover {
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 
+    0 0 50px rgba(0, 212, 255, 0.8),
+    0 0 80px rgba(255, 0, 255, 0.6),
+    0 20px 50px rgba(0, 212, 255, 0.4);
+  animation: energyPulse 1.5s ease-in-out infinite, gradientShift 2s ease-in-out infinite;
+}
+
+@keyframes energyPulse {
+  0%, 100% { 
+    box-shadow: 
+      0 0 30px rgba(0, 212, 255, 0.6),
+      0 0 60px rgba(255, 0, 255, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+  50% { 
+    box-shadow: 
+      0 0 40px rgba(0, 212, 255, 0.8),
+      0 0 80px rgba(255, 0, 255, 0.6),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  }
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes borderPulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* Game canvas container */
+.game-canvas-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1000;
+  background: #000;
+  display: none;
+}
+
+.game-canvas-container.active {
+  display: block;
+}
+
+/* Loading screen */
+.loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.loading-spinner {
+  width: 60px;
+  height: 60px;
+  border: 3px solid rgba(0, 212, 255, 0.3);
+  border-top: 3px solid #00d4ff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-family: 'Orbitron', monospace;
+  font-size: 1.2rem;
+  color: #00d4ff;
+  animation: fadeInOut 2s ease-in-out infinite;
+}
+
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* HUD styles */
+.game-hud {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1001;
+}
+
+.hud-element {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 8px;
+  padding: 1rem;
+  color: #ffffff;
+  font-family: 'Exo 2', sans-serif;
+  pointer-events: auto;
+}
+
+.hud-top-left {
+  top: 20px;
+  left: 20px;
+}
+
+.hud-top-right {
+  top: 20px;
+  right: 20px;
+}
+
+.hud-bottom-left {
+  bottom: 20px;
+  left: 20px;
+}
+
+.hud-bottom-right {
+  bottom: 20px;
+  right: 20px;
+}
+
+/* Settings modal */
+.settings-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 3000;
+}
+
+.settings-content {
+  background: linear-gradient(135deg, rgba(26, 26, 46, 0.9) 0%, rgba(22, 33, 62, 0.9) 100%);
+  border: 2px solid rgba(0, 212, 255, 0.3);
+  border-radius: 16px;
+  padding: 2rem;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.settings-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 1.8rem;
+  color: #00d4ff;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.setting-group {
+  margin-bottom: 1.5rem;
+}
+
+.setting-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.setting-input {
+  width: 100%;
+  padding: 0.8rem;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 8px;
+  color: #ffffff;
+  font-family: 'Exo 2', sans-serif;
+}
+
+.setting-input:focus {
+  outline: none;
+  border-color: #00d4ff;
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .game-title {
+    font-size: 2rem;
+  }
+  
+  .game-subtitle {
+    font-size: 1rem;
+  }
+  
+  .menu-button {
+    min-width: 180px;
+    font-size: 1rem;
+    padding: 0.9rem 1.8rem;
+  }
+  
+  .menu-button.primary {
+    font-size: 1.1rem;
+    padding: 1rem 2rem;
+  }
+  
+  .hud-element {
+    padding: 0.8rem;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .game-header {
+    padding: 1.5rem 1rem;
+  }
+  
+  .game-title {
+    font-size: 1.5rem;
+  }
+  
+  .main-menu {
+    padding: 1rem;
+    gap: 1rem;
+  }
+  
+  .menu-button {
+    min-width: 160px;
+    font-size: 0.9rem;
+    padding: 0.8rem 1.5rem;
+  }
+  
+  .hud-element {
+    padding: 0.6rem;
+    font-size: 0.8rem;
+  }
+  
+  .hud-top-left,
+  .hud-top-right {
+    top: 10px;
+  }
+  
+  .hud-top-left,
+  .hud-bottom-left {
+    left: 10px;
+  }
+  
+  .hud-top-right,
+  .hud-bottom-right {
+    right: 10px;
+  }
+  
+  .hud-bottom-left,
+  .hud-bottom-right {
+    bottom: 10px;
+  }
+}
+
+/* Utility classes */
+.hidden {
+  display: none !important;
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.slide-up {
+  animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #00d4ff, #ff00ff);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #00a8cc, #cc00cc);
+}
+
