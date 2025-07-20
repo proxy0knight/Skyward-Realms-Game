@@ -1,4 +1,7 @@
 import * as THREE from 'three'
+import Enhanced3DWorld from './Enhanced3DWorld.js'
+import Enhanced3DCharacter from './Enhanced3DCharacter.js'
+import Enhanced3DAudio from './Enhanced3DAudio.js'
 
 class GameEngine {
   constructor() {
@@ -12,6 +15,11 @@ class GameEngine {
     this.eventListeners = {}
     this.isRunning = false
     this.animationId = null
+    
+    // Enhanced 3D systems
+    this.enhanced3DWorld = null
+    this.enhanced3DCharacter = null
+    this.enhanced3DAudio = null
     
     // Player physics
     this.playerVelocity = new THREE.Vector3()
@@ -46,11 +54,15 @@ class GameEngine {
       this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
       container.appendChild(this.renderer.domElement)
       
-      // Add lighting
-      this.setupLighting()
+      // Initialize enhanced 3D world
+      console.log('GameEngine: Initializing enhanced 3D world...')
+      this.enhanced3DWorld = new Enhanced3DWorld(this.scene, this.camera, this.renderer)
+      await this.enhanced3DWorld.init()
       
-      // Add ground
-      this.createGround()
+      // Initialize enhanced 3D audio
+      console.log('GameEngine: Initializing enhanced 3D audio...')
+      this.enhanced3DAudio = new Enhanced3DAudio(this.camera)
+      this.enhanced3DAudio.init()
       
       // Setup camera controls
       this.setupCameraControls()
@@ -159,18 +171,17 @@ class GameEngine {
     })
   }
 
-  createPlayer(playerData) {
-    // Create a simple player representation
-    const playerGeometry = new THREE.CapsuleGeometry(0.5, 1, 4, 8)
-    const playerMaterial = new THREE.MeshLambertMaterial({ 
-      color: this.getElementColor(playerData.element?.id || 'fire')
-    })
-    this.player = new THREE.Mesh(playerGeometry, playerMaterial)
-    this.player.position.set(0, 1, 0)
-    this.player.castShadow = true
-    this.scene.add(this.player)
+  async createPlayer(playerData) {
+    console.log('GameEngine: Creating enhanced 3D character...')
     
-    console.log('GameEngine: Player created:', this.player)
+    // Create enhanced 3D character
+    this.enhanced3DCharacter = new Enhanced3DCharacter(this.scene, playerData)
+    this.player = await this.enhanced3DCharacter.init()
+    
+    // Position player at spawn point
+    this.enhanced3DCharacter.setPosition(0, 0, 0)
+    
+    console.log('GameEngine: Enhanced 3D character created:', this.player)
     return this.player
   }
 
@@ -209,6 +220,46 @@ class GameEngine {
           this.playerOnGround = false
         }
         break
+      case 'KeyQ':
+        // Cast primary spell
+        if (this.enhanced3DCharacter) {
+          this.enhanced3DCharacter.castSpell('primary')
+          // Play spell sound
+          if (this.enhanced3DAudio) {
+            this.enhanced3DAudio.playSpellSound('primary', this.player.position)
+          }
+        }
+        break
+      case 'KeyE':
+        // Cast secondary spell
+        if (this.enhanced3DCharacter) {
+          this.enhanced3DCharacter.castSpell('secondary')
+          // Play spell sound
+          if (this.enhanced3DAudio) {
+            this.enhanced3DAudio.playSpellSound('secondary', this.player.position)
+          }
+        }
+        break
+      case 'KeyR':
+        // Cast ultimate spell
+        if (this.enhanced3DCharacter) {
+          this.enhanced3DCharacter.castSpell('ultimate')
+          // Play spell sound
+          if (this.enhanced3DAudio) {
+            this.enhanced3DAudio.playSpellSound('ultimate', this.player.position)
+          }
+        }
+        break
+      case 'KeyF':
+        // Change weather for testing
+        if (this.enhanced3DWorld) {
+          const weathers = ['clear', 'rain', 'snow', 'fog']
+          const currentWeather = this.enhanced3DWorld.weather.type
+          const nextIndex = (weathers.indexOf(currentWeather) + 1) % weathers.length
+          this.enhanced3DWorld.setWeather(weathers[nextIndex], 0.7)
+          console.log(`Weather changed to: ${weathers[nextIndex]}`)
+        }
+        break
     }
     
     // Emit keydown event
@@ -216,57 +267,72 @@ class GameEngine {
   }
 
   updatePlayerPhysics() {
-    if (!this.player) return
+    if (!this.player || !this.enhanced3DCharacter) return
     
     // Get camera direction for relative movement
     const cameraDirection = this.getCameraDirection()
     
     // Handle continuous movement relative to camera
     const moveVector = new THREE.Vector3()
+    let isMoving = false
     
     if (this.keysPressed.has('KeyW')) {
       // Move forward relative to camera
       moveVector.add(cameraDirection.clone().multiplyScalar(-this.moveSpeed))
+      isMoving = true
     }
     if (this.keysPressed.has('KeyS')) {
       // Move backward relative to camera
       moveVector.add(cameraDirection.clone().multiplyScalar(this.moveSpeed))
+      isMoving = true
     }
     if (this.keysPressed.has('KeyA')) {
       // Move left relative to camera
       moveVector.add(cameraDirection.clone().cross(new THREE.Vector3(0, 1, 0)).multiplyScalar(-this.moveSpeed))
+      isMoving = true
     }
     if (this.keysPressed.has('KeyD')) {
       // Move right relative to camera
       moveVector.add(cameraDirection.clone().cross(new THREE.Vector3(0, 1, 0)).multiplyScalar(this.moveSpeed))
+      isMoving = true
     }
     
     // Apply horizontal movement
     this.playerVelocity.x = moveVector.x
     this.playerVelocity.z = moveVector.z
     
-    // Make player face movement direction
-    if (moveVector.length() > 0) {
+    // Update character animation based on movement
+    if (isMoving) {
+      this.enhanced3DCharacter.playAnimation('walking')
+      
+      // Make player face movement direction
       const moveDirection = moveVector.clone().normalize()
-      this.player.rotation.y = Math.atan2(moveDirection.x, moveDirection.z)
+      const targetRotation = Math.atan2(moveDirection.x, moveDirection.z)
+      this.enhanced3DCharacter.setRotation(targetRotation)
+    } else {
+      this.enhanced3DCharacter.playAnimation('idle')
     }
     
     // Apply gravity
     this.playerVelocity.y += this.gravity
     
     // Apply velocity to position
-    this.player.position.add(this.playerVelocity)
+    const newPosition = this.player.position.clone().add(this.playerVelocity)
     
     // Ground collision
-    if (this.player.position.y <= 1) {
-      this.player.position.y = 1
+    const terrainHeight = this.enhanced3DWorld ? this.enhanced3DWorld.getTerrainHeight(newPosition.x, newPosition.z) : 0
+    if (newPosition.y <= terrainHeight + 1) {
+      newPosition.y = terrainHeight + 1
       this.playerVelocity.y = 0
       this.playerOnGround = true
     }
     
+    // Update enhanced character position
+    this.enhanced3DCharacter.setPosition(newPosition.x, newPosition.y, newPosition.z)
+    
     // Update camera target to follow player
     if (this.camera.userData.orbitControl) {
-      this.camera.userData.orbitControl.target.copy(this.player.position)
+      this.camera.userData.orbitControl.target.copy(newPosition)
     }
   }
 
@@ -293,6 +359,32 @@ class GameEngine {
     
     const deltaTime = this.clock.getDelta()
     this.currentFPS = 1 / deltaTime
+    
+    // Update enhanced 3D world
+    if (this.enhanced3DWorld) {
+      this.enhanced3DWorld.update(deltaTime * 1000) // Convert to milliseconds
+    }
+    
+    // Update enhanced 3D character
+    if (this.enhanced3DCharacter) {
+      this.enhanced3DCharacter.update(deltaTime * 1000) // Convert to milliseconds
+    }
+    
+    // Update enhanced 3D audio
+    if (this.enhanced3DAudio && this.player && this.enhanced3DWorld) {
+      this.enhanced3DAudio.updateEnvironmentalAudio(this.player.position, {
+        waterBodies: [],
+        magicalStructures: this.enhanced3DWorld.buildings || []
+      })
+      
+      // Dynamic music based on time of day
+      const timeOfDay = this.enhanced3DWorld.timeOfDay
+      if (timeOfDay < 0.2 || timeOfDay > 0.8) {
+        this.enhanced3DAudio.setMusicBasedOnContext('night')
+      } else {
+        this.enhanced3DAudio.setMusicBasedOnContext('exploration')
+      }
+    }
     
     // Update player physics
     this.updatePlayerPhysics()
