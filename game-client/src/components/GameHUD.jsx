@@ -30,7 +30,9 @@ import {
   Award,
   Eye,
   MessageCircle,
-  Bell
+  Bell,
+  Maximize2,
+  Minimize2
 } from 'lucide-react'
 
 const GameHUD = ({ player, onTogglePanel, activePanel }) => {
@@ -85,7 +87,7 @@ const GameHUD = ({ player, onTogglePanel, activePanel }) => {
 
   return (
     <>
-      {/* Magical Background Particles */}
+      {/* Responsive Magical Background Particles */}
       <div className="fixed inset-0 pointer-events-none z-5 opacity-20">
         {Array.from({ length: 12 }, (_, i) => (
           <div
@@ -106,60 +108,60 @@ const GameHUD = ({ player, onTogglePanel, activePanel }) => {
         ))}
       </div>
 
-      {/* Top Bar - Game Status & System Info */}
-      <div className="fixed top-0 left-0 right-0 z-30 p-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-black/40 backdrop-blur-lg rounded-2xl border border-purple-500/20 shadow-2xl">
-            <div className="flex items-center justify-between p-4">
-              {/* Left: Game Info */}
-              <div className="flex items-center gap-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-purple-600 via-pink-600 to-orange-600 rounded-full flex items-center justify-center shadow-lg animate-pulse">
-                    <Crown className="h-5 w-5 text-white" />
+      {/* Responsive Top Bar - Game Status & System Info */}
+      <div className="fixed top-0 left-0 right-0 z-30 p-2 sm:p-4">
+        <div className="max-w-screen-2xl mx-auto">
+          <div className="bg-black/40 backdrop-blur-lg rounded-xl sm:rounded-2xl border border-purple-500/20 shadow-2xl">
+            <div className="flex items-center justify-between p-2 sm:p-4">
+              {/* Left: Game Info - Responsive */}
+              <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 bg-gradient-to-br from-purple-600 via-pink-600 to-orange-600 rounded-full flex items-center justify-center shadow-lg animate-pulse">
+                    <Crown className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 text-white" />
                   </div>
-                  <div>
-                    <h1 className="text-white font-bold text-lg">عوالم السماء</h1>
-                    <p className="text-gray-300 text-xs">Skyward Realms</p>
+                  <div className="hidden sm:block">
+                    <h1 className="text-white font-bold text-sm sm:text-base lg:text-lg">عوالم السماء</h1>
+                    <p className="text-gray-300 text-xs lg:text-sm">Skyward Realms</p>
                   </div>
                 </div>
                 
-                <div className="h-8 w-px bg-purple-500/30" />
+                <div className="hidden lg:block h-6 lg:h-8 w-px bg-purple-500/30" />
                 
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-cyan-400 animate-pulse" />
-                    <span className="text-white text-sm font-mono">15:42</span>
+                <div className="flex items-center gap-2 sm:gap-3 lg:gap-4">
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-cyan-400 animate-pulse" />
+                    <span className="text-white text-xs sm:text-sm font-mono">15:42</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Target className="h-4 w-4 text-green-400 animate-pulse" />
-                    <span className="text-white text-sm">غابة العناصر</span>
+                  <div className="hidden sm:flex items-center gap-1 sm:gap-2">
+                    <Target className="h-3 w-3 sm:h-4 sm:w-4 text-green-400 animate-pulse" />
+                    <span className="text-white text-xs sm:text-sm">غابة العناصر</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-orange-400 animate-pulse" />
-                    <span className="text-white text-sm">استكشاف</span>
+                  <div className="hidden md:flex items-center gap-1 sm:gap-2">
+                    <Activity className="h-3 w-3 sm:h-4 sm:w-4 text-orange-400 animate-pulse" />
+                    <span className="text-white text-xs sm:text-sm">استكشاف</span>
                   </div>
                 </div>
               </div>
 
-              {/* Right: System Status */}
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-3">
-                  <Wifi className="h-4 w-4 text-green-400" />
-                  <Volume2 className="h-4 w-4 text-blue-400" />
+              {/* Right: System Status - Responsive */}
+              <div className="flex items-center gap-2 sm:gap-3 lg:gap-4">
+                <div className="hidden lg:flex items-center gap-2 lg:gap-3">
+                  <Wifi className="h-3 w-3 sm:h-4 sm:w-4 text-green-400" />
+                  <Volume2 className="h-3 w-3 sm:h-4 sm:w-4 text-blue-400" />
                   <div className="flex items-center gap-1">
-                    <Battery className="h-4 w-4 text-green-400" />
+                    <Battery className="h-3 w-3 sm:h-4 sm:w-4 text-green-400" />
                     <span className="text-white text-xs">98%</span>
                   </div>
                 </div>
                 
-                <div className="h-6 w-px bg-purple-500/30" />
+                <div className="hidden lg:block h-4 lg:h-6 w-px bg-purple-500/30" />
                 
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-gray-400 hover:text-white hover:bg-red-500/20 rounded-full"
+                  className="text-gray-400 hover:text-white hover:bg-red-500/20 rounded-full w-6 h-6 sm:w-8 sm:h-8 p-0"
                 >
-                  <Settings className="h-4 w-4" />
+                  <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
                 </Button>
               </div>
             </div>
@@ -167,11 +169,11 @@ const GameHUD = ({ player, onTogglePanel, activePanel }) => {
         </div>
       </div>
 
-      {/* Top Right - Enhanced Player Stats Panel */}
-      <div className="fixed top-20 right-4 z-20" data-ui-element="player-stats">
-        <div className="bg-black/40 backdrop-blur-lg rounded-3xl p-6 border border-purple-500/20 shadow-2xl min-w-[320px] max-w-[380px] relative overflow-hidden">
+      {/* Responsive Player Stats Panel - Adapts to viewport */}
+      <div className="fixed top-16 sm:top-20 lg:top-24 right-2 sm:right-4 z-20" data-ui-element="player-stats">
+        <div className="bg-black/40 backdrop-blur-lg rounded-2xl sm:rounded-3xl p-3 sm:p-4 lg:p-6 border border-purple-500/20 shadow-2xl w-64 sm:w-72 lg:w-80 xl:w-96 relative overflow-hidden">
           {/* Background glow effect */}
-          <div className={`absolute inset-0 bg-gradient-to-br ${elementGradient} opacity-5 rounded-3xl`} />
+          <div className={`absolute inset-0 bg-gradient-to-br ${elementGradient} opacity-5 rounded-2xl sm:rounded-3xl`} />
           
           {/* Floating particles inside panel */}
           <div className="absolute inset-0 pointer-events-none">
@@ -186,48 +188,48 @@ const GameHUD = ({ player, onTogglePanel, activePanel }) => {
                 }}
               >
                 <div 
-                  className="w-2 h-2 rounded-full"
+                  className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full"
                   style={{ backgroundColor: elementColor, opacity: 0.4 }}
                 />
               </div>
             ))}
           </div>
 
-          {/* Player Header */}
-          <div className="relative z-10 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-4">
+          {/* Player Header - Responsive */}
+          <div className="relative z-10 mb-4 sm:mb-6">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <div className="flex items-center gap-2 sm:gap-3 lg:gap-4">
                 <div className="relative group">
-                  <div className="w-16 h-16 bg-gradient-to-br from-purple-600 via-pink-600 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg border-2 border-white/20 group-hover:scale-105 transition-transform duration-300">
-                    <User className="h-8 w-8 text-white drop-shadow-lg" />
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 bg-gradient-to-br from-purple-600 via-pink-600 to-orange-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg border-2 border-white/20 group-hover:scale-105 transition-transform duration-300">
+                    <User className="h-4 w-4 sm:h-5 sm:w-5 lg:h-8 lg:w-8 text-white drop-shadow-lg" />
                   </div>
                   {playerData.element && (
                     <div 
-                      className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center border-2 border-white shadow-lg animate-pulse"
+                      className="absolute -bottom-1 -right-1 sm:-bottom-2 sm:-right-2 w-4 h-4 sm:w-6 sm:h-6 lg:w-8 lg:h-8 rounded-full flex items-center justify-center border-2 border-white shadow-lg animate-pulse"
                       style={{ backgroundColor: elementColor }}
                     >
-                      <ElementIcon className="h-4 w-4 text-white" />
+                      <ElementIcon className="h-2 w-2 sm:h-3 sm:w-3 lg:h-4 lg:w-4 text-white" />
                     </div>
                   )}
                   {/* Level crown */}
-                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center border border-yellow-300 shadow-lg">
-                    <Crown className="h-3 w-3 text-yellow-900" />
+                  <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 bg-yellow-500 rounded-full flex items-center justify-center border border-yellow-300 shadow-lg">
+                    <Crown className="h-2 w-2 sm:h-3 sm:w-3 text-yellow-900" />
                   </div>
                 </div>
                 
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h3 className="text-white font-bold text-xl drop-shadow-lg">{playerData.name}</h3>
-                    <Star className="w-5 h-5 text-yellow-400 animate-pulse" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
+                    <h3 className="text-white font-bold text-sm sm:text-lg lg:text-xl drop-shadow-lg truncate">{playerData.name}</h3>
+                    <Star className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 text-yellow-400 animate-pulse flex-shrink-0" />
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Badge variant="secondary" className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-sm font-bold px-3 py-1">
+                  <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                    <Badge variant="secondary" className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs sm:text-sm font-bold px-2 py-1">
                       المستوى {playerData.level}
                     </Badge>
                     {playerData.element && (
                       <Badge 
                         variant="outline" 
-                        className="text-sm border-opacity-50 text-white bg-black/30 px-3 py-1"
+                        className="text-xs sm:text-sm border-opacity-50 text-white bg-black/30 px-2 py-1"
                         style={{ borderColor: elementColor }}
                       >
                         {playerData.element.name}
@@ -240,28 +242,28 @@ const GameHUD = ({ player, onTogglePanel, activePanel }) => {
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-gray-400 hover:text-white hover:bg-white/10 rounded-full"
+                className="text-gray-400 hover:text-white hover:bg-white/10 rounded-full w-6 h-6 sm:w-8 sm:h-8 p-0 flex-shrink-0"
               >
-                <Eye className="h-4 w-4" />
+                <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
             </div>
           </div>
 
-          {/* Enhanced Stats Bars */}
-          <div className="relative z-10 space-y-5">
+          {/* Enhanced Stats Bars - Responsive */}
+          <div className="relative z-10 space-y-3 sm:space-y-4 lg:space-y-5">
             {/* Health Bar */}
-            <div className="space-y-2">
+            <div className="space-y-1 sm:space-y-2">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Heart className="h-5 w-5 text-red-400 animate-pulse" />
-                  <span className="text-red-300 font-semibold text-sm">الصحة</span>
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <Heart className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 text-red-400 animate-pulse" />
+                  <span className="text-red-300 font-semibold text-xs sm:text-sm">الصحة</span>
                 </div>
-                <span className="text-white text-sm font-bold">{playerData.health}/{playerData.maxHealth}</span>
+                <span className="text-white text-xs sm:text-sm font-bold">{playerData.health}/{playerData.maxHealth}</span>
               </div>
               <div className="relative">
                 <Progress 
                   value={(playerData.health / playerData.maxHealth) * 100} 
-                  className="h-3 bg-red-900/30 rounded-full border border-red-500/30" 
+                  className="h-2 sm:h-3 bg-red-900/30 rounded-full border border-red-500/30" 
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-red-600 via-red-500 to-red-400 rounded-full opacity-80 animate-pulse" 
                      style={{ width: `${(playerData.health / playerData.maxHealth) * 100}%` }} />
@@ -271,18 +273,18 @@ const GameHUD = ({ player, onTogglePanel, activePanel }) => {
             </div>
 
             {/* Mana Bar */}
-            <div className="space-y-2">
+            <div className="space-y-1 sm:space-y-2">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-blue-400 animate-pulse" />
-                  <span className="text-blue-300 font-semibold text-sm">السحر</span>
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <Zap className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 text-blue-400 animate-pulse" />
+                  <span className="text-blue-300 font-semibold text-xs sm:text-sm">السحر</span>
                 </div>
-                <span className="text-white text-sm font-bold">{playerData.mana}/{playerData.maxMana}</span>
+                <span className="text-white text-xs sm:text-sm font-bold">{playerData.mana}/{playerData.maxMana}</span>
               </div>
               <div className="relative">
                 <Progress 
                   value={(playerData.mana / playerData.maxMana) * 100} 
-                  className="h-3 bg-blue-900/30 rounded-full border border-blue-500/30" 
+                  className="h-2 sm:h-3 bg-blue-900/30 rounded-full border border-blue-500/30" 
                 />
                 <div className="absolute inset-0 rounded-full opacity-80 animate-pulse"
                      style={{ 
@@ -295,18 +297,18 @@ const GameHUD = ({ player, onTogglePanel, activePanel }) => {
             </div>
 
             {/* Experience Bar */}
-            <div className="space-y-2">
+            <div className="space-y-1 sm:space-y-2">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Star className="h-5 w-5 text-yellow-400 animate-pulse" />
-                  <span className="text-yellow-300 font-semibold text-sm">الخبرة</span>
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <Star className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 text-yellow-400 animate-pulse" />
+                  <span className="text-yellow-300 font-semibold text-xs sm:text-sm">الخبرة</span>
                 </div>
-                <span className="text-white text-sm font-bold">{playerData.experience}/{playerData.experienceToNext}</span>
+                <span className="text-white text-xs sm:text-sm font-bold">{playerData.experience}/{playerData.experienceToNext}</span>
               </div>
               <div className="relative">
                 <Progress 
                   value={(playerData.experience / playerData.experienceToNext) * 100} 
-                  className="h-3 bg-yellow-900/30 rounded-full border border-yellow-500/30" 
+                  className="h-2 sm:h-3 bg-yellow-900/30 rounded-full border border-yellow-500/30" 
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-yellow-600 via-yellow-500 to-yellow-400 rounded-full opacity-80 animate-pulse" 
                      style={{ width: `${(playerData.experience / playerData.experienceToNext) * 100}%` }} />
@@ -316,56 +318,56 @@ const GameHUD = ({ player, onTogglePanel, activePanel }) => {
             </div>
           </div>
 
-          {/* Player Stats Grid */}
-          <div className="relative z-10 grid grid-cols-2 gap-4 mt-6">
-            <div className="bg-black/30 rounded-xl p-4 border border-white/10 hover:border-white/20 transition-all duration-300 group">
-              <div className="flex items-center gap-3 mb-2">
-                <Sword className="h-5 w-5 text-red-400 group-hover:scale-110 transition-transform" />
-                <span className="text-xs text-gray-300 font-semibold">الهجوم</span>
+          {/* Player Stats Grid - Responsive */}
+          <div className="relative z-10 grid grid-cols-2 gap-2 sm:gap-3 lg:gap-4 mt-3 sm:mt-4 lg:mt-6">
+            <div className="bg-black/30 rounded-lg sm:rounded-xl p-2 sm:p-3 lg:p-4 border border-white/10 hover:border-white/20 transition-all duration-300 group">
+              <div className="flex items-center gap-1 sm:gap-2 lg:gap-3 mb-1 sm:mb-2">
+                <Sword className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 text-red-400 group-hover:scale-110 transition-transform" />
+                <span className="text-xs lg:text-sm text-gray-300 font-semibold">الهجوم</span>
               </div>
-              <span className="text-white font-bold text-xl">{playerData.attack}</span>
+              <span className="text-white font-bold text-sm sm:text-lg lg:text-xl">{playerData.attack}</span>
               <div className="flex items-center gap-1 mt-1">
-                <TrendingUp className="h-3 w-3 text-green-400" />
+                <TrendingUp className="h-2 w-2 sm:h-3 sm:w-3 text-green-400" />
                 <span className="text-green-400 text-xs">+5</span>
               </div>
             </div>
             
-            <div className="bg-black/30 rounded-xl p-4 border border-white/10 hover:border-white/20 transition-all duration-300 group">
-              <div className="flex items-center gap-3 mb-2">
-                <Shield className="h-5 w-5 text-blue-400 group-hover:scale-110 transition-transform" />
-                <span className="text-xs text-gray-300 font-semibold">الدفاع</span>
+            <div className="bg-black/30 rounded-lg sm:rounded-xl p-2 sm:p-3 lg:p-4 border border-white/10 hover:border-white/20 transition-all duration-300 group">
+              <div className="flex items-center gap-1 sm:gap-2 lg:gap-3 mb-1 sm:mb-2">
+                <Shield className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 text-blue-400 group-hover:scale-110 transition-transform" />
+                <span className="text-xs lg:text-sm text-gray-300 font-semibold">الدفاع</span>
               </div>
-              <span className="text-white font-bold text-xl">{playerData.defense}</span>
+              <span className="text-white font-bold text-sm sm:text-lg lg:text-xl">{playerData.defense}</span>
               <div className="flex items-center gap-1 mt-1">
-                <TrendingUp className="h-3 w-3 text-green-400" />
+                <TrendingUp className="h-2 w-2 sm:h-3 sm:w-3 text-green-400" />
                 <span className="text-green-400 text-xs">+3</span>
               </div>
             </div>
           </div>
 
-          {/* Quick Actions */}
-          <div className="relative z-10 flex gap-2 mt-6">
-            <Button size="sm" className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold">
-              <Award className="h-4 w-4 mr-2" />
-              المكافآت
+          {/* Quick Actions - Responsive */}
+          <div className="relative z-10 flex gap-2 mt-3 sm:mt-4 lg:mt-6">
+            <Button size="sm" className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold text-xs sm:text-sm">
+              <Award className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">المكافآت</span>
             </Button>
-            <Button size="sm" variant="outline" className="bg-black/30 border-gray-500/30 text-gray-300 hover:bg-gray-500/20">
-              <MessageCircle className="h-4 w-4" />
+            <Button size="sm" variant="outline" className="bg-black/30 border-gray-500/30 text-gray-300 hover:bg-gray-500/20 w-8 sm:w-10">
+              <MessageCircle className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
-            <Button size="sm" variant="outline" className="bg-black/30 border-gray-500/30 text-gray-300 hover:bg-gray-500/20">
-              <Bell className="h-4 w-4" />
+            <Button size="sm" variant="outline" className="bg-black/30 border-gray-500/30 text-gray-300 hover:bg-gray-500/20 w-8 sm:w-10">
+              <Bell className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Bottom Navigation Bar - Enhanced Quick Actions */}
-      <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-20" data-ui-element="quick-actions">
-        <div className="bg-black/40 backdrop-blur-lg rounded-3xl p-4 border border-purple-500/20 shadow-2xl relative overflow-hidden">
+      {/* Responsive Navigation - Adapts position based on viewport */}
+      <div className="fixed bottom-2 sm:bottom-4 left-1/2 transform -translate-x-1/2 lg:left-4 lg:transform-none lg:top-1/2 lg:-translate-y-1/2 z-20" data-ui-element="quick-actions">
+        <div className="bg-black/40 backdrop-blur-lg rounded-2xl sm:rounded-3xl p-2 sm:p-3 lg:p-4 border border-purple-500/20 shadow-2xl relative overflow-hidden">
           {/* Background glow */}
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 via-pink-600/10 to-orange-600/10 rounded-3xl" />
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 via-pink-600/10 to-orange-600/10 rounded-2xl sm:rounded-3xl" />
           
-          <div className="relative z-10 flex items-center gap-3">
+          <div className={`relative z-10 flex lg:flex-col items-center gap-2 sm:gap-3`}>
             {[
               { icon: Package, label: 'الحقيبة', panel: 'inventory', color: 'text-green-400', hoverColor: 'hover:bg-green-500/20', bgColor: 'bg-green-500/10' },
               { icon: Map, label: 'الخريطة', panel: 'map', color: 'text-blue-400', hoverColor: 'hover:bg-blue-500/20', bgColor: 'bg-blue-500/10' },
@@ -380,9 +382,9 @@ const GameHUD = ({ player, onTogglePanel, activePanel }) => {
                   <Button
                     onClick={() => onTogglePanel(item.panel)}
                     variant="ghost"
-                    size="lg"
+                    size="sm"
                     className={`
-                      relative w-16 h-16 rounded-2xl border-2 transition-all duration-300 transform hover:scale-110 overflow-hidden
+                      relative w-8 h-8 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl border-2 transition-all duration-300 transform hover:scale-110 overflow-hidden
                       ${isActive 
                         ? `bg-white/20 border-white/40 scale-105 ${item.bgColor}` 
                         : 'bg-black/20 border-white/10 hover:border-white/30'
@@ -395,24 +397,24 @@ const GameHUD = ({ player, onTogglePanel, activePanel }) => {
                   >
                     {/* Button glow effect */}
                     {isActive && (
-                      <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent rounded-2xl animate-pulse" />
+                      <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent rounded-xl sm:rounded-2xl animate-pulse" />
                     )}
                     
-                    <Icon className={`h-6 w-6 ${item.color} group-hover:scale-125 transition-transform duration-300 relative z-10`} />
+                    <Icon className={`h-3 w-3 sm:h-4 sm:w-4 lg:h-6 lg:w-6 ${item.color} group-hover:scale-125 transition-transform duration-300 relative z-10`} />
                     
                     {/* Active indicator */}
                     {isActive && (
-                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full animate-pulse border-2 border-white">
-                        <div className="w-2 h-2 bg-yellow-600 rounded-full mx-auto mt-0.5" />
+                      <div className="absolute -top-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-yellow-400 rounded-full animate-pulse border-2 border-white">
+                        <div className="w-1 h-1 sm:w-2 sm:h-2 bg-yellow-600 rounded-full mx-auto mt-0.5 sm:mt-1" />
                       </div>
                     )}
                   </Button>
                   
-                  {/* Enhanced Tooltip */}
-                  <div className="absolute -top-16 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none">
-                    <div className="bg-black/90 text-white text-sm px-3 py-2 rounded-xl border border-white/20 whitespace-nowrap shadow-2xl">
+                  {/* Enhanced Tooltip - Position aware */}
+                  <div className={`absolute ${window.innerWidth >= 1024 ? '-right-16' : '-top-16'} ${window.innerWidth >= 1024 ? 'top-1/2 -translate-y-1/2' : 'left-1/2 -translate-x-1/2'} opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-50`}>
+                    <div className="bg-black/90 text-white text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2 rounded-lg sm:rounded-xl border border-white/20 whitespace-nowrap shadow-2xl">
                       {item.label}
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black/90" />
+                      <div className={`absolute ${window.innerWidth >= 1024 ? 'left-full top-1/2 -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-l-4 border-transparent border-l-black/90' : 'top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black/90'}`} />
                     </div>
                   </div>
                 </div>
@@ -422,36 +424,36 @@ const GameHUD = ({ player, onTogglePanel, activePanel }) => {
         </div>
       </div>
 
-      {/* Bottom Right - Enhanced Mini Map */}
-      <div className="fixed bottom-4 right-4 z-20" data-ui-element="mini-map">
-        <div className="bg-black/40 backdrop-blur-lg rounded-3xl p-4 border border-purple-500/20 shadow-2xl w-64 h-40 relative overflow-hidden">
+      {/* Responsive Mini Map - Position adapts to viewport */}
+      <div className="fixed bottom-2 sm:bottom-4 right-2 sm:right-4 lg:bottom-auto lg:top-1/3 z-20" data-ui-element="mini-map">
+        <div className="bg-black/40 backdrop-blur-lg rounded-2xl sm:rounded-3xl p-2 sm:p-3 lg:p-4 border border-purple-500/20 shadow-2xl w-40 h-24 sm:w-48 sm:h-28 lg:w-64 lg:h-40 relative overflow-hidden">
           {/* Background effect */}
-          <div className="absolute inset-0 bg-gradient-to-tl from-green-600/10 via-blue-600/10 to-purple-600/10 rounded-3xl" />
+          <div className="absolute inset-0 bg-gradient-to-tl from-green-600/10 via-blue-600/10 to-purple-600/10 rounded-2xl sm:rounded-3xl" />
           
           <div className="relative z-10 h-full">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Compass className="h-5 w-5 text-blue-400 animate-pulse" />
-                <span className="text-white text-sm font-bold">الخريطة المصغرة</span>
+            <div className="flex items-center justify-between mb-1 sm:mb-2 lg:mb-3">
+              <div className="flex items-center gap-1 sm:gap-2">
+                <Compass className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 text-blue-400 animate-pulse" />
+                <span className="text-white text-xs sm:text-sm lg:text-base font-bold">الخريطة المصغرة</span>
               </div>
-              <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white p-1">
-                <Target className="h-4 w-4" />
+              <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white p-0.5 sm:p-1 w-4 h-4 sm:w-6 sm:h-6">
+                <Target className="h-2 w-2 sm:h-3 sm:w-3 lg:h-4 lg:w-4" />
               </Button>
             </div>
             
             {/* Enhanced Mini map area */}
-            <div className="w-full h-24 bg-gradient-to-br from-green-900/40 to-blue-900/40 rounded-xl border border-white/10 relative overflow-hidden">
+            <div className="w-full flex-1 bg-gradient-to-br from-green-900/40 to-blue-900/40 rounded-lg sm:rounded-xl border border-white/10 relative overflow-hidden mb-1 sm:mb-2" style={{ height: 'calc(100% - 2rem)' }}>
               {/* Player position with pulse effect */}
               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                <div className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse border-2 border-white shadow-lg" />
+                <div className="w-2 h-2 sm:w-3 sm:h-3 bg-yellow-400 rounded-full animate-pulse border border-white shadow-lg" />
                 <div className="absolute inset-0 bg-yellow-400 rounded-full animate-ping opacity-75" />
               </div>
               
               {/* Enhanced map elements */}
-              <div className="absolute top-2 left-3 w-2 h-2 bg-green-400 rounded-full opacity-80 animate-pulse" style={{ animationDelay: '0.5s' }} />
-              <div className="absolute top-4 right-4 w-2 h-2 bg-blue-400 rounded-full opacity-80 animate-pulse" style={{ animationDelay: '1s' }} />
-              <div className="absolute bottom-3 left-6 w-2 h-2 bg-red-400 rounded-full opacity-80 animate-pulse" style={{ animationDelay: '1.5s' }} />
-              <div className="absolute bottom-2 right-2 w-2 h-2 bg-purple-400 rounded-full opacity-80 animate-pulse" style={{ animationDelay: '2s' }} />
+              <div className="absolute top-1 left-2 sm:top-2 sm:left-3 w-1 h-1 sm:w-2 sm:h-2 bg-green-400 rounded-full opacity-80 animate-pulse" style={{ animationDelay: '0.5s' }} />
+              <div className="absolute top-2 right-2 sm:top-4 sm:right-4 w-1 h-1 sm:w-2 sm:h-2 bg-blue-400 rounded-full opacity-80 animate-pulse" style={{ animationDelay: '1s' }} />
+              <div className="absolute bottom-2 left-3 sm:bottom-3 sm:left-6 w-1 h-1 sm:w-2 sm:h-2 bg-red-400 rounded-full opacity-80 animate-pulse" style={{ animationDelay: '1.5s' }} />
+              <div className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 w-1 h-1 sm:w-2 sm:h-2 bg-purple-400 rounded-full opacity-80 animate-pulse" style={{ animationDelay: '2s' }} />
               
               {/* Grid lines */}
               <div className="absolute inset-0 opacity-20">
@@ -462,8 +464,8 @@ const GameHUD = ({ player, onTogglePanel, activePanel }) => {
               </div>
             </div>
             
-            {/* Map coordinates */}
-            <div className="flex justify-between items-center mt-2 text-xs text-gray-400">
+            {/* Map coordinates - Hidden on smallest screens */}
+            <div className="hidden sm:flex justify-between items-center text-xs lg:text-sm text-gray-400">
               <span>X: 245</span>
               <span>Y: 378</span>
               <span>Z: 12</span>
@@ -472,51 +474,51 @@ const GameHUD = ({ player, onTogglePanel, activePanel }) => {
         </div>
       </div>
 
-      {/* Bottom Left - Skills Quick Bar */}
-      <div className="fixed bottom-4 left-4 z-20" data-ui-element="skills-bar">
-        <div className="bg-black/40 backdrop-blur-lg rounded-3xl p-4 border border-purple-500/20 shadow-2xl relative overflow-hidden">
+      {/* Responsive Skills Quick Bar - Adapts to available space */}
+      <div className="fixed bottom-16 sm:bottom-20 left-2 sm:left-4 lg:bottom-4 z-20" data-ui-element="skills-bar">
+        <div className="bg-black/40 backdrop-blur-lg rounded-2xl sm:rounded-3xl p-2 sm:p-3 lg:p-4 border border-purple-500/20 shadow-2xl relative overflow-hidden">
           {/* Background glow */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-orange-600/10 via-red-600/10 to-pink-600/10 rounded-3xl" />
+          <div className="absolute inset-0 bg-gradient-to-tr from-orange-600/10 via-red-600/10 to-pink-600/10 rounded-2xl sm:rounded-3xl" />
           
           <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-3">
-              <Zap className="h-4 w-4 text-orange-400" />
-              <span className="text-white text-sm font-bold">مهارات سريعة</span>
+            <div className="flex items-center gap-1 sm:gap-2 mb-2 sm:mb-3">
+              <Zap className="h-3 w-3 sm:h-4 sm:w-4 text-orange-400" />
+              <span className="text-white text-xs sm:text-sm lg:text-base font-bold">مهارات سريعة</span>
             </div>
             
-            <div className="flex gap-2">
+            <div className="flex gap-1 sm:gap-2">
               {[1, 2, 3, 4, 5].map((slot) => (
                 <div
                   key={slot}
-                  className="relative w-12 h-12 bg-gray-800/80 border-2 border-gray-600/60 rounded-xl flex items-center justify-center cursor-pointer hover:border-purple-500 hover:bg-gray-700/80 transition-all duration-200 group overflow-hidden"
+                  className="relative w-6 h-6 sm:w-8 sm:h-8 lg:w-12 lg:h-12 bg-gray-800/80 border-2 border-gray-600/60 rounded-lg sm:rounded-xl flex items-center justify-center cursor-pointer hover:border-purple-500 hover:bg-gray-700/80 transition-all duration-200 group overflow-hidden"
                 >
                   {slot === 1 && (
                     <div className="relative">
-                      <Sword className="h-6 w-6 text-orange-400 group-hover:scale-110 transition-transform" />
+                      <Sword className="h-3 w-3 sm:h-4 sm:w-4 lg:h-6 lg:w-6 text-orange-400 group-hover:scale-110 transition-transform" />
                       <div className="absolute inset-0 bg-orange-400/20 rounded blur-sm opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                   )}
                   {slot === 2 && (
                     <div className="relative">
-                      <Shield className="h-6 w-6 text-blue-400 group-hover:scale-110 transition-transform" />
+                      <Shield className="h-3 w-3 sm:h-4 sm:w-4 lg:h-6 lg:w-6 text-blue-400 group-hover:scale-110 transition-transform" />
                       <div className="absolute inset-0 bg-blue-400/20 rounded blur-sm opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                   )}
                   {slot === 3 && playerData.element && (
                     <div className="relative">
-                      <ElementIcon className="h-6 w-6 group-hover:scale-110 transition-transform" style={{ color: elementColor }} />
+                      <ElementIcon className="h-3 w-3 sm:h-4 sm:w-4 lg:h-6 lg:w-6 group-hover:scale-110 transition-transform" style={{ color: elementColor }} />
                       <div className="absolute inset-0 rounded blur-sm opacity-0 group-hover:opacity-100 transition-opacity" style={{ backgroundColor: `${elementColor}33` }} />
                     </div>
                   )}
                   
                   {/* Slot number */}
-                  <span className="absolute -bottom-1 -right-1 bg-gray-700 text-white text-xs rounded-full px-1.5 py-0.5 font-mono border border-gray-500">
+                  <span className="absolute -bottom-0.5 -right-0.5 sm:-bottom-1 sm:-right-1 bg-gray-700 text-white text-xs rounded-full px-1 py-0.5 font-mono border border-gray-500">
                     {slot}
                   </span>
                   
                   {/* Cooldown overlay for equipped skills */}
                   {(slot === 1 || slot === 2) && (
-                    <div className="absolute inset-0 bg-black/40 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/40 rounded-lg sm:rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <span className="text-white text-xs font-bold">Ready</span>
                     </div>
                   )}

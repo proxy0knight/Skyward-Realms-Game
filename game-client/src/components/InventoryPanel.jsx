@@ -22,7 +22,9 @@ import {
   Settings,
   ArrowUp,
   ArrowDown,
-  MoreHorizontal
+  MoreHorizontal,
+  Maximize2,
+  Minimize2
 } from 'lucide-react'
 
 const InventoryPanel = ({ isOpen, onClose, player }) => {
@@ -188,12 +190,12 @@ const InventoryPanel = ({ isOpen, onClose, player }) => {
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Enhanced Background Overlay */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 lg:p-6">
+      {/* Enhanced Background Overlay - Responsive */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose}>
-        {/* Magical background particles */}
+        {/* Magical background particles - Less on mobile */}
         <div className="absolute inset-0 overflow-hidden">
-          {Array.from({ length: 25 }, (_, i) => (
+          {Array.from({ length: window.innerWidth < 640 ? 15 : window.innerWidth < 1024 ? 20 : 25 }, (_, i) => (
             <div
               key={i}
               className="absolute animate-bounce opacity-20"
@@ -206,21 +208,21 @@ const InventoryPanel = ({ isOpen, onClose, player }) => {
             >
               <Sparkles 
                 className="text-purple-300" 
-                size={6 + Math.random() * 10}
+                size={window.innerWidth < 640 ? 4 + Math.random() * 6 : 6 + Math.random() * 10}
               />
             </div>
           ))}
         </div>
       </div>
 
-      {/* Enhanced Main Panel */}
-      <Card className="inventory-panel relative w-11/12 max-w-7xl h-5/6 bg-gradient-to-br from-slate-900/95 via-purple-900/95 to-slate-900/95 border-2 border-purple-500/30 shadow-2xl backdrop-blur-lg overflow-hidden rounded-3xl">
+      {/* Responsive Main Panel - Adapts to all viewports */}
+      <Card className="inventory-panel relative w-full max-w-sm sm:max-w-2xl md:max-w-4xl lg:max-w-6xl xl:max-w-7xl h-full max-h-[90vh] sm:max-h-[85vh] bg-gradient-to-br from-slate-900/95 via-purple-900/95 to-slate-900/95 border-2 border-purple-500/30 shadow-2xl backdrop-blur-lg overflow-hidden rounded-xl sm:rounded-2xl lg:rounded-3xl">
         {/* Magical glow border */}
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-orange-500/20 rounded-3xl blur-sm" />
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-orange-500/20 rounded-xl sm:rounded-2xl lg:rounded-3xl blur-sm" />
         
-        {/* Floating particles inside panel */}
+        {/* Floating particles inside panel - Responsive count */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {Array.from({ length: 12 }, (_, i) => (
+          {Array.from({ length: window.innerWidth < 640 ? 6 : window.innerWidth < 1024 ? 9 : 12 }, (_, i) => (
             <div
               key={i}
               className="absolute animate-pulse magical-particle"
@@ -230,40 +232,40 @@ const InventoryPanel = ({ isOpen, onClose, player }) => {
                 animationDelay: `${i * 0.5}s`,
               }}
             >
-              <div className="w-2 h-2 bg-purple-400 rounded-full opacity-40" />
+              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-purple-400 rounded-full opacity-40" />
             </div>
           ))}
         </div>
 
-        <CardHeader className="relative z-10 border-b border-purple-500/20 bg-black/30">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+        <CardHeader className="relative z-10 border-b border-purple-500/20 bg-black/30 p-3 sm:p-4 lg:p-6">
+          <div className="flex items-center justify-between flex-wrap gap-2 sm:gap-4">
+            <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 min-w-0 flex-1">
               <div className="relative">
-                <Package className="h-10 w-10 text-purple-400 animate-pulse" />
-                <div className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center border border-white">
+                <Package className="h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10 text-purple-400 animate-pulse" />
+                <div className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-yellow-400 rounded-full flex items-center justify-center border border-white">
                   <span className="text-xs text-black font-bold">{inventoryItems.length}</span>
                 </div>
               </div>
-              <div>
-                <CardTitle className="text-3xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 bg-clip-text text-transparent">
+              <div className="min-w-0 flex-1">
+                <CardTitle className="text-lg sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 bg-clip-text text-transparent">
                   حقيبة المغامر
                 </CardTitle>
-                <p className="text-gray-300 text-sm">مجموعة من الأسلحة والكنوز السحرية النادرة</p>
+                <p className="text-gray-300 text-xs sm:text-sm hidden sm:block">مجموعة من الأسلحة والكنوز السحرية النادرة</p>
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
-              {/* Enhanced Quick actions */}
-              <Button variant="outline" size="sm" className="bg-black/30 border-purple-500/30 text-purple-300 hover:bg-purple-500/20 btn-ripple">
-                <Search className="h-4 w-4 mr-2" />
-                بحث
+            <div className="flex items-center gap-1 sm:gap-2 lg:gap-3 flex-shrink-0">
+              {/* Quick actions - Show fewer on mobile */}
+              <Button variant="outline" size="sm" className="bg-black/30 border-purple-500/30 text-purple-300 hover:bg-purple-500/20 btn-ripple text-xs sm:text-sm px-2 sm:px-3">
+                <Search className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">بحث</span>
               </Button>
-              <Button variant="outline" size="sm" className="bg-black/30 border-purple-500/30 text-purple-300 hover:bg-purple-500/20 btn-ripple">
-                <Filter className="h-4 w-4 mr-2" />
+              <Button variant="outline" size="sm" className="bg-black/30 border-purple-500/30 text-purple-300 hover:bg-purple-500/20 btn-ripple hidden md:inline-flex text-xs sm:text-sm">
+                <Filter className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 تصفية
               </Button>
-              <Button variant="outline" size="sm" className="bg-black/30 border-purple-500/30 text-purple-300 hover:bg-purple-500/20 btn-ripple">
-                <ArrowUp className="h-4 w-4 mr-2" />
+              <Button variant="outline" size="sm" className="bg-black/30 border-purple-500/30 text-purple-300 hover:bg-purple-500/20 btn-ripple hidden lg:inline-flex text-xs sm:text-sm">
+                <ArrowUp className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 ترتيب
               </Button>
               
@@ -271,48 +273,48 @@ const InventoryPanel = ({ isOpen, onClose, player }) => {
                 onClick={onClose}
                 variant="ghost"
                 size="sm"
-                className="text-gray-400 hover:text-white hover:bg-red-500/20 border border-red-500/30 rounded-full w-12 h-12 p-0 btn-ripple"
+                className="text-gray-400 hover:text-white hover:bg-red-500/20 border border-red-500/30 rounded-full w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 p-0 btn-ripple"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
             </div>
           </div>
         </CardHeader>
 
-        <CardContent className="relative z-10 p-6 h-full overflow-hidden">
+        <CardContent className="relative z-10 p-2 sm:p-4 lg:p-6 h-full overflow-hidden">
           <Tabs defaultValue="all" className="h-full flex flex-col">
-            {/* Enhanced Tab List */}
-            <TabsList className="grid w-full grid-cols-6 mb-6 bg-black/30 border border-purple-500/20 rounded-2xl p-1">
-              <TabsTrigger value="all" className="data-[state=active]:bg-purple-500/30 data-[state=active]:text-white rounded-xl transition-all duration-300">
-                <Grid className="h-4 w-4 mr-2" />
-                الكل
+            {/* Responsive Tab List */}
+            <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 mb-3 sm:mb-4 lg:mb-6 bg-black/30 border border-purple-500/20 rounded-xl sm:rounded-2xl p-1">
+              <TabsTrigger value="all" className="data-[state=active]:bg-purple-500/30 data-[state=active]:text-white rounded-lg sm:rounded-xl transition-all duration-300 text-xs sm:text-sm">
+                <Grid className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">الكل</span>
               </TabsTrigger>
-              <TabsTrigger value="weapon" className="data-[state=active]:bg-red-500/30 data-[state=active]:text-white rounded-xl transition-all duration-300">
-                <Sword className="h-4 w-4 mr-2" />
-                أسلحة
+              <TabsTrigger value="weapon" className="data-[state=active]:bg-red-500/30 data-[state=active]:text-white rounded-lg sm:rounded-xl transition-all duration-300 text-xs sm:text-sm">
+                <Sword className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">أسلحة</span>
               </TabsTrigger>
-              <TabsTrigger value="armor" className="data-[state=active]:bg-blue-500/30 data-[state=active]:text-white rounded-xl transition-all duration-300">
-                <Shield className="h-4 w-4 mr-2" />
-                دروع
+              <TabsTrigger value="armor" className="data-[state=active]:bg-blue-500/30 data-[state=active]:text-white rounded-lg sm:rounded-xl transition-all duration-300 text-xs sm:text-sm">
+                <Shield className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">دروع</span>
               </TabsTrigger>
-              <TabsTrigger value="material" className="data-[state=active]:bg-cyan-500/30 data-[state=active]:text-white rounded-xl transition-all duration-300">
-                <Gem className="h-4 w-4 mr-2" />
-                مواد
+              <TabsTrigger value="material" className="data-[state=active]:bg-cyan-500/30 data-[state=active]:text-white rounded-lg sm:rounded-xl transition-all duration-300 text-xs sm:text-sm">
+                <Gem className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden lg:inline">مواد</span>
               </TabsTrigger>
-              <TabsTrigger value="consumable" className="data-[state=active]:bg-green-500/30 data-[state=active]:text-white rounded-xl transition-all duration-300">
-                <Leaf className="h-4 w-4 mr-2" />
-                استهلاكيات
+              <TabsTrigger value="consumable" className="data-[state=active]:bg-green-500/30 data-[state=active]:text-white rounded-lg sm:rounded-xl transition-all duration-300 text-xs sm:text-sm">
+                <Leaf className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden lg:inline">استهلاكيات</span>
               </TabsTrigger>
-              <TabsTrigger value="accessory" className="data-[state=active]:bg-yellow-500/30 data-[state=active]:text-white rounded-xl transition-all duration-300">
-                <Crown className="h-4 w-4 mr-2" />
-                إكسسوارات
+              <TabsTrigger value="accessory" className="data-[state=active]:bg-yellow-500/30 data-[state=active]:text-white rounded-lg sm:rounded-xl transition-all duration-300 text-xs sm:text-sm">
+                <Crown className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden lg:inline">إكسسوارات</span>
               </TabsTrigger>
             </TabsList>
 
-            {/* Enhanced Items Content */}
+            {/* Dynamic Items Content - Viewport aware grid */}
             {['all', 'weapon', 'armor', 'material', 'consumable', 'accessory'].map(tabValue => (
               <TabsContent key={tabValue} value={tabValue} className="flex-1 overflow-y-auto inventory-scroll tab-content">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-3 lg:gap-4">
                   {filterItemsByType(tabValue).map((item, index) => {
                     const Icon = getTypeIcon(item.type)
                     const rarityColors = getRarityColor(item.rarity)
@@ -325,7 +327,7 @@ const InventoryPanel = ({ isOpen, onClose, player }) => {
                         className={`
                           item-card group cursor-pointer transition-all duration-500 transform hover:scale-105 hover:-translate-y-2
                           bg-gradient-to-br from-slate-800/80 via-slate-700/80 to-slate-800/80 
-                          backdrop-blur-sm border-2 border-opacity-30 relative overflow-hidden rounded-2xl
+                          backdrop-blur-sm border-2 border-opacity-30 relative overflow-hidden rounded-lg sm:rounded-xl lg:rounded-2xl
                           hover:shadow-2xl hover:shadow-purple-500/25
                           ${rarityColors}
                         `}
@@ -335,16 +337,16 @@ const InventoryPanel = ({ isOpen, onClose, player }) => {
                         data-rarity={item.rarity}
                       >
                         {/* Card magical glow */}
-                        <div className={`absolute inset-0 bg-gradient-to-br ${rarityGradient} opacity-5 group-hover:opacity-15 transition-opacity duration-300 rounded-2xl`} />
+                        <div className={`absolute inset-0 bg-gradient-to-br ${rarityGradient} opacity-5 group-hover:opacity-15 transition-opacity duration-300 rounded-lg sm:rounded-xl lg:rounded-2xl`} />
                         
-                        {/* Legendary sparkle effect */}
+                        {/* Legendary sparkle effect - Fewer on mobile */}
                         {item.rarity === 'legendary' && (
                           <div className="absolute inset-0 pointer-events-none">
-                            {Array.from({ length: 4 }, (_, i) => (
+                            {Array.from({ length: window.innerWidth < 640 ? 2 : 4 }, (_, i) => (
                               <Star
                                 key={i}
                                 className="absolute text-yellow-400 animate-pulse opacity-60"
-                                size={8}
+                                size={window.innerWidth < 640 ? 6 : 8}
                                 style={{
                                   top: `${15 + i * 25}%`,
                                   left: `${15 + i * 20}%`,
@@ -355,15 +357,15 @@ const InventoryPanel = ({ isOpen, onClose, player }) => {
                           </div>
                         )}
 
-                        <CardHeader className="p-4 relative z-10">
-                          <div className="flex items-start justify-between mb-3">
+                        <CardHeader className="p-2 sm:p-3 lg:p-4 relative z-10">
+                          <div className="flex items-start justify-between mb-2 sm:mb-3">
                             <div className="relative group-hover:scale-110 transition-transform duration-300">
-                              <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${rarityGradient} flex items-center justify-center shadow-lg border-2 border-white/20`}>
-                                <Icon className={`h-7 w-7 text-white drop-shadow-lg`} />
+                              <div className={`w-8 h-8 sm:w-10 sm:h-10 lg:w-14 lg:h-14 rounded-lg sm:rounded-xl lg:rounded-2xl bg-gradient-to-br ${rarityGradient} flex items-center justify-center shadow-lg border-2 border-white/20`}>
+                                <Icon className={`h-4 w-4 sm:h-5 sm:w-5 lg:h-7 lg:w-7 text-white drop-shadow-lg`} />
                               </div>
                               {/* Level indicator */}
                               {item.level && (
-                                <div className="absolute -top-2 -right-2 w-7 h-7 bg-yellow-500 rounded-full flex items-center justify-center border border-yellow-300 text-xs font-bold text-black shadow-lg">
+                                <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 w-4 h-4 sm:w-5 sm:h-5 lg:w-7 lg:h-7 bg-yellow-500 rounded-full flex items-center justify-center border border-yellow-300 text-xs font-bold text-black shadow-lg">
                                   {item.level}
                                 </div>
                               )}
@@ -371,24 +373,24 @@ const InventoryPanel = ({ isOpen, onClose, player }) => {
                             
                             {/* Quantity indicator */}
                             {item.quantity > 1 && (
-                              <Badge variant="secondary" className="bg-black/50 text-white text-xs font-bold px-2 py-1">
+                              <Badge variant="secondary" className="bg-black/50 text-white text-xs font-bold px-1.5 py-0.5 sm:px-2 sm:py-1">
                                 ×{item.quantity}
                               </Badge>
                             )}
                           </div>
 
-                          <CardTitle className="text-white text-sm font-bold group-hover:text-purple-200 transition-colors duration-300 line-clamp-2 mb-2">
+                          <CardTitle className="text-white text-xs sm:text-sm lg:text-base font-bold group-hover:text-purple-200 transition-colors duration-300 line-clamp-2 mb-1 sm:mb-2">
                             {item.name}
                           </CardTitle>
                           
-                          <div className="flex items-center gap-2 mb-3">
+                          <div className="flex items-center gap-1 sm:gap-2 mb-2 sm:mb-3 flex-wrap">
                             <Badge 
                               variant="outline" 
-                              className={`text-xs px-2 py-1 ${rarityColors} font-semibold`}
+                              className={`text-xs px-1.5 py-0.5 sm:px-2 sm:py-1 ${rarityColors} font-semibold`}
                             >
                               {getRarityName(item.rarity)}
                             </Badge>
-                            <Badge variant="secondary" className={`text-xs ${typeColor} bg-black/30 px-2 py-1`}>
+                            <Badge variant="secondary" className={`text-xs ${typeColor} bg-black/30 px-1.5 py-0.5 sm:px-2 sm:py-1`}>
                               {item.type === 'weapon' ? 'سلاح' :
                                item.type === 'armor' ? 'درع' :
                                item.type === 'material' ? 'مادة' :
@@ -399,14 +401,14 @@ const InventoryPanel = ({ isOpen, onClose, player }) => {
 
                           {/* Durability bar for equipment */}
                           {item.durability && (
-                            <div className="mb-3">
+                            <div className="mb-2 sm:mb-3">
                               <div className="flex justify-between items-center mb-1">
                                 <span className="text-xs text-gray-400">المتانة</span>
                                 <span className="text-xs text-white font-bold">{item.durability}/{item.maxDurability}</span>
                               </div>
-                              <div className="w-full bg-gray-700 rounded-full h-1.5">
+                              <div className="w-full bg-gray-700 rounded-full h-1 sm:h-1.5">
                                 <div 
-                                  className={`h-1.5 rounded-full transition-all duration-500 ${
+                                  className={`h-1 sm:h-1.5 rounded-full transition-all duration-500 ${
                                     item.durability > 70 ? 'bg-green-500' :
                                     item.durability > 40 ? 'bg-yellow-500' : 'bg-red-500'
                                   }`}
@@ -417,19 +419,19 @@ const InventoryPanel = ({ isOpen, onClose, player }) => {
                           )}
                         </CardHeader>
 
-                        <CardContent className="p-4 pt-0 relative z-10">
-                          <p className="text-gray-300 text-xs leading-relaxed mb-3 group-hover:text-white transition-colors duration-300">
+                        <CardContent className="p-2 sm:p-3 lg:p-4 pt-0 relative z-10">
+                          <p className="text-gray-300 text-xs leading-relaxed mb-2 sm:mb-3 group-hover:text-white transition-colors duration-300 line-clamp-2 sm:line-clamp-3">
                             {item.description}
                           </p>
 
-                          {/* Stats display */}
+                          {/* Stats display - Responsive layout */}
                           {item.stats && (
-                            <div className="space-y-2 mb-3">
+                            <div className="space-y-1 sm:space-y-2 mb-2 sm:mb-3">
                               <p className="text-xs font-semibold text-purple-300">الإحصائيات:</p>
-                              <div className="grid grid-cols-2 gap-1">
-                                {Object.entries(item.stats).map(([stat, value]) => (
-                                  <div key={stat} className="flex items-center justify-between bg-black/20 rounded-lg px-2 py-1">
-                                    <span className="text-xs text-gray-400">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                                {Object.entries(item.stats).slice(0, window.innerWidth < 640 ? 2 : 4).map(([stat, value]) => (
+                                  <div key={stat} className="flex items-center justify-between bg-black/20 rounded-lg px-1.5 py-1 sm:px-2">
+                                    <span className="text-xs text-gray-400 truncate">
                                       {stat === 'attack' ? 'هجوم' :
                                        stat === 'defense' ? 'دفاع' :
                                        stat === 'fire' ? 'نار' :
@@ -450,34 +452,34 @@ const InventoryPanel = ({ isOpen, onClose, player }) => {
 
                           {/* Effect display for consumables */}
                           {item.effect && (
-                            <div className="mb-3">
-                              <Badge variant="outline" className="text-xs text-green-400 border-green-400 bg-green-400/10 px-2 py-1">
-                                <Zap className="h-3 w-3 mr-1" />
-                                {item.effect}
+                            <div className="mb-2 sm:mb-3">
+                              <Badge variant="outline" className="text-xs text-green-400 border-green-400 bg-green-400/10 px-1.5 py-0.5 sm:px-2 sm:py-1">
+                                <Zap className="h-2 w-2 sm:h-3 sm:w-3 mr-1" />
+                                <span className="truncate">{item.effect}</span>
                               </Badge>
                             </div>
                           )}
 
-                          {/* Action buttons */}
-                          <div className="flex gap-2">
+                          {/* Action buttons - Responsive */}
+                          <div className="flex gap-1 sm:gap-2">
                             <Button 
                               size="sm" 
-                              className={`flex-1 bg-gradient-to-r ${rarityGradient} hover:opacity-90 text-white font-bold text-xs py-2 btn-ripple`}
+                              className={`flex-1 bg-gradient-to-r ${rarityGradient} hover:opacity-90 text-white font-bold text-xs py-1.5 sm:py-2 btn-ripple`}
                             >
                               {item.type === 'consumable' ? 'استخدام' : 'تجهيز'}
                             </Button>
                             <Button 
                               size="sm" 
                               variant="outline" 
-                              className="bg-black/30 border-gray-500/30 text-gray-300 hover:bg-gray-500/20 text-xs p-2 btn-ripple"
+                              className="bg-black/30 border-gray-500/30 text-gray-300 hover:bg-gray-500/20 text-xs p-1.5 sm:p-2 btn-ripple"
                             >
-                              <MoreHorizontal className="h-3 w-3" />
+                              <MoreHorizontal className="h-2 w-2 sm:h-3 sm:w-3" />
                             </Button>
                           </div>
                         </CardContent>
 
                         {/* Enhanced hover border effect */}
-                        <div className={`absolute inset-0 rounded-2xl border-2 border-transparent group-hover:border-opacity-60 transition-all duration-300 pointer-events-none`} 
+                        <div className={`absolute inset-0 rounded-lg sm:rounded-xl lg:rounded-2xl border-2 border-transparent group-hover:border-opacity-60 transition-all duration-300 pointer-events-none`} 
                              style={{ borderColor: item.rarity === 'legendary' ? '#fb923c' : 
                                                     item.rarity === 'epic' ? '#a855f7' :
                                                     item.rarity === 'rare' ? '#3b82f6' :

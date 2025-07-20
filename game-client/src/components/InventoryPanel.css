@@ -81,3 +81,214 @@
   box-shadow: 0 0 20px 6px rgba(0,212,255,0.15);
   transform: translateY(-1px);
 } 
+
+/* Responsive Inventory Panel Styles */
+.inventory-panel {
+  @apply transition-all duration-300;
+}
+
+/* Responsive scroll behavior */
+.inventory-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 92, 246, 0.5) rgba(0, 0, 0, 0.2);
+}
+
+.inventory-scroll::-webkit-scrollbar {
+  @apply w-1 sm:w-2;
+}
+
+.inventory-scroll::-webkit-scrollbar-track {
+  @apply bg-gray-900/20 rounded-full;
+}
+
+.inventory-scroll::-webkit-scrollbar-thumb {
+  @apply bg-purple-600/50 rounded-full border border-purple-400/30;
+}
+
+.inventory-scroll::-webkit-scrollbar-thumb:hover {
+  @apply bg-purple-500/70;
+}
+
+/* Responsive item card animations */
+.item-card {
+  @apply transition-all duration-500 ease-out;
+  animation: fadeInUp 0.6s ease-out forwards;
+  animation-fill-mode: both;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Mobile-first hover effects */
+@media (hover: hover) {
+  .item-card:hover {
+    @apply shadow-2xl shadow-purple-500/30;
+    transform: translateY(-8px) scale(1.02);
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) {
+  .item-card:active {
+    @apply shadow-lg shadow-purple-500/20;
+    transform: scale(0.98);
+  }
+}
+
+/* Responsive magical particles */
+.magical-particle {
+  animation: float 4s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translateY(-10px) rotate(180deg);
+    opacity: 0.8;
+  }
+}
+
+/* Responsive button ripple effect */
+.btn-ripple {
+  @apply relative overflow-hidden;
+}
+
+.btn-ripple::before {
+  content: '';
+  @apply absolute inset-0 bg-white/10 transform scale-0 rounded-full transition-transform duration-300;
+}
+
+.btn-ripple:active::before {
+  @apply scale-100;
+}
+
+/* Responsive tab content animations */
+.tab-content {
+  animation: tabFadeIn 0.3s ease-out;
+}
+
+@keyframes tabFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Responsive breakpoint optimizations */
+@media (max-width: 640px) {
+  .inventory-panel {
+    @apply rounded-xl;
+  }
+  
+  .item-card {
+    @apply border;
+  }
+  
+  .magical-particle {
+    animation-duration: 6s;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .inventory-panel {
+    @apply rounded-2xl;
+  }
+  
+  .item-card:hover {
+    transform: translateY(-6px) scale(1.03);
+  }
+}
+
+@media (min-width: 1025px) {
+  .inventory-panel {
+    @apply rounded-3xl;
+  }
+  
+  .item-card:hover {
+    transform: translateY(-10px) scale(1.05);
+  }
+  
+  .magical-particle {
+    animation-duration: 3s;
+  }
+}
+
+/* Responsive text truncation */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* High DPI display optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .inventory-panel {
+    @apply backdrop-blur-2xl;
+  }
+  
+  .item-card {
+    @apply backdrop-blur-sm;
+  }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .item-card,
+  .magical-particle,
+  .btn-ripple,
+  .tab-content {
+    animation-duration: 0.1s;
+  }
+  
+  .item-card:hover {
+    transform: none;
+  }
+}
+
+/* Dark mode optimizations */
+@media (prefers-color-scheme: dark) {
+  .inventory-scroll::-webkit-scrollbar-track {
+    @apply bg-gray-800/30;
+  }
+  
+  .inventory-scroll::-webkit-scrollbar-thumb {
+    @apply bg-purple-500/60;
+  }
+}
+
+/* Landscape orientation optimizations */
+@media (orientation: landscape) and (max-height: 600px) {
+  .inventory-panel {
+    @apply max-h-[95vh];
+  }
+}
+
+/* Ultra-wide screen optimizations */
+@media (min-width: 1920px) {
+  .inventory-panel {
+    max-width: 1800px;
+  }
+} 
