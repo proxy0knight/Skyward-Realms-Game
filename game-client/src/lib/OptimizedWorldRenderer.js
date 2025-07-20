@@ -163,6 +163,11 @@ class OptimizedWorldRenderer {
     })
     
     this.scene.add(treeGroup)
+    
+    // Store fallback trees for performance tracking
+    this.fallbackTrees = treeGroup
+    
+    console.log(`OptimizedWorldRenderer: Created ${positions.slice(0, 100).length} fallback trees`)
     return treeGroup
   }
 
@@ -271,6 +276,62 @@ class OptimizedWorldRenderer {
     
     // Update world streaming
     this.updateWorldStreaming()
+    
+    // Update performance stats
+    this.updatePerformanceStats()
+  }
+
+  /**
+   * Get performance statistics for monitoring
+   */
+  getPerformanceStats() {
+    if (!this.performanceStats) {
+      this.updatePerformanceStats()
+    }
+    return {
+      drawCalls: this.performanceStats.drawCalls,
+      triangles: this.performanceStats.triangles,
+      culledObjects: this.performanceStats.culledObjects,
+      loadedChunks: this.worldChunks.size,
+      instancedMeshes: this.performanceStats.instancedMeshes
+    }
+  }
+
+  /**
+   * Update performance statistics
+   */
+  updatePerformanceStats() {
+    if (!this.performanceStats) {
+      this.performanceStats = {
+        drawCalls: 0,
+        triangles: 0,
+        culledObjects: 0,
+        instancedMeshes: 0
+      }
+    }
+    
+    // Calculate based on loaded content
+    let estimatedDrawCalls = this.worldChunks.size // Terrain chunks
+    let estimatedTriangles = this.worldChunks.size * 1000 // Terrain triangles
+    
+    // Add instanced meshes
+    const treeMesh = this.instancedMeshes.get('trees')
+    if (treeMesh) {
+      estimatedDrawCalls += 1 // One draw call for all trees
+      estimatedTriangles += treeMesh.count * 20 // trees * 20 triangles each
+      this.performanceStats.instancedMeshes = 1
+    } else if (this.fallbackTrees) {
+      // Fallback trees (individual objects)
+      estimatedDrawCalls += this.fallbackTrees.children.length
+      estimatedTriangles += this.fallbackTrees.children.length * 60 // 60 triangles per fallback tree
+      this.performanceStats.instancedMeshes = 0
+    } else {
+      this.performanceStats.instancedMeshes = 0
+    }
+    
+    this.performanceStats.drawCalls = estimatedDrawCalls
+    this.performanceStats.triangles = estimatedTriangles
+    this.performanceStats.culledObjects = Math.max(0, 300 - estimatedDrawCalls) // Estimated culled objects
   }
 
   /**
