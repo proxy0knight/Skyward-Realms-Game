@@ -1,80 +1,48 @@
+/* Enhanced HUD Panel Glass Effect */
 .hud-panel-glass {
-  position: relative;
-  background: rgba(30, 30, 60, 0.60);
-  border-radius: 24px;
-  box-shadow: 0 8px 40px 0 rgba(0,0,0,0.25), 0 1.5px 8px 0 rgba(0,212,255,0.08);
-  backdrop-filter: blur(24px) saturate(1.2);
-  border: 1.5px solid rgba(142,45,226,0.18);
-  overflow: hidden;
-  z-index: 2;
-  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  opacity: 1;
-  transform: translateX(0) scale(1);
+  background: linear-gradient(135deg, 
+    rgba(15, 23, 42, 0.8) 0%,
+    rgba(30, 41, 59, 0.6) 50%,
+    rgba(15, 23, 42, 0.8) 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 0 20px rgba(139, 92, 246, 0.1);
+  transition: all 0.3s ease;
 }
 
-.hud-panel-glass.panel-enter {
-  opacity: 0;
-  transform: translateX(100%) scale(0.95);
+.hud-panel-glass:hover {
+  background: linear-gradient(135deg, 
+    rgba(15, 23, 42, 0.85) 0%,
+    rgba(30, 41, 59, 0.7) 50%,
+    rgba(15, 23, 42, 0.85) 100%);
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 0 30px rgba(139, 92, 246, 0.2);
+  transform: translateY(-1px);
 }
 
-.hud-panel-glass.panel-exit {
-  opacity: 0;
-  transform: translateX(100%) scale(0.95);
+.hud-panel-glass .progress-bar {
+  background: linear-gradient(90deg, 
+    rgba(139, 92, 246, 0.8) 0%,
+    rgba(168, 85, 247, 0.9) 50%,
+    rgba(139, 92, 246, 0.8) 100%);
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+  transition: all 0.3s ease;
 }
 
-.hud-panel-glass::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -1;
-  background: linear-gradient(270deg, #0f0c29, #302b63, #8e2de2, #00d4ff, #24243e, #ff00ff, #0f0c29);
-  background-size: 400% 400%;
-  animation: fantasyGradient 18s ease-in-out infinite;
-  opacity: 0.18;
-  filter: blur(2.5px) brightness(0.93);
+.hud-panel-glass .progress-bar:hover {
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.7);
 }
 
-@keyframes fantasyGradient {
-  0% { background-position: 0% 50%; }
-  25% { background-position: 50% 100%; }
-  50% { background-position: 100% 50%; }
-  75% { background-position: 50% 0%; }
-  100% { background-position: 0% 50%; }
-}
-
-/* Button Ripple Effect */
-.ripple-button {
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-
-.ripple-button::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0;
-  height: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3);
-  transform: translate(-50%, -50%);
-  transition: width 0.6s, height 0.6s;
-}
-
-.ripple-button:active::before {
-  width: 300px;
-  height: 300px;
-}
-
-/* Enhanced Hover Effects */
-.hud-panel-glass button:hover {
-  box-shadow: 0 0 16px 4px #00d4ff99, 0 8px 24px rgba(142,45,226,0.18);
-  filter: brightness(1.08) saturate(1.2);
-  transform: translateY(-2px);
+.hud-panel-glass .card {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  transition: all 0.3s ease;
 }
 
 .hud-panel-glass .card:hover {
@@ -84,7 +52,7 @@
 
 /* Responsive Inventory Panel Styles */
 .inventory-panel {
-  @apply transition-all duration-300;
+  transition: all 0.3s ease-in-out;
 }
 
 /* Responsive scroll behavior */
@@ -94,24 +62,33 @@
 }
 
 .inventory-scroll::-webkit-scrollbar {
-  @apply w-1 sm:w-2;
+  width: 4px;
+}
+
+@media (min-width: 640px) {
+  .inventory-scroll::-webkit-scrollbar {
+    width: 8px;
+  }
 }
 
 .inventory-scroll::-webkit-scrollbar-track {
-  @apply bg-gray-900/20 rounded-full;
+  background: rgba(17, 24, 39, 0.2);
+  border-radius: 9999px;
 }
 
 .inventory-scroll::-webkit-scrollbar-thumb {
-  @apply bg-purple-600/50 rounded-full border border-purple-400/30;
+  background: rgba(139, 92, 246, 0.5);
+  border-radius: 9999px;
+  border: 1px solid rgba(139, 92, 246, 0.3);
 }
 
 .inventory-scroll::-webkit-scrollbar-thumb:hover {
-  @apply bg-purple-500/70;
+  background: rgba(139, 92, 246, 0.7);
 }
 
 /* Responsive item card animations */
 .item-card {
-  @apply transition-all duration-500 ease-out;
+  transition: all 0.5s ease-out;
   animation: fadeInUp 0.6s ease-out forwards;
   animation-fill-mode: both;
 }
@@ -130,7 +107,7 @@
 /* Mobile-first hover effects */
 @media (hover: hover) {
   .item-card:hover {
-    @apply shadow-2xl shadow-purple-500/30;
+    box-shadow: 0 25px 50px -12px rgba(139, 92, 246, 0.3);
     transform: translateY(-8px) scale(1.02);
   }
 }
@@ -138,7 +115,7 @@
 /* Touch device optimizations */
 @media (hover: none) {
   .item-card:active {
-    @apply shadow-lg shadow-purple-500/20;
+    box-shadow: 0 10px 25px -3px rgba(139, 92, 246, 0.2);
     transform: scale(0.98);
   }
 }
@@ -161,16 +138,22 @@
 
 /* Responsive button ripple effect */
 .btn-ripple {
-  @apply relative overflow-hidden;
+  position: relative;
+  overflow: hidden;
 }
 
 .btn-ripple::before {
   content: '';
-  @apply absolute inset-0 bg-white/10 transform scale-0 rounded-full transition-transform duration-300;
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(0);
+  border-radius: 50%;
+  transition: transform 0.3s ease-in-out;
 }
 
 .btn-ripple:active::before {
-  @apply scale-100;
+  transform: scale(1);
 }
 
 /* Responsive tab content animations */
@@ -192,11 +175,11 @@
 /* Responsive breakpoint optimizations */
 @media (max-width: 640px) {
   .inventory-panel {
-    @apply rounded-xl;
+    border-radius: 0.75rem;
   }
   
   .item-card {
-    @apply border;
+    border: 1px solid rgba(148, 163, 184, 0.2);
   }
   
   .magical-particle {
@@ -206,7 +189,7 @@
 
 @media (min-width: 641px) and (max-width: 1024px) {
   .inventory-panel {
-    @apply rounded-2xl;
+    border-radius: 1rem;
   }
   
   .item-card:hover {
@@ -216,7 +199,7 @@
 
 @media (min-width: 1025px) {
   .inventory-panel {
-    @apply rounded-3xl;
+    border-radius: 1.5rem;
   }
   
   .item-card:hover {
@@ -246,11 +229,13 @@
 /* High DPI display optimizations */
 @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
   .inventory-panel {
-    @apply backdrop-blur-2xl;
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
   }
   
   .item-card {
-    @apply backdrop-blur-sm;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
   }
 }
 
@@ -271,18 +256,18 @@
 /* Dark mode optimizations */
 @media (prefers-color-scheme: dark) {
   .inventory-scroll::-webkit-scrollbar-track {
-    @apply bg-gray-800/30;
+    background: rgba(31, 41, 55, 0.3);
   }
   
   .inventory-scroll::-webkit-scrollbar-thumb {
-    @apply bg-purple-500/60;
+    background: rgba(139, 92, 246, 0.6);
   }
 }
 
 /* Landscape orientation optimizations */
 @media (orientation: landscape) and (max-height: 600px) {
   .inventory-panel {
-    @apply max-h-[95vh];
+    max-height: 95vh;
   }
 }
 

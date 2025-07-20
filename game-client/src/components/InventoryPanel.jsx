@@ -26,8 +26,30 @@ import {
   Maximize2,
   Minimize2
 } from 'lucide-react'
+import { useState, useEffect } from 'react'
 
 const InventoryPanel = ({ isOpen, onClose, player }) => {
+  const [viewport, setViewport] = useState({ width: 1024, height: 768 })
+
+  useEffect(() => {
+    const updateViewport = () => {
+      setViewport({
+        width: window.innerWidth,
+        height: window.innerHeight
+      })
+    }
+
+    if (typeof window !== 'undefined') {
+      updateViewport()
+      window.addEventListener('resize', updateViewport)
+      return () => window.removeEventListener('resize', updateViewport)
+    }
+  }, [])
+
+  const isMobile = viewport.width < 640
+  const isTablet = viewport.width >= 640 && viewport.width < 1024
+  const isDesktop = viewport.width >= 1024
+
   const inventoryItems = [
     { 
       id: 1, 
@@ -187,6 +209,13 @@ const InventoryPanel = ({ isOpen, onClose, player }) => {
     return inventoryItems.filter(item => item.type === type)
   }
 
+  // Responsive calculations based on viewport
+  const particleCount = isMobile ? 15 : isTablet ? 20 : 25
+  const insidePanelParticles = isMobile ? 6 : isTablet ? 9 : 12
+  const sparkleSize = isMobile ? 6 : 10
+  const legendarySparkles = isMobile ? 2 : 4
+  const maxStats = isMobile ? 2 : 4
+
   if (!isOpen) return null
 
   return (
@@ -195,7 +224,7 @@ const InventoryPanel = ({ isOpen, onClose, player }) => {
       <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose}>
         {/* Magical background particles - Less on mobile */}
         <div className="absolute inset-0 overflow-hidden">
-          {Array.from({ length: window.innerWidth < 640 ? 15 : window.innerWidth < 1024 ? 20 : 25 }, (_, i) => (
+          {Array.from({ length: particleCount }, (_, i) => (
             <div
               key={i}
               className="absolute animate-bounce opacity-20"
@@ -208,7 +237,7 @@ const InventoryPanel = ({ isOpen, onClose, player }) => {
             >
               <Sparkles 
                 className="text-purple-300" 
-                size={window.innerWidth < 640 ? 4 + Math.random() * 6 : 6 + Math.random() * 10}
+                size={4 + Math.random() * sparkleSize}
               />
             </div>
           ))}
@@ -222,7 +251,7 @@ const InventoryPanel = ({ isOpen, onClose, player }) => {
         
         {/* Floating particles inside panel - Responsive count */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {Array.from({ length: window.innerWidth < 640 ? 6 : window.innerWidth < 1024 ? 9 : 12 }, (_, i) => (
+          {Array.from({ length: insidePanelParticles }, (_, i) => (
             <div
               key={i}
               className="absolute animate-pulse magical-particle"
@@ -260,14 +289,18 @@ const InventoryPanel = ({ isOpen, onClose, player }) => {
                 <Search className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 <span className="hidden sm:inline">بحث</span>
               </Button>
-              <Button variant="outline" size="sm" className="bg-black/30 border-purple-500/30 text-purple-300 hover:bg-purple-500/20 btn-ripple hidden md:inline-flex text-xs sm:text-sm">
-                <Filter className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                تصفية
-              </Button>
-              <Button variant="outline" size="sm" className="bg-black/30 border-purple-500/30 text-purple-300 hover:bg-purple-500/20 btn-ripple hidden lg:inline-flex text-xs sm:text-sm">
-                <ArrowUp className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                ترتيب
-              </Button>
+              {!isMobile && (
+                <Button variant="outline" size="sm" className="bg-black/30 border-purple-500/30 text-purple-300 hover:bg-purple-500/20 btn-ripple hidden md:inline-flex text-xs sm:text-sm">
+                  <Filter className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  تصفية
+                </Button>
+              )}
+              {isDesktop && (
+                <Button variant="outline" size="sm" className="bg-black/30 border-purple-500/30 text-purple-300 hover:bg-purple-500/20 btn-ripple hidden lg:inline-flex text-xs sm:text-sm">
+                  <ArrowUp className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  ترتيب
+                </Button>
+              )}
               
               <Button
                 onClick={onClose}
@@ -284,31 +317,35 @@ const InventoryPanel = ({ isOpen, onClose, player }) => {
         <CardContent className="relative z-10 p-2 sm:p-4 lg:p-6 h-full overflow-hidden">
           <Tabs defaultValue="all" className="h-full flex flex-col">
             {/* Responsive Tab List */}
-            <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 mb-3 sm:mb-4 lg:mb-6 bg-black/30 border border-purple-500/20 rounded-xl sm:rounded-2xl p-1">
+            <TabsList className={`grid w-full ${isMobile ? 'grid-cols-3' : 'grid-cols-6'} mb-3 sm:mb-4 lg:mb-6 bg-black/30 border border-purple-500/20 rounded-xl sm:rounded-2xl p-1`}>
               <TabsTrigger value="all" className="data-[state=active]:bg-purple-500/30 data-[state=active]:text-white rounded-lg sm:rounded-xl transition-all duration-300 text-xs sm:text-sm">
                 <Grid className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">الكل</span>
+                {!isMobile && <span>الكل</span>}
               </TabsTrigger>
               <TabsTrigger value="weapon" className="data-[state=active]:bg-red-500/30 data-[state=active]:text-white rounded-lg sm:rounded-xl transition-all duration-300 text-xs sm:text-sm">
                 <Sword className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">أسلحة</span>
+                {!isMobile && <span>أسلحة</span>}
               </TabsTrigger>
               <TabsTrigger value="armor" className="data-[state=active]:bg-blue-500/30 data-[state=active]:text-white rounded-lg sm:rounded-xl transition-all duration-300 text-xs sm:text-sm">
                 <Shield className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">دروع</span>
+                {!isMobile && <span>دروع</span>}
               </TabsTrigger>
-              <TabsTrigger value="material" className="data-[state=active]:bg-cyan-500/30 data-[state=active]:text-white rounded-lg sm:rounded-xl transition-all duration-300 text-xs sm:text-sm">
-                <Gem className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="hidden lg:inline">مواد</span>
-              </TabsTrigger>
-              <TabsTrigger value="consumable" className="data-[state=active]:bg-green-500/30 data-[state=active]:text-white rounded-lg sm:rounded-xl transition-all duration-300 text-xs sm:text-sm">
-                <Leaf className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="hidden lg:inline">استهلاكيات</span>
-              </TabsTrigger>
-              <TabsTrigger value="accessory" className="data-[state=active]:bg-yellow-500/30 data-[state=active]:text-white rounded-lg sm:rounded-xl transition-all duration-300 text-xs sm:text-sm">
-                <Crown className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="hidden lg:inline">إكسسوارات</span>
-              </TabsTrigger>
+              {!isMobile && (
+                <>
+                  <TabsTrigger value="material" className="data-[state=active]:bg-cyan-500/30 data-[state=active]:text-white rounded-lg sm:rounded-xl transition-all duration-300 text-xs sm:text-sm">
+                    <Gem className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    {isDesktop && <span>مواد</span>}
+                  </TabsTrigger>
+                  <TabsTrigger value="consumable" className="data-[state=active]:bg-green-500/30 data-[state=active]:text-white rounded-lg sm:rounded-xl transition-all duration-300 text-xs sm:text-sm">
+                    <Leaf className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    {isDesktop && <span>استهلاكيات</span>}
+                  </TabsTrigger>
+                  <TabsTrigger value="accessory" className="data-[state=active]:bg-yellow-500/30 data-[state=active]:text-white rounded-lg sm:rounded-xl transition-all duration-300 text-xs sm:text-sm">
+                    <Crown className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    {isDesktop && <span>إكسسوارات</span>}
+                  </TabsTrigger>
+                </>
+              )}
             </TabsList>
 
             {/* Dynamic Items Content - Viewport aware grid */}
@@ -342,11 +379,11 @@ const InventoryPanel = ({ isOpen, onClose, player }) => {
                         {/* Legendary sparkle effect - Fewer on mobile */}
                         {item.rarity === 'legendary' && (
                           <div className="absolute inset-0 pointer-events-none">
-                            {Array.from({ length: window.innerWidth < 640 ? 2 : 4 }, (_, i) => (
+                            {Array.from({ length: legendarySparkles }, (_, i) => (
                               <Star
                                 key={i}
                                 className="absolute text-yellow-400 animate-pulse opacity-60"
-                                size={window.innerWidth < 640 ? 6 : 8}
+                                size={isMobile ? 6 : 8}
                                 style={{
                                   top: `${15 + i * 25}%`,
                                   left: `${15 + i * 20}%`,
@@ -429,7 +466,7 @@ const InventoryPanel = ({ isOpen, onClose, player }) => {
                             <div className="space-y-1 sm:space-y-2 mb-2 sm:mb-3">
                               <p className="text-xs font-semibold text-purple-300">الإحصائيات:</p>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-                                {Object.entries(item.stats).slice(0, window.innerWidth < 640 ? 2 : 4).map(([stat, value]) => (
+                                {Object.entries(item.stats).slice(0, maxStats).map(([stat, value]) => (
                                   <div key={stat} className="flex items-center justify-between bg-black/20 rounded-lg px-1.5 py-1 sm:px-2">
                                     <span className="text-xs text-gray-400 truncate">
                                       {stat === 'attack' ? 'هجوم' :

@@ -34,8 +34,30 @@ import {
   Maximize2,
   Minimize2
 } from 'lucide-react'
+import { useState, useEffect } from 'react'
 
 const GameHUD = ({ player, onTogglePanel, activePanel }) => {
+  const [viewport, setViewport] = useState({ width: 1024, height: 768 })
+
+  useEffect(() => {
+    const updateViewport = () => {
+      setViewport({
+        width: window.innerWidth,
+        height: window.innerHeight
+      })
+    }
+
+    if (typeof window !== 'undefined') {
+      updateViewport()
+      window.addEventListener('resize', updateViewport)
+      return () => window.removeEventListener('resize', updateViewport)
+    }
+  }, [])
+
+  const isMobile = viewport.width < 640
+  const isTablet = viewport.width >= 640 && viewport.width < 1024
+  const isDesktop = viewport.width >= 1024
+
   const getElementIcon = (elementId) => {
     switch (elementId) {
       case 'fire': return Flame
@@ -362,12 +384,12 @@ const GameHUD = ({ player, onTogglePanel, activePanel }) => {
       </div>
 
       {/* Responsive Navigation - Adapts position based on viewport */}
-      <div className="fixed bottom-2 sm:bottom-4 left-1/2 transform -translate-x-1/2 lg:left-4 lg:transform-none lg:top-1/2 lg:-translate-y-1/2 z-20" data-ui-element="quick-actions">
+      <div className={`fixed z-20 ${isDesktop ? 'left-4 top-1/2 -translate-y-1/2' : 'bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2'}`} data-ui-element="quick-actions">
         <div className="bg-black/40 backdrop-blur-lg rounded-2xl sm:rounded-3xl p-2 sm:p-3 lg:p-4 border border-purple-500/20 shadow-2xl relative overflow-hidden">
           {/* Background glow */}
           <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 via-pink-600/10 to-orange-600/10 rounded-2xl sm:rounded-3xl" />
           
-          <div className={`relative z-10 flex lg:flex-col items-center gap-2 sm:gap-3`}>
+          <div className={`relative z-10 flex ${isDesktop ? 'flex-col' : 'flex-row'} items-center gap-2 sm:gap-3`}>
             {[
               { icon: Package, label: 'الحقيبة', panel: 'inventory', color: 'text-green-400', hoverColor: 'hover:bg-green-500/20', bgColor: 'bg-green-500/10' },
               { icon: Map, label: 'الخريطة', panel: 'map', color: 'text-blue-400', hoverColor: 'hover:bg-blue-500/20', bgColor: 'bg-blue-500/10' },
@@ -411,10 +433,10 @@ const GameHUD = ({ player, onTogglePanel, activePanel }) => {
                   </Button>
                   
                   {/* Enhanced Tooltip - Position aware */}
-                  <div className={`absolute ${window.innerWidth >= 1024 ? '-right-16' : '-top-16'} ${window.innerWidth >= 1024 ? 'top-1/2 -translate-y-1/2' : 'left-1/2 -translate-x-1/2'} opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-50`}>
+                  <div className={`absolute ${isDesktop ? '-right-16 top-1/2 -translate-y-1/2' : '-top-16 left-1/2 -translate-x-1/2'} opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-50`}>
                     <div className="bg-black/90 text-white text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2 rounded-lg sm:rounded-xl border border-white/20 whitespace-nowrap shadow-2xl">
                       {item.label}
-                      <div className={`absolute ${window.innerWidth >= 1024 ? 'left-full top-1/2 -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-l-4 border-transparent border-l-black/90' : 'top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black/90'}`} />
+                      <div className={`absolute ${isDesktop ? 'left-full top-1/2 -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-l-4 border-transparent border-l-black/90' : 'top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black/90'}`} />
                     </div>
                   </div>
                 </div>
