@@ -1,385 +1,361 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
-import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 
-export class AssetManager {
+/**
+ * Modern Asset Manager for 3D Models and Textures
+ * Handles caching, loading optimization, and memory management
+ */
+class AssetManager {
   constructor() {
-    this.loadedAssets = new Map()
+    this.cache = new Map()
     this.loadingPromises = new Map()
-    this.textureLoader = new THREE.TextureLoader()
-    this.gltfLoader = new GLTFLoader()
-    this.objLoader = new OBJLoader()
-    this.fbxLoader = new FBXLoader()
+    this.loadingManager = new THREE.LoadingManager()
     
-    // Setup DRACO compression
+    // Setup loaders
+    this.gltfLoader = new GLTFLoader(this.loadingManager)
+    this.textureLoader = new THREE.TextureLoader(this.loadingManager)
+    
+    // Setup DRACO decoder for compressed models
     const dracoLoader = new DRACOLoader()
     dracoLoader.setDecoderPath('/draco/')
     this.gltfLoader.setDRACOLoader(dracoLoader)
     
-    // Asset categories
-    this.categories = {
-      characters: 'characters',
-      environments: 'environments',
-      props: 'props',
-      weapons: 'weapons',
-      effects: 'effects'
+    // Loading statistics
+    this.stats = {
+      loaded: 0,
+      total: 0,
+      errors: 0
+    }
+    
+    // Model presets for different quality levels
+    this.qualityPresets = {
+      low: { maxTriangles: 1000, textureSize: 512 },
+      medium: { maxTriangles: 5000, textureSize: 1024 },
+      high: { maxTriangles: 20000, textureSize: 2048 }
+    }
+    
+    this.setupLoadingManager()
+  }
+
+  setupLoadingManager() {
+    this.loadingManager.onLoad = () => {
+      console.log('AssetManager: All assets loaded successfully')
+    }
+    
+    this.loadingManager.onProgress = (url, loaded, total) => {
+      this.stats.loaded = loaded
+      this.stats.total = total
+      console.log(`AssetManager: Loading progress ${loaded}/${total} - ${url}`)
+    }
+    
+    this.loadingManager.onError = (url) => {
+      this.stats.errors++
+      console.error(`AssetManager: Failed to load ${url}`)
     }
   }
 
-  // Load external 3D model from URL
-  async loadExternalModel(url, type = 'gltf', options = {}) {
-    const assetId = options.id || this.generateAssetId(url)
+  /**
+   * Load a 3D model with caching
+   * @param {string} path - Path to the model file
+   * @param {Object} options - Loading options
+   * @returns {Promise<Object>} Loaded model data
+   */
+  async loadModel(path, options = {}) {
+    const cacheKey = `model_${path}_${JSON.stringify(options)}`
     
-    // Check if already loaded
-    if (this.loadedAssets.has(assetId)) {
-      return this.loadedAssets.get(assetId)
+    // Return cached version if available
+    if (this.cache.has(cacheKey)) {
+      return this.cache.get(cacheKey)
     }
     
-    // Check if already loading
-    if (this.loadingPromises.has(assetId)) {
-      return this.loadingPromises.get(assetId)
+    // Return existing loading promise if in progress
+    if (this.loadingPromises.has(cacheKey)) {
+      return this.loadingPromises.get(cacheKey)
     }
-
-    const loadPromise = this.loadModelByType(url, type, options)
-    this.loadingPromises.set(assetId, loadPromise)
-
+    
+    // Start loading
+    const loadingPromise = this.loadModelInternal(path, options)
+    this.loadingPromises.set(cacheKey, loadingPromise)
+    
     try {
-      const asset = await loadPromise
-      this.loadedAssets.set(assetId, asset)
-      this.loadingPromises.delete(assetId)
-      return asset
+      const result = await loadingPromise
+      this.cache.set(cacheKey, result)
+      this.loadingPromises.delete(cacheKey)
+      return result
     } catch (error) {
-      this.loadingPromises.delete(assetId)
-      console.error(`Failed to load external model: ${url}`, error)
+      this.loadingPromises.delete(cacheKey)
       throw error
     }
   }
 
-  // Load model based on file type
-  async loadModelByType(url, type, options) {
-    switch (type.toLowerCase()) {
-      case 'gltf':
-      case 'glb':
-        return this.loadGLTF(url, options)
-      case 'obj':
-        return this.loadOBJ(url, options)
-      case 'fbx':
-        return this.loadFBX(url, options)
-      default:
-        throw new Error(`Unsupported model type: ${type}`)
-    }
-  }
-
-  // Load GLTF/GLB model
-  async loadGLTF(url, options) {
+  async loadModelInternal(path, options) {
     return new Promise((resolve, reject) => {
       this.gltfLoader.load(
-        url,
+        path,
         (gltf) => {
-          const model = this.processLoadedModel(gltf.scene, options)
-          resolve({
-            type: 'gltf',
-            model: model,
-            animations: gltf.animations || [],
-            original: gltf
-          })
+          const processedModel = this.processModel(gltf, options)
+          resolve(processedModel)
         },
         (progress) => {
-          if (options.onProgress) {
-            options.onProgress(progress)
-          }
+          // Progress callback
         },
         (error) => {
+          console.error(`AssetManager: Failed to load model ${path}:`, error)
           reject(error)
         }
       )
     })
   }
 
-  // Load OBJ model
-  async loadOBJ(url, options) {
-    return new Promise((resolve, reject) => {
-      this.objLoader.load(
-        url,
-        (object) => {
-          const model = this.processLoadedModel(object, options)
-          resolve({
-            type: 'obj',
-            model: model,
-            animations: [],
-            original: object
-          })
-        },
-        (progress) => {
-          if (options.onProgress) {
-            options.onProgress(progress)
-          }
-        },
-        (error) => {
-          reject(error)
-        }
-      )
-    })
-  }
-
-  // Load FBX model
-  async loadFBX(url, options) {
-    return new Promise((resolve, reject) => {
-      this.fbxLoader.load(
-        url,
-        (object) => {
-          const model = this.processLoadedModel(object, options)
-          resolve({
-            type: 'fbx',
-            model: model,
-            animations: object.animations || [],
-            original: object
-          })
-        },
-        (progress) => {
-          if (options.onProgress) {
-            options.onProgress(progress)
-          }
-        },
-        (error) => {
-          reject(error)
-        }
-      )
-    })
-  }
-
-  // Process loaded model with options
-  processLoadedModel(model, options) {
-    const processedModel = model.clone()
+  /**
+   * Process loaded model for optimization
+   * @param {Object} gltf - Loaded GLTF data
+   * @param {Object} options - Processing options
+   * @returns {Object} Processed model
+   */
+  processModel(gltf, options = {}) {
+    const { optimize = true, castShadows = true, receiveShadows = true } = options
     
-    // Apply transformations
-    if (options.scale) {
-      processedModel.scale.setScalar(options.scale)
+    const model = {
+      scene: gltf.scene,
+      animations: gltf.animations,
+      geometries: [],
+      materials: [],
+      mixer: null
     }
     
-    if (options.position) {
-      processedModel.position.copy(options.position)
-    }
-    
-    if (options.rotation) {
-      processedModel.rotation.copy(options.rotation)
-    }
-    
-    // Apply materials
-    if (options.material) {
-      this.applyMaterialToModel(processedModel, options.material)
-    }
-    
-    // Apply shadows
-    if (options.castShadow !== undefined) {
-      processedModel.traverse((child) => {
-        if (child.isMesh) {
-          child.castShadow = options.castShadow
-        }
+    // Setup animations if present
+    if (gltf.animations.length > 0) {
+      model.mixer = new THREE.AnimationMixer(gltf.scene)
+      model.actions = {}
+      
+      gltf.animations.forEach(clip => {
+        model.actions[clip.name] = model.mixer.clipAction(clip)
       })
     }
     
-    if (options.receiveShadow !== undefined) {
-      processedModel.traverse((child) => {
-        if (child.isMesh) {
-          child.receiveShadow = options.receiveShadow
-        }
-      })
-    }
-    
-    return processedModel
-  }
-
-  // Apply material to model
-  applyMaterialToModel(model, material) {
-    model.traverse((child) => {
+    // Process meshes
+    gltf.scene.traverse((child) => {
       if (child.isMesh) {
-        child.material = material
+        // Setup shadows
+        child.castShadow = castShadows
+        child.receiveShadow = receiveShadows
+        
+        // Store geometry and material references
+        if (!model.geometries.includes(child.geometry)) {
+          model.geometries.push(child.geometry)
+        }
+        if (!model.materials.includes(child.material)) {
+          model.materials.push(child.material)
+        }
+        
+        // Optimize geometry if requested
+        if (optimize) {
+          this.optimizeGeometry(child.geometry)
+        }
       }
     })
+    
+    return model
   }
 
-  // Load texture from URL
-  async loadTexture(url, options = {}) {
-    const textureId = options.id || this.generateAssetId(url)
+  /**
+   * Optimize geometry for better performance
+   * @param {THREE.BufferGeometry} geometry 
+   */
+  optimizeGeometry(geometry) {
+    // Merge vertices
+    geometry.mergeVertices()
     
-    if (this.loadedAssets.has(textureId)) {
-      return this.loadedAssets.get(textureId)
+    // Compute normals if missing
+    if (!geometry.attributes.normal) {
+      geometry.computeVertexNormals()
     }
+    
+    // Compute bounding box/sphere for frustum culling
+    geometry.computeBoundingBox()
+    geometry.computeBoundingSphere()
+  }
 
-    return new Promise((resolve, reject) => {
+  /**
+   * Load texture with caching
+   * @param {string} path - Path to texture
+   * @param {Object} options - Texture options
+   * @returns {Promise<THREE.Texture>} Loaded texture
+   */
+  async loadTexture(path, options = {}) {
+    const cacheKey = `texture_${path}_${JSON.stringify(options)}`
+    
+    if (this.cache.has(cacheKey)) {
+      return this.cache.get(cacheKey)
+    }
+    
+    if (this.loadingPromises.has(cacheKey)) {
+      return this.loadingPromises.get(cacheKey)
+    }
+    
+    const loadingPromise = new Promise((resolve, reject) => {
       this.textureLoader.load(
-        url,
+        path,
         (texture) => {
-          // Apply texture options
-          if (options.wrapS) texture.wrapS = options.wrapS
-          if (options.wrapT) texture.wrapT = options.wrapT
-          if (options.repeat) texture.repeat.copy(options.repeat)
-          if (options.offset) texture.offset.copy(options.offset)
-          
-          this.loadedAssets.set(textureId, texture)
+          this.processTexture(texture, options)
           resolve(texture)
         },
         undefined,
         reject
       )
     })
+    
+    this.loadingPromises.set(cacheKey, loadingPromise)
+    
+    try {
+      const texture = await loadingPromise
+      this.cache.set(cacheKey, texture)
+      this.loadingPromises.delete(cacheKey)
+      return texture
+    } catch (error) {
+      this.loadingPromises.delete(cacheKey)
+      throw error
+    }
   }
 
-  // Load multiple assets
-  async loadAssets(assetList) {
-    const promises = assetList.map(asset => {
-      if (asset.type === 'texture') {
-        return this.loadTexture(asset.url, asset.options)
-      } else {
-        return this.loadExternalModel(asset.url, asset.type, asset.options)
+  /**
+   * Process texture for optimization
+   * @param {THREE.Texture} texture 
+   * @param {Object} options 
+   */
+  processTexture(texture, options = {}) {
+    const { 
+      wrapS = THREE.RepeatWrapping, 
+      wrapT = THREE.RepeatWrapping,
+      minFilter = THREE.LinearMipmapLinearFilter,
+      magFilter = THREE.LinearFilter,
+      generateMipmaps = true
+    } = options
+    
+    texture.wrapS = wrapS
+    texture.wrapT = wrapT
+    texture.minFilter = minFilter
+    texture.magFilter = magFilter
+    texture.generateMipmaps = generateMipmaps
+  }
+
+  /**
+   * Preload essential assets for the game
+   * @returns {Promise<void>}
+   */
+  async preloadEssentials() {
+    const essentialAssets = [
+      // Environment models
+      { type: 'model', path: '/assets/models/environment/tree_oak.glb', key: 'tree_oak' },
+      { type: 'model', path: '/assets/models/environment/rock_set.glb', key: 'rocks' },
+      { type: 'model', path: '/assets/models/environment/grass_patch.glb', key: 'grass' },
+      
+      // Character models
+      { type: 'model', path: '/assets/models/characters/mage_base.glb', key: 'mage_base' },
+      
+      // Textures
+      { type: 'texture', path: '/assets/textures/environment_atlas.jpg', key: 'env_atlas' },
+      { type: 'texture', path: '/assets/textures/character_atlas.jpg', key: 'char_atlas' }
+    ]
+    
+    console.log('AssetManager: Preloading essential assets...')
+    
+    const loadPromises = essentialAssets.map(async (asset) => {
+      try {
+        if (asset.type === 'model') {
+          const model = await this.loadModel(asset.path)
+          this.cache.set(asset.key, model)
+        } else if (asset.type === 'texture') {
+          const texture = await this.loadTexture(asset.path)
+          this.cache.set(asset.key, texture)
+        }
+        console.log(`AssetManager: Loaded ${asset.key}`)
+      } catch (error) {
+        console.warn(`AssetManager: Failed to preload ${asset.key}:`, error)
       }
     })
     
-    return Promise.all(promises)
+    await Promise.allSettled(loadPromises)
+    console.log('AssetManager: Essential assets preloaded')
   }
 
-  // Get loaded asset
-  getAsset(assetId) {
-    return this.loadedAssets.get(assetId)
+  /**
+   * Create an instanced mesh from a cached model
+   * @param {string} modelKey - Cache key for the model
+   * @param {number} count - Number of instances
+   * @param {Array} positions - Array of Vector3 positions
+   * @returns {THREE.InstancedMesh|null} Instanced mesh
+   */
+  createInstancedMesh(modelKey, count, positions = []) {
+    const model = this.cache.get(modelKey)
+    if (!model || !model.geometries[0] || !model.materials[0]) {
+      console.error(`AssetManager: Model ${modelKey} not found or invalid`)
+      return null
+    }
+    
+    const instancedMesh = new THREE.InstancedMesh(
+      model.geometries[0],
+      model.materials[0],
+      count
+    )
+    
+    // Set positions if provided
+    const matrix = new THREE.Matrix4()
+    positions.forEach((position, index) => {
+      if (index < count) {
+        matrix.setPosition(position.x || 0, position.y || 0, position.z || 0)
+        instancedMesh.setMatrixAt(index, matrix)
+      }
+    })
+    
+    if (positions.length > 0) {
+      instancedMesh.instanceMatrix.needsUpdate = true
+    }
+    
+    return instancedMesh
   }
 
-  // Check if asset is loaded
-  isAssetLoaded(assetId) {
-    return this.loadedAssets.has(assetId)
-  }
-
-  // Create instance of loaded model
-  createModelInstance(assetId, options = {}) {
-    const asset = this.getAsset(assetId)
-    if (!asset) {
-      throw new Error(`Asset not loaded: ${assetId}`)
-    }
-    
-    const instance = asset.model.clone()
-    
-    // Apply instance-specific options
-    if (options.position) {
-      instance.position.copy(options.position)
-    }
-    
-    if (options.rotation) {
-      instance.rotation.copy(options.rotation)
-    }
-    
-    if (options.scale) {
-      instance.scale.setScalar(options.scale)
-    }
-    
-    return instance
-  }
-
-  // Predefined external asset sources
-  getExternalAssetSources() {
+  /**
+   * Get loading progress
+   * @returns {Object} Loading statistics
+   */
+  getLoadingProgress() {
     return {
-      // Free 3D model sources
-      sketchfab: {
-        baseUrl: 'https://sketchfab.com/3d-models/',
-        formats: ['gltf', 'glb'],
-        description: 'High-quality 3D models (some free)'
-      },
-      free3d: {
-        baseUrl: 'https://free3d.com/',
-        formats: ['obj', 'fbx', '3ds'],
-        description: 'Free 3D models'
-      },
-      turbosquid: {
-        baseUrl: 'https://www.turbosquid.com/',
-        formats: ['obj', 'fbx', '3ds', 'max'],
-        description: 'Professional 3D models (paid)'
-      },
-      cgtrader: {
-        baseUrl: 'https://www.cgtrader.com/',
-        formats: ['obj', 'fbx', '3ds', 'blend'],
-        description: '3D models marketplace'
-      },
-      // Texture sources
-      textures: {
-        ambientCG: 'https://ambientcg.com/',
-        polyhaven: 'https://polyhaven.com/',
-        texturehaven: 'https://texturehaven.com/'
-      }
+      loaded: this.stats.loaded,
+      total: this.stats.total,
+      progress: this.stats.total > 0 ? this.stats.loaded / this.stats.total : 0,
+      errors: this.stats.errors
     }
   }
 
-  // Example asset configurations
-  getExampleAssets() {
-    return [
-      {
-        id: 'fantasy_sword',
-        name: 'Fantasy Sword',
-        url: 'https://example.com/models/fantasy_sword.glb',
-        type: 'glb',
-        category: 'weapons',
-        options: {
-          scale: 1.0,
-          castShadow: true,
-          receiveShadow: true
-        }
-      },
-      {
-        id: 'magic_crystal',
-        name: 'Magic Crystal',
-        url: 'https://example.com/models/magic_crystal.obj',
-        type: 'obj',
-        category: 'props',
-        options: {
-          scale: 0.5,
-          material: new THREE.MeshPhongMaterial({ 
-            color: 0x00ffff,
-            transparent: true,
-            opacity: 0.8
-          })
-        }
-      },
-      {
-        id: 'dragon_character',
-        name: 'Dragon Character',
-        url: 'https://example.com/models/dragon.fbx',
-        type: 'fbx',
-        category: 'characters',
-        options: {
-          scale: 2.0,
-          castShadow: true,
-          receiveShadow: true
-        }
+  /**
+   * Clear cache and free memory
+   */
+  dispose() {
+    // Dispose of geometries and materials
+    this.cache.forEach((asset, key) => {
+      if (asset.geometries) {
+        asset.geometries.forEach(geometry => geometry.dispose())
       }
-    ]
-  }
-
-  // Generate unique asset ID
-  generateAssetId(url) {
-    return `asset_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-  }
-
-  // Clear loaded assets
-  clearAssets() {
-    this.loadedAssets.forEach(asset => {
+      if (asset.materials) {
+        asset.materials.forEach(material => {
+          if (material.map) material.map.dispose()
+          if (material.normalMap) material.normalMap.dispose()
+          if (material.roughnessMap) material.roughnessMap.dispose()
+          material.dispose()
+        })
+      }
       if (asset.dispose) {
         asset.dispose()
       }
     })
-    this.loadedAssets.clear()
+    
+    this.cache.clear()
     this.loadingPromises.clear()
+    console.log('AssetManager: Cache cleared and memory freed')
   }
+}
 
-  // Get loading progress
-  getLoadingProgress() {
-    const total = this.loadedAssets.size + this.loadingPromises.size
-    const loaded = this.loadedAssets.size
-    return total > 0 ? (loaded / total) * 100 : 100
-  }
-
-  // Dispose of asset manager
-  dispose() {
-    this.clearAssets()
-    this.textureLoader.dispose()
-  }
-} 
+export default AssetManager 
