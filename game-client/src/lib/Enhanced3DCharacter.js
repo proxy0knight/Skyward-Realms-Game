@@ -29,11 +29,20 @@ class Enhanced3DCharacter {
     // Loaders
     this.loader = new GLTFLoader()
     
+    // Initialization flag
+    this.isInitialized = false
+    
     console.log('Enhanced3DCharacter: Initialized for element:', this.element.name)
   }
 
   async init() {
+    if (this.isInitialized) {
+      console.log('Enhanced3DCharacter: Already initialized, skipping...')
+      return this.characterGroup
+    }
+    
     console.log('Enhanced3DCharacter: Creating character...')
+    this.isInitialized = true
     
     // Create character group
     this.characterGroup = new THREE.Group()

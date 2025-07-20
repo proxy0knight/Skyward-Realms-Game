@@ -36,7 +36,7 @@ const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGa
     }
 
     // Prevent multiple initializations
-    if (isInitializedRef.current) {
+    if (isInitializedRef.current || gameEngineRef.current) {
       console.log('GameScene: Already initialized, skipping...')
       return
     }
@@ -223,7 +223,7 @@ const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGa
     // Cleanup function
     return () => {
       console.log('GameScene: Cleaning up...')
-      isInitializedRef.current = false
+      // Don't reset isInitializedRef here to prevent re-initialization during React strict mode
       
       if (gameEngineRef.current) {
         gameEngineRef.current.dispose()

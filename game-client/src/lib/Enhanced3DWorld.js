@@ -42,11 +42,20 @@ class Enhanced3DWorld {
     // Asset cache
     this.loadedAssets = new Map()
     
+    // Initialization flag
+    this.isInitialized = false
+    
     console.log('Enhanced3DWorld: Initialized')
   }
 
   async init() {
+    if (this.isInitialized) {
+      console.log('Enhanced3DWorld: Already initialized, skipping...')
+      return
+    }
+    
     console.log('Enhanced3DWorld: Creating magical fantasy world...')
+    this.isInitialized = true
     
     // Setup enhanced lighting
     await this.setupAdvancedLighting()
@@ -377,7 +386,7 @@ class Enhanced3DWorld {
       
       // Standing stone
       const stoneGeometry = new THREE.BoxGeometry(1, 4, 0.5)
-      const stoneMaterial = new THREE.MeshLambertMaterial({ 
+      const stoneMaterial = new THREE.MeshStandardMaterial({ 
         color: 0x696969,
         roughness: 0.8
       })

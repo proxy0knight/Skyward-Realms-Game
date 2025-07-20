@@ -33,11 +33,20 @@ class Enhanced3DAudio {
     this.isEnabled = true
     this.fadeTransitions = new Map()
     
+    // Initialization flag
+    this.isInitialized = false
+    
     console.log('Enhanced3DAudio: Initialized')
   }
 
   async init() {
+    if (this.isInitialized) {
+      console.log('Enhanced3DAudio: Already initialized, skipping...')
+      return
+    }
+    
     console.log('Enhanced3DAudio: Setting up 3D audio system...')
+    this.isInitialized = true
     
     // Add listener to camera
     if (this.camera && !this.camera.children.includes(this.listener)) {
