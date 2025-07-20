@@ -57,7 +57,8 @@ const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGa
       gameEngineRef.current = gameEngine
       
       console.log('GameScene: Initializing GameEngine...')
-      if (!gameEngine.init(mountRef.current)) {
+      const initSuccess = await gameEngine.init(mountRef.current)
+      if (!initSuccess) {
         console.error('GameScene: Failed to initialize game engine')
         return
       }
@@ -81,7 +82,7 @@ const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGa
 
       // Create player in 3D world
       console.log('GameScene: Creating player in 3D world...')
-      const playerMesh = gameEngine.createPlayer(playerData)
+      const playerMesh = await gameEngine.createPlayer(playerData)
       console.log('GameScene: Player created:', playerMesh)
 
       // Initialize world manager

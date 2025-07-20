@@ -62,7 +62,7 @@ class Enhanced3DCharacter {
       this.body = characterModel
     } catch (error) {
       console.log('Enhanced3DCharacter: Creating procedural character...')
-      this.body = this.createProceduralCharacter()
+      this.body = await this.createProceduralCharacter()
     }
     
     this.characterGroup.add(this.body)
@@ -116,7 +116,7 @@ class Enhanced3DCharacter {
     })
   }
 
-  createProceduralCharacter() {
+  async createProceduralCharacter() {
     const characterGroup = new THREE.Group()
     
     // Get element colors

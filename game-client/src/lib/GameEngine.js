@@ -30,7 +30,7 @@ class GameEngine {
     this.keysPressed = new Set()
   }
 
-  init(container) {
+  async init(container) {
     try {
       console.log('GameEngine: Initializing...')
       
@@ -62,7 +62,7 @@ class GameEngine {
       // Initialize enhanced 3D audio
       console.log('GameEngine: Initializing enhanced 3D audio...')
       this.enhanced3DAudio = new Enhanced3DAudio(this.camera)
-      this.enhanced3DAudio.init()
+      await this.enhanced3DAudio.init()
       
       // Setup camera controls
       this.setupCameraControls()

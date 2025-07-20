@@ -36,7 +36,7 @@ class Enhanced3DAudio {
     console.log('Enhanced3DAudio: Initialized')
   }
 
-  init() {
+  async init() {
     console.log('Enhanced3DAudio: Setting up 3D audio system...')
     
     // Add listener to camera
@@ -45,10 +45,10 @@ class Enhanced3DAudio {
     }
     
     // Initialize environmental sounds
-    this.initEnvironmentalAudio()
+    await this.initEnvironmentalAudio()
     
     // Initialize music system
-    this.initMusicSystem()
+    await this.initMusicSystem()
     
     console.log('Enhanced3DAudio: 3D audio system ready!')
   }

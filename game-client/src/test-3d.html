@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skyward Realms - 3D Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        
+        #gameContainer {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        #controls h3 {
+            margin: 0 0 10px 0;
+            color: #4CAF50;
+        }
+        
+        #controls ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        #controls li {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        
+        #status {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            backdrop-filter: blur(10px);
+            font-size: 12px;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2000;
+            text-align: center;
+        }
+        
+        .loading h2 {
+            color: #4CAF50;
+            margin-bottom: 20px;
+        }
+        
+        .spinner {
+            border: 4px solid #333;
+            border-top: 4px solid #4CAF50;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div class="loading" id="loadingScreen">
+            <h2>Loading Enhanced 3D World...</h2>
+            <div class="spinner"></div>
+            <p>Initializing magical systems...</p>
+        </div>
+        
+        <div id="controls">
+            <h3>🎮 Controls</h3>
+            <ul>
+                <li><strong>WASD:</strong> Move Character</li>
+                <li><strong>Mouse:</strong> Look Around (Click to Lock)</li>
+                <li><strong>Space:</strong> Jump</li>
+                <li><strong>Q:</strong> Cast Primary Spell</li>
+                <li><strong>E:</strong> Cast Secondary Spell</li>
+                <li><strong>R:</strong> Cast Ultimate Spell</li>
+                <li><strong>F:</strong> Change Weather</li>
+            </ul>
+        </div>
+        
+        <div id="status">
+            <div>FPS: <span id="fps">0</span></div>
+            <div>Status: <span id="gameStatus">Loading...</span></div>
+            <div>Time: <span id="timeOfDay">Day</span></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import Enhanced3DWorld from './src/lib/Enhanced3DWorld.js';
+        import Enhanced3DCharacter from './src/lib/Enhanced3DCharacter.js';
+        import Enhanced3DAudio from './src/lib/Enhanced3DAudio.js';
+
+        class Test3DGame {
+            constructor() {
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                this.enhanced3DWorld = null;
+                this.enhanced3DCharacter = null;
+                this.enhanced3DAudio = null;
+                this.clock = new THREE.Clock();
+                this.isRunning = false;
+                
+                // Test player data
+                this.playerData = {
+                    element: { id: 'fire', name: 'Fire', color: '#FF4500' },
+                    level: 1,
+                    name: 'Test Mage'
+                };
+            }
+
+            async init() {
+                try {
+                    console.log('Test3DGame: Initializing...');
+                    
+                    const container = document.getElementById('gameContainer');
+                    
+                    // Create scene
+                    this.scene = new THREE.Scene();
+                    this.scene.background = new THREE.Color(0x87CEEB);
+                    
+                    // Create camera
+                    this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                    this.camera.position.set(0, 5, 10);
+                    
+                    // Create renderer
+                    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                    this.renderer.setSize(window.innerWidth, window.innerHeight);
+                    this.renderer.shadowMap.enabled = true;
+                    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                    container.appendChild(this.renderer.domElement);
+                    
+                    // Update status
+                    document.getElementById('gameStatus').textContent = 'Initializing 3D World...';
+                    
+                    // Initialize enhanced 3D world
+                    console.log('Test3DGame: Creating enhanced 3D world...');
+                    this.enhanced3DWorld = new Enhanced3DWorld(this.scene, this.camera, this.renderer);
+                    await this.enhanced3DWorld.init();
+                    
+                    // Update status
+                    document.getElementById('gameStatus').textContent = 'Creating Character...';
+                    
+                    // Initialize enhanced 3D character
+                    console.log('Test3DGame: Creating enhanced 3D character...');
+                    this.enhanced3DCharacter = new Enhanced3DCharacter(this.scene, this.playerData);
+                    await this.enhanced3DCharacter.init();
+                    
+                    // Update status
+                    document.getElementById('gameStatus').textContent = 'Initializing Audio...';
+                    
+                    // Initialize enhanced 3D audio
+                    console.log('Test3DGame: Creating enhanced 3D audio...');
+                    this.enhanced3DAudio = new Enhanced3DAudio(this.camera);
+                    await this.enhanced3DAudio.init();
+                    
+                    // Setup camera controls
+                    this.setupCameraControls();
+                    
+                    // Setup input
+                    this.setupInput();
+                    
+                    // Setup resize handler
+                    window.addEventListener('resize', () => this.onWindowResize());
+                    
+                    // Hide loading screen
+                    document.getElementById('loadingScreen').style.display = 'none';
+                    document.getElementById('gameStatus').textContent = 'Ready!';
+                    
+                    // Start game loop
+                    this.isRunning = true;
+                    this.animate();
+                    
+                    console.log('Test3DGame: Initialization complete!');
+                    
+                } catch (error) {
+                    console.error('Test3DGame: Initialization failed:', error);
+                    document.getElementById('gameStatus').textContent = 'Error: ' + error.message;
+                }
+            }
+
+            setupCameraControls() {
+                // Third-person camera controls
+                this.camera.userData.orbitControl = {
+                    distance: 8,
+                    height: 3,
+                    rotationY: 0,
+                    rotationX: 0.2,
+                    target: new THREE.Vector3(0, 1, 0)
+                };
+            }
+
+            setupInput() {
+                const canvas = this.renderer.domElement;
+                
+                // Mouse controls
+                canvas.addEventListener('click', () => {
+                    canvas.requestPointerLock();
+                });
+                
+                document.addEventListener('pointerlockchange', () => {
+                    const isLocked = document.pointerLockElement === canvas;
+                    console.log('Pointer lock changed:', isLocked);
+                });
+                
+                document.addEventListener('mousemove', (event) => {
+                    if (document.pointerLockElement === canvas) {
+                        const orbit = this.camera.userData.orbitControl;
+                        orbit.rotationY -= event.movementX * 0.003;
+                        orbit.rotationX -= event.movementY * 0.003;
+                        orbit.rotationX = Math.max(-0.5, Math.min(0.8, orbit.rotationX));
+                    }
+                });
+                
+                // Keyboard controls
+                document.addEventListener('keydown', (event) => {
+                    this.handleKeyDown(event);
+                });
+            }
+
+            handleKeyDown(event) {
+                switch (event.code) {
+                    case 'KeyQ':
+                        if (this.enhanced3DCharacter) {
+                            this.enhanced3DCharacter.castSpell('primary');
+                            if (this.enhanced3DAudio) {
+                                this.enhanced3DAudio.playSpellSound('primary', new THREE.Vector3(0, 1, 0));
+                            }
+                        }
+                        break;
+                    case 'KeyE':
+                        if (this.enhanced3DCharacter) {
+                            this.enhanced3DCharacter.castSpell('secondary');
+                            if (this.enhanced3DAudio) {
+                                this.enhanced3DAudio.playSpellSound('secondary', new THREE.Vector3(0, 1, 0));
+                            }
+                        }
+                        break;
+                    case 'KeyR':
+                        if (this.enhanced3DCharacter) {
+                            this.enhanced3DCharacter.castSpell('ultimate');
+                            if (this.enhanced3DAudio) {
+                                this.enhanced3DAudio.playSpellSound('ultimate', new THREE.Vector3(0, 1, 0));
+                            }
+                        }
+                        break;
+                    case 'KeyF':
+                        if (this.enhanced3DWorld) {
+                            const weathers = ['clear', 'rain', 'snow', 'fog'];
+                            const currentWeather = this.enhanced3DWorld.weather.type;
+                            const nextIndex = (weathers.indexOf(currentWeather) + 1) % weathers.length;
+                            this.enhanced3DWorld.setWeather(weathers[nextIndex], 0.7);
+                            console.log(`Weather changed to: ${weathers[nextIndex]}`);
+                        }
+                        break;
+                }
+            }
+
+            updateCamera() {
+                if (this.camera.userData.orbitControl) {
+                    const orbit = this.camera.userData.orbitControl;
+                    const target = orbit.target;
+                    
+                    // Calculate camera position
+                    const x = target.x + Math.sin(orbit.rotationY) * orbit.distance;
+                    const z = target.z + Math.cos(orbit.rotationY) * orbit.distance;
+                    const y = target.y + orbit.height + Math.sin(orbit.rotationX) * orbit.distance;
+                    
+                    this.camera.position.set(x, y, z);
+                    this.camera.lookAt(target);
+                }
+            }
+
+            animate() {
+                if (!this.isRunning) return;
+                
+                requestAnimationFrame(() => this.animate());
+                
+                const deltaTime = this.clock.getDelta();
+                const fps = Math.round(1 / deltaTime);
+                
+                // Update FPS display
+                document.getElementById('fps').textContent = fps;
+                
+                // Update enhanced 3D world
+                if (this.enhanced3DWorld) {
+                    this.enhanced3DWorld.update(deltaTime * 1000);
+                    
+                    // Update time display
+                    const timeOfDay = this.enhanced3DWorld.timeOfDay;
+                    let timeText = 'Day';
+                    if (timeOfDay < 0.2 || timeOfDay > 0.8) {
+                        timeText = 'Night';
+                    } else if (timeOfDay < 0.3 || timeOfDay > 0.7) {
+                        timeText = 'Twilight';
+                    }
+                    document.getElementById('timeOfDay').textContent = timeText;
+                }
+                
+                // Update enhanced 3D character
+                if (this.enhanced3DCharacter) {
+                    this.enhanced3DCharacter.update(deltaTime * 1000);
+                }
+                
+                // Update camera
+                this.updateCamera();
+                
+                // Render
+                this.renderer.render(this.scene, this.camera);
+            }
+
+            onWindowResize() {
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        }
+
+        // Initialize game when page loads
+        const game = new Test3DGame();
+        game.init();
+    </script>
+</body>
+</html>
