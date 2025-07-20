@@ -54,6 +54,7 @@ class GameEngine {
       this.renderer.setSize(container.clientWidth, container.clientHeight)
       this.renderer.shadowMap.enabled = true
       this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
+      this.renderer.setClearColor(0x87CEEB, 1) // Sky blue background
       
       // Ensure canvas is properly styled
       this.renderer.domElement.style.width = '100%'

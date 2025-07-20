@@ -46,6 +46,9 @@ class OptimizedWorldRenderer {
     console.log('OptimizedWorldRenderer: Loading essential assets...')
     
     try {
+      // Setup proper lighting first
+      this.setupOptimizedLighting()
+      
       // Preload essential assets
       await this.assetManager.preloadEssentials()
       
@@ -61,6 +64,41 @@ class OptimizedWorldRenderer {
       console.error('OptimizedWorldRenderer: Failed to initialize:', error)
       return false
     }
+  }
+
+  /**
+   * Setup optimized lighting for proper material visibility
+   */
+  setupOptimizedLighting() {
+    // Ambient light for overall illumination
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.6) // Soft white light
+    this.scene.add(ambientLight)
+    
+    // Directional light (sun)
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8)
+    directionalLight.position.set(50, 100, 50)
+    directionalLight.castShadow = true
+    directionalLight.shadow.mapSize.width = 2048
+    directionalLight.shadow.mapSize.height = 2048
+    directionalLight.shadow.camera.near = 0.5
+    directionalLight.shadow.camera.far = 500
+    directionalLight.shadow.camera.left = -100
+    directionalLight.shadow.camera.right = 100
+    directionalLight.shadow.camera.top = 100
+    directionalLight.shadow.camera.bottom = -100
+    this.scene.add(directionalLight)
+    
+    // Hemisphere light for natural sky/ground lighting
+    const hemisphereLight = new THREE.HemisphereLight(0x87CEEB, 0x8B4513, 0.4) // Sky blue to brown
+    this.scene.add(hemisphereLight)
+    
+    // Enable shadows in renderer (will be set by GameEngine)
+    if (this.renderer) {
+      this.renderer.shadowMap.enabled = true
+      this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
+    }
+    
+    console.log('OptimizedWorldRenderer: Optimized lighting setup complete')
   }
 
   /**

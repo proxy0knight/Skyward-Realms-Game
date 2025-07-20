@@ -10,12 +10,13 @@ import DialoguePanel from './components/DialoguePanel'
 import QuestPanel from './components/QuestPanel'
 import AdminPanel from './components/AdminPanel'
 import AdminAccess from './components/AdminAccess'
+import AdminDashboard from './components/AdminDashboard'
 import CombatTestPanel from './components/CombatTestPanel'
 import StoryTestPanel from './components/StoryTestPanel'
 import { Flame, Droplets, Mountain, Wind } from 'lucide-react'
 
 function App() {
-  const [gameState, setGameState] = useState('menu') // 'menu', 'character-selection', 'playing', 'admin-access', 'admin'
+  const [gameState, setGameState] = useState('menu') // 'menu', 'character-selection', 'playing', 'admin-access', 'admin', 'asset-manager'
   const [player, setPlayer] = useState(null)
   const [selectedElement, setSelectedElement] = useState(null)
   const [activePanel, setActivePanel] = useState(null)
@@ -136,9 +137,26 @@ function App() {
     setGameState('menu')
   }
 
+  const handleAssetManagerAccess = () => {
+    setGameState('asset-manager')
+  }
+
   const handleGameEngineReady = (engine) => {
     setGameEngine(engine)
   }
+
+  // Keyboard shortcut for asset manager (Ctrl+Shift+A)
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.ctrlKey && event.shiftKey && event.key === 'A') {
+        event.preventDefault()
+        setGameState('asset-manager')
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -191,6 +209,10 @@ function App() {
       
       {gameState === 'admin' && (
         <AdminPanel onBack={handleBackFromAdmin} />
+      )}
+      
+      {gameState === 'asset-manager' && (
+        <AdminDashboard />
       )}
       
       {gameState === 'character-selection' && (
