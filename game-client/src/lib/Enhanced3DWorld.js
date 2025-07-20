@@ -156,13 +156,13 @@ class Enhanced3DWorld {
         const z = (j / height) * 8
         
         // Multi-octave noise for realistic terrain
-        let height = 0
-        height += Math.sin(x * 0.5) * Math.cos(z * 0.5) * 0.3
-        height += Math.sin(x * 1.2) * Math.cos(z * 1.2) * 0.2
-        height += Math.sin(x * 2.4) * Math.cos(z * 2.4) * 0.1
-        height += (Math.random() - 0.5) * 0.1
+        let heightValue = 0
+        heightValue += Math.sin(x * 0.5) * Math.cos(z * 0.5) * 0.3
+        heightValue += Math.sin(x * 1.2) * Math.cos(z * 1.2) * 0.2
+        heightValue += Math.sin(x * 2.4) * Math.cos(z * 2.4) * 0.1
+        heightValue += (Math.random() - 0.5) * 0.1
         
-        heightData[j * width + i] = Math.max(0, height)
+        heightData[j * width + i] = Math.max(0, heightValue)
       }
     }
     
