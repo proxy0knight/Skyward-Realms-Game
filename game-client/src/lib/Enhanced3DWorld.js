@@ -30,7 +30,7 @@ class Enhanced3DWorld {
     
     // Time system
     this.timeOfDay = 0.5 // 0 = midnight, 0.5 = noon, 1 = midnight
-    this.dayDuration = 300 // 5 minutes per full day/night cycle
+    this.dayDuration = 1200 // 20 minutes per full day/night cycle (much slower)
     
     // Weather system
     this.weather = {
@@ -676,12 +676,12 @@ class Enhanced3DWorld {
       this.sun.position.copy(sunPosition).multiplyScalar(100)
       this.sun.intensity = Math.max(0.1, Math.cos(phi))
       
-      // Sun color changes based on time
-      if (this.timeOfDay < 0.3 || this.timeOfDay > 0.7) {
-        this.sun.color.setHSL(0.1, 0.8, 0.6) // Orange/red sunset/sunrise
-      } else {
-        this.sun.color.setHSL(0.15, 0.1, 1) // White daylight
-      }
+      // Sun color changes based on time (more gradual)
+      const dayPhase = Math.abs(this.timeOfDay - 0.5) * 2 // 0 = noon, 1 = midnight
+      const sunHue = THREE.MathUtils.lerp(0.15, 0.1, dayPhase)
+      const sunSat = THREE.MathUtils.lerp(0.1, 0.6, dayPhase)
+      const sunLight = THREE.MathUtils.lerp(1, 0.7, dayPhase)
+      this.sun.color.setHSL(sunHue, sunSat, sunLight)
     }
     
     // Update moonlight
@@ -690,13 +690,13 @@ class Enhanced3DWorld {
       this.moonlight.intensity = this.moonlight.visible ? 0.3 : 0
     }
     
-    // Update fog color
+    // Update fog color (smoother transitions)
     if (this.scene.fog) {
-      if (this.timeOfDay < 0.3 || this.timeOfDay > 0.7) {
-        this.scene.fog.color.setHSL(0.1, 0.5, 0.3) // Orange fog
-      } else {
-        this.scene.fog.color.setHSL(0.6, 0.3, 0.7) // Blue sky
-      }
+      const dayPhase = Math.abs(this.timeOfDay - 0.5) * 2 // 0 = noon, 1 = midnight
+      const fogHue = THREE.MathUtils.lerp(0.6, 0.1, dayPhase)
+      const fogSat = THREE.MathUtils.lerp(0.3, 0.5, dayPhase)
+      const fogLight = THREE.MathUtils.lerp(0.7, 0.3, dayPhase)
+      this.scene.fog.color.setHSL(fogHue, fogSat, fogLight)
     }
   }
 
@@ -705,8 +705,11 @@ class Enhanced3DWorld {
     this.timeOfDay += deltaTime / this.dayDuration
     if (this.timeOfDay > 1) this.timeOfDay -= 1
     
-    // Update sky and lighting
-    this.updateSkyAndLighting()
+    // Update sky and lighting (throttled to reduce blinking)
+    if (!this.lastLightingUpdate || Date.now() - this.lastLightingUpdate > 100) {
+      this.updateSkyAndLighting()
+      this.lastLightingUpdate = Date.now()
+    }
     
     // Update water
     if (this.water) {

@@ -65,14 +65,9 @@ class Enhanced3DCharacter {
   }
 
   async createCharacterBody() {
-    // Try to load a character model, fallback to procedural if not available
-    try {
-      const characterModel = await this.loadCharacterModel()
-      this.body = characterModel
-    } catch (error) {
-      console.log('Enhanced3DCharacter: Creating procedural character...')
-      this.body = await this.createProceduralCharacter()
-    }
+    // Use procedural character for now (skip GLTF loading to avoid errors)
+    console.log('Enhanced3DCharacter: Creating procedural character...')
+    this.body = await this.createProceduralCharacter()
     
     this.characterGroup.add(this.body)
     console.log('Enhanced3DCharacter: Character body created')
