@@ -81,13 +81,13 @@ class Enhanced3DCharacter {
   async loadCharacterModel() {
     // Try to load different character models based on element
     const modelPaths = {
-      fire: '/assets/models/fire_mage.glb',
-      water: '/assets/models/water_mage.glb',
-      earth: '/assets/models/earth_mage.glb',
-      air: '/assets/models/air_mage.glb'
+      fire: '/assets/models/character.gltf',
+      water: '/assets/models/character.gltf',
+      earth: '/assets/models/character.gltf',
+      air: '/assets/models/character.gltf'
     }
     
-    const modelPath = modelPaths[this.element.id] || modelPaths.fire
+    const modelPath = modelPaths[this.element.id] || '/assets/models/character.gltf'
     
     return new Promise((resolve, reject) => {
       this.loader.load(

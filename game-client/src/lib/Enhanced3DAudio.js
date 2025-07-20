@@ -36,6 +36,9 @@ class Enhanced3DAudio {
     // Initialization flag
     this.isInitialized = false
     
+    // Development mode (reduces audio loading error verbosity)
+    this.isDevelopmentMode = import.meta.env.DEV || process.env.NODE_ENV === 'development'
+    
     console.log('Enhanced3DAudio: Initialized')
   }
 
@@ -59,7 +62,11 @@ class Enhanced3DAudio {
     // Initialize music system
     await this.initMusicSystem()
     
-    console.log('Enhanced3DAudio: 3D audio system ready!')
+    if (this.isDevelopmentMode) {
+      console.log('Enhanced3DAudio: 3D audio system ready! (Audio file warnings expected in development)')
+    } else {
+      console.log('Enhanced3DAudio: 3D audio system ready!')
+    }
   }
 
   async initEnvironmentalAudio() {
@@ -98,7 +105,9 @@ class Enhanced3DAudio {
       
       console.log('Enhanced3DAudio: Environmental audio loaded')
     } catch (error) {
-      console.warn('Enhanced3DAudio: Could not load environmental audio, using procedural sounds')
+      if (!this.isDevelopmentMode) {
+        console.warn('Enhanced3DAudio: Could not load environmental audio, using procedural sounds')
+      }
       this.createProceduralEnvironmentalAudio()
     }
   }
@@ -124,7 +133,9 @@ class Enhanced3DAudio {
           isPlaying: false
         })
       } catch (error) {
-        console.warn(`Enhanced3DAudio: Could not load music track ${track.name}`)
+        if (!this.isDevelopmentMode) {
+          console.warn(`Enhanced3DAudio: Could not load music track ${track.name}`)
+        }
       }
     }
     
@@ -278,7 +289,9 @@ class Enhanced3DAudio {
       
       return positionalAudio
     } catch (error) {
-      console.warn(`Enhanced3DAudio: Could not load ${audioPath}`)
+      if (!this.isDevelopmentMode) {
+        console.warn(`Enhanced3DAudio: Could not load ${audioPath}`)
+      }
       return null
     }
   }
@@ -303,7 +316,9 @@ class Enhanced3DAudio {
       
       return audio
     } catch (error) {
-      console.warn(`Enhanced3DAudio: Could not load ${audioPath}`)
+      if (!this.isDevelopmentMode) {
+        console.warn(`Enhanced3DAudio: Could not load ${audioPath}`)
+      }
       return null
     }
   }
