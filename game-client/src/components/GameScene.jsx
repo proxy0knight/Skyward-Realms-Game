@@ -199,17 +199,22 @@ const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGa
 
       // Test if renderer is working
       setTimeout(() => {
-        const canvas = mountRef.current?.querySelector('canvas')
-        if (canvas && document.contains(canvas)) {
+        const canvas = gameEngine?.renderer?.domElement
+        if (canvas && mountRef.current && mountRef.current.contains(canvas)) {
           console.log('GameScene: Canvas found and mounted:', {
             width: canvas.width,
             height: canvas.height,
-            style: canvas.style.cssText
+            parentElement: canvas.parentElement?.tagName
           })
         } else {
-          console.error('GameScene: No canvas found or canvas not in DOM')
+          console.log('GameScene: Canvas status:', {
+            hasGameEngine: !!gameEngine,
+            hasRenderer: !!gameEngine?.renderer,
+            hasCanvas: !!canvas,
+            hasMount: !!mountRef.current
+          })
         }
-      }, 1000)
+      }, 500)
 
       } catch (error) {
         console.error('GameScene: Error during initialization:', error)

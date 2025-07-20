@@ -157,7 +157,7 @@ class Enhanced3DCharacter {
     
     // Eyes (glowing based on element)
     const eyeGeometry = new THREE.SphereGeometry(0.08, 8, 6)
-    const eyeMaterial = new THREE.MeshBasicMaterial({
+    const eyeMaterial = new THREE.MeshStandardMaterial({
       color: elementColors.glow,
       emissive: elementColors.glow,
       emissiveIntensity: 0.5
