@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import GameEngine from '../lib/GameEngine'
+// import BabylonGameEngine from '../lib/BabylonGameEngine'
 import PerformanceMonitor from './PerformanceMonitor'
 import PlayerManager from '../lib/PlayerManager'
 import WorldManager from '../lib/WorldManager'
@@ -26,6 +27,7 @@ const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGa
   })
   const isInitializedRef = useRef(false)
   const [mouseLocked, setMouseLocked] = useState(false)
+  const [engineType, setEngineType] = useState('three') // 'three' or 'babylon'
 
   useEffect(() => {
     console.log('GameScene: Initializing 3D game...')
@@ -460,8 +462,40 @@ const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGa
           overflow: 'hidden'
         }}
       />
+      {/* Engine Selector */}
+      <div className="absolute top-4 left-4 bg-black/70 text-white p-2 rounded text-xs z-10 mb-2">
+        <div className="text-purple-300 mb-2">🚀 3D Engine:</div>
+        <div className="flex space-x-2 mb-2">
+          <button
+            onClick={() => setEngineType('three')}
+            className={`px-2 py-1 rounded text-xs transition-colors ${
+              engineType === 'three'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+            }`}
+          >
+            Three.js
+          </button>
+          <button
+            onClick={() => setEngineType('babylon')}
+            className={`px-2 py-1 rounded text-xs transition-colors ${
+              engineType === 'babylon'
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+            }`}
+            disabled={true}
+            title="Install Babylon.js dependencies first"
+          >
+            Babylon.js
+          </button>
+        </div>
+        <div className="text-xs text-yellow-300 mb-2">
+          {engineType === 'three' ? '⚡ Three.js Active' : '🚀 Babylon.js Ready'}
+        </div>
+      </div>
+
       {/* Debug overlay */}
-      <div className="absolute top-4 left-4 bg-black/70 text-white p-2 rounded text-xs z-10">
+      <div className="absolute top-32 left-4 bg-black/70 text-white p-2 rounded text-xs z-10">
         <div>3D Game Scene Active</div>
         <div>Player: {player?.name || 'None'}</div>
         <div>Element: {player?.element?.name || 'None'}</div>
