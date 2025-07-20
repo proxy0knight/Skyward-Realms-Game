@@ -50,19 +50,21 @@ const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGa
       left: containerRect.left
     })
 
-    try {
-      // Initialize game engine
-      console.log('GameScene: Creating GameEngine...')
-      const gameEngine = new GameEngine()
-      gameEngineRef.current = gameEngine
-      
-      console.log('GameScene: Initializing GameEngine...')
-      const initSuccess = await gameEngine.init(mountRef.current)
-      if (!initSuccess) {
-        console.error('GameScene: Failed to initialize game engine')
-        return
-      }
-      console.log('GameScene: GameEngine initialized successfully')
+    // Async initialization function
+    const initializeGame = async () => {
+      try {
+        // Initialize game engine
+        console.log('GameScene: Creating GameEngine...')
+        const gameEngine = new GameEngine()
+        gameEngineRef.current = gameEngine
+        
+        console.log('GameScene: Initializing GameEngine...')
+        const initSuccess = await gameEngine.init(mountRef.current)
+        if (!initSuccess) {
+          console.error('GameScene: Failed to initialize game engine')
+          return
+        }
+        console.log('GameScene: GameEngine initialized successfully')
 
       // Initialize player manager
       console.log('GameScene: Creating PlayerManager...')
@@ -206,9 +208,13 @@ const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGa
         }
       }, 1000)
 
-    } catch (error) {
-      console.error('GameScene: Error during initialization:', error)
+      } catch (error) {
+        console.error('GameScene: Error during initialization:', error)
+      }
     }
+
+    // Call the async initialization function
+    initializeGame()
 
     // Cleanup function
     return () => {
