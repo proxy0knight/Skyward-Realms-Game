@@ -170,52 +170,75 @@ class Enhanced3DWorld {
   }
 
   async createTerrainMaterial() {
-    // Load terrain textures
-    const grassTexture = await this.loadTexture('/assets/textures/grass.jpg')
-    const rockTexture = await this.loadTexture('/assets/textures/rock.jpg')
-    const sandTexture = await this.loadTexture('/assets/textures/sand.jpg')
-    
-    // Set texture properties
-    [grassTexture, rockTexture, sandTexture].forEach(texture => {
-      texture.wrapS = texture.wrapT = THREE.RepeatWrapping
-      texture.repeat.set(32, 32)
-    })
-    
-    // Create multi-texture material
-    const material = new THREE.MeshLambertMaterial({
-      map: grassTexture,
-      color: 0x90EE90
-    })
-    
-    return material
+    try {
+      // Create procedural grass texture as primary texture
+      const grassTexture = this.createProceduralTexture('grass')
+      
+      // Set texture properties
+      if (grassTexture && grassTexture.wrapS !== undefined) {
+        grassTexture.wrapS = grassTexture.wrapT = THREE.RepeatWrapping
+        grassTexture.repeat.set(32, 32)
+      }
+      
+      // Create multi-texture material
+      const material = new THREE.MeshLambertMaterial({
+        map: grassTexture,
+        color: 0x90EE90
+      })
+      
+      return material
+    } catch (error) {
+      console.warn('Enhanced3DWorld: Error creating terrain material, using simple material')
+      // Fallback to simple colored material
+      return new THREE.MeshLambertMaterial({
+        color: 0x90EE90
+      })
+    }
   }
 
   async createWaterSystems() {
-    // Create water geometry
-    const waterGeometry = new THREE.PlaneGeometry(100, 100, 1, 1)
-    
-    // Load water normal map
-    const waterNormalMap = await this.loadTexture('/assets/textures/waternormals.jpg')
-    waterNormalMap.wrapS = waterNormalMap.wrapT = THREE.RepeatWrapping
-    
-    // Create water
-    this.water = new Water(waterGeometry, {
-      textureWidth: 512,
-      textureHeight: 512,
-      waterNormals: waterNormalMap,
-      alpha: 0.8,
-      sunDirection: new THREE.Vector3(0.7, 0.7, 0.0),
-      sunColor: 0xffffff,
-      waterColor: 0x001e0f,
-      distortionScale: 3.7,
-      fog: this.scene.fog !== undefined
-    })
-    
-    this.water.rotation.x = -Math.PI / 2
-    this.water.position.y = -2
-    this.scene.add(this.water)
-    
-    console.log('Enhanced3DWorld: Water systems created')
+    try {
+      // Create water geometry
+      const waterGeometry = new THREE.PlaneGeometry(100, 100, 1, 1)
+      
+      // Create procedural water normal map
+      const waterNormalMap = this.createProceduralTexture('water')
+      if (waterNormalMap && waterNormalMap.wrapS !== undefined) {
+        waterNormalMap.wrapS = waterNormalMap.wrapT = THREE.RepeatWrapping
+      }
+      
+      // Create water using standard material as fallback if Water import fails
+      try {
+        this.water = new Water(waterGeometry, {
+          textureWidth: 512,
+          textureHeight: 512,
+          waterNormals: waterNormalMap,
+          alpha: 0.8,
+          sunDirection: new THREE.Vector3(0.7, 0.7, 0.0),
+          sunColor: 0xffffff,
+          waterColor: 0x001e0f,
+          distortionScale: 3.7,
+          fog: this.scene.fog !== undefined
+        })
+      } catch (waterError) {
+        console.warn('Enhanced3DWorld: Water class not available, using simple plane')
+        // Fallback to simple water plane
+        const waterMaterial = new THREE.MeshLambertMaterial({
+          color: 0x006994,
+          transparent: true,
+          opacity: 0.7
+        })
+        this.water = new THREE.Mesh(waterGeometry, waterMaterial)
+      }
+      
+      this.water.rotation.x = -Math.PI / 2
+      this.water.position.y = -2
+      this.scene.add(this.water)
+      
+      console.log('Enhanced3DWorld: Water systems created')
+    } catch (error) {
+      console.warn('Enhanced3DWorld: Error creating water systems:', error)
+    }
   }
 
   async generateFantasyForest() {

@@ -40,6 +40,9 @@ const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGa
       console.log('GameScene: Already initialized, skipping...')
       return
     }
+    
+    // Mark as initializing to prevent race conditions
+    isInitializedRef.current = true
 
     // Test container dimensions
     const containerRect = mountRef.current.getBoundingClientRect()
@@ -186,8 +189,8 @@ const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGa
       gameEngine.start()
       console.log('GameScene: Game started successfully!')
 
-      // Mark as initialized
-      isInitializedRef.current = true
+              // Initialization complete
+        console.log('Enhanced3DWorld: Initialization sequence completed')
 
       // Notify parent that game engine is ready
       if (onGameEngineReady) {
@@ -210,6 +213,7 @@ const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGa
 
       } catch (error) {
         console.error('GameScene: Error during initialization:', error)
+        isInitializedRef.current = false
       }
     }
 
