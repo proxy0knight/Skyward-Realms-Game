@@ -12,7 +12,6 @@ import AdminPanel from './components/AdminPanel'
 import AdminAccess from './components/AdminAccess'
 import CombatTestPanel from './components/CombatTestPanel'
 import StoryTestPanel from './components/StoryTestPanel'
-import ModelTestPanel from './components/ModelTestPanel'
 import { Flame, Droplets, Mountain, Wind } from 'lucide-react'
 
 function App() {
@@ -25,7 +24,6 @@ function App() {
   const [questData, setQuestData] = useState({ activeQuests: [], storyProgress: {} })
   const [showCombatTest, setShowCombatTest] = useState(false)
   const [showStoryTest, setShowStoryTest] = useState(false)
-  const [showModelTest, setShowModelTest] = useState(false)
   const [gameEngine, setGameEngine] = useState(null)
 
   const elements = [
@@ -168,23 +166,18 @@ function App() {
           // Story test panel
           setShowStoryTest(!showStoryTest)
           break
-        case 'KeyV':
-          // Model test panel
-          setShowModelTest(!showModelTest)
-          break
         case 'Escape':
           setActivePanel(null)
           setDialogueData(null)
           setShowCombatTest(false)
           setShowStoryTest(false)
-          setShowModelTest(false)
           break
       }
     }
 
     window.addEventListener('keydown', handleKeyPress)
     return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [gameState, activePanel, showCombatTest, showStoryTest, showModelTest])
+  }, [gameState, activePanel, showCombatTest, showStoryTest])
 
   return (
     <div className="w-full min-h-screen bg-black">
@@ -267,12 +260,6 @@ function App() {
             onClose={() => setShowStoryTest(false)}
           />
 
-          <ModelTestPanel
-            isOpen={showModelTest}
-            onClose={() => setShowModelTest(false)}
-            gameEngine={gameEngine}
-          />
-
           {/* Dialogue Panel */}
           {dialogueData && (
             <DialoguePanel 
@@ -287,7 +274,6 @@ function App() {
           <div className="absolute bottom-4 left-4 text-white text-sm bg-black/50 p-2 rounded">
             <div>اختبار القتال: <kbd className="px-1 bg-gray-700 rounded">C</kbd></div>
             <div>اختبار القصة: <kbd className="px-1 bg-gray-700 rounded">S</kbd></div>
-            <div>اختبار النماذج: <kbd className="px-1 bg-gray-700 rounded">V</kbd></div>
             <div>إغلاق: <kbd className="px-1 bg-gray-700 rounded">ESC</kbd></div>
           </div>
         </div>
