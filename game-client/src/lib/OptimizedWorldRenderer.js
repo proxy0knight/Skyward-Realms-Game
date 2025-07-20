@@ -369,11 +369,11 @@ class OptimizedWorldRenderer {
   /**
    * Create optimized terrain using model chunks
    */
-  async createOptimizedTerrain(size = 200) {
+  async createOptimizedTerrain(size = 400) {
     console.log('OptimizedWorldRenderer: Creating optimized terrain...')
     
-    // Create terrain using multiple smaller chunks for better culling
-    const chunkCount = 4
+    // Create terrain using multiple larger chunks for proper coverage
+    const chunkCount = 6 // More chunks for better coverage
     const chunkSize = size / chunkCount
     
     for (let x = 0; x < chunkCount; x++) {
@@ -389,6 +389,8 @@ class OptimizedWorldRenderer {
         this.worldChunks.set(chunkKey, terrainChunk)
       }
     }
+    
+    console.log(`✅ OptimizedWorldRenderer: Created ${chunkCount * chunkCount} terrain chunks covering ${size}x${size} area`)
   }
 
   /**
@@ -414,21 +416,30 @@ class OptimizedWorldRenderer {
    * Create procedural terrain chunk as fallback
    */
   createProceduralTerrainChunk(x, z, size) {
-    const geometry = new THREE.PlaneGeometry(size, size, 32, 32)
-    const material = new THREE.MeshLambertMaterial({ color: 0x4a5d23 })
+    // Create higher resolution terrain for smoother ground
+    const geometry = new THREE.PlaneGeometry(size, size, 64, 64)
     
-    // Add some height variation
+    // Enhanced terrain material with proper grass colors
+    const material = new THREE.MeshLambertMaterial({ 
+      color: 0x3a7c47, // Rich grass green
+      transparent: false,
+      side: THREE.DoubleSide
+    })
+    
+    // Add realistic height variation for natural terrain
     const positions = geometry.attributes.position.array
     for (let i = 1; i < positions.length; i += 3) {
-      positions[i] = Math.random() * 2 // Y coordinate
+      // More subtle height variation for smoother terrain
+      positions[i] = Math.sin(positions[i-1] * 0.05) * 0.8 + Math.cos(positions[i+1] * 0.03) * 0.5
     }
     geometry.attributes.position.needsUpdate = true
     geometry.computeVertexNormals()
     
     const chunk = new THREE.Mesh(geometry, material)
-    chunk.rotation.x = -Math.PI / 2
-    chunk.position.set(x, 0, z)
+    chunk.rotation.x = -Math.PI / 2 // Rotate to horizontal
+    chunk.position.set(x, -0.5, z) // Lower it slightly for better positioning
     chunk.receiveShadow = true
+    chunk.name = `TerrainChunk_${x}_${z}`
     
     return chunk
   }

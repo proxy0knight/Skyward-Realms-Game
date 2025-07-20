@@ -4,6 +4,8 @@ import Enhanced3DCharacter from './Enhanced3DCharacter.js'
 import Enhanced3DAudio from './Enhanced3DAudio.js'
 import OptimizedWorldRenderer from './OptimizedWorldRenderer.js'
 import AssetManager from './AssetManager.js'
+import PhysicsSystem from './PhysicsSystem.js'
+import WaterSystem from './WaterSystem.js'
 
 class GameEngine {
   constructor() {
@@ -22,6 +24,10 @@ class GameEngine {
     this.enhanced3DWorld = null
     this.enhanced3DCharacter = null
     this.enhanced3DAudio = null
+    this.physicsSystem = null
+    this.waterSystem = null
+    this.optimizedWorldRenderer = null
+    this.assetManager = null
     
     // Player physics
     this.playerVelocity = new THREE.Vector3()
@@ -62,6 +68,14 @@ class GameEngine {
       this.renderer.domElement.style.display = 'block'
       
       container.appendChild(this.renderer.domElement)
+      
+      // Initialize physics system
+      console.log('GameEngine: Initializing physics system...')
+      this.physicsSystem = new PhysicsSystem(this.scene)
+      
+      // Initialize water system
+      console.log('GameEngine: Initializing water system...')
+      this.waterSystem = new WaterSystem(this.scene, this.renderer)
       
       // Initialize optimized world renderer
       console.log('GameEngine: Initializing optimized world renderer...')
@@ -162,8 +176,18 @@ class GameEngine {
     console.log('GameEngine: Creating optimized fantasy world...')
     
     try {
-      // Create optimized terrain
-      await this.optimizedWorldRenderer.createOptimizedTerrain(200)
+      // Create optimized terrain with larger coverage
+      await this.optimizedWorldRenderer.createOptimizedTerrain(400)
+      
+      // Add terrain to physics system
+      this.scene.traverse((child) => {
+        if (child.name && child.name.includes('TerrainChunk')) {
+          this.physicsSystem.addStaticCollider(child, { type: 'plane', material: 'terrain' })
+        }
+      })
+      
+      // Create water bodies
+      this.waterSystem.createWaterBodies()
       
       // Generate tree positions
       const treePositions = []
@@ -178,6 +202,13 @@ class GameEngine {
       // Create optimized forest using instanced rendering
       await this.optimizedWorldRenderer.createOptimizedForest(treePositions)
       
+      // Add trees to physics system as static colliders
+      this.scene.traverse((child) => {
+        if (child.name && child.name.includes('Tree')) {
+          this.physicsSystem.addStaticCollider(child, { type: 'cylinder', material: 'wood' })
+        }
+      })
+      
       // Add rocks and other environmental elements
       const rockPositions = []
       for (let i = 0; i < 40; i++) {
@@ -189,7 +220,16 @@ class GameEngine {
       }
       await this.optimizedWorldRenderer.createOptimizedRocks(rockPositions)
       
+      // Add rocks to physics system as static colliders
+      this.scene.traverse((child) => {
+        if (child.name && child.name.includes('Rock')) {
+          this.physicsSystem.addStaticCollider(child, { type: 'sphere', material: 'stone' })
+        }
+      })
+      
       console.log('GameEngine: Optimized world created successfully!')
+      console.log('✅ Physics System: Enabled with terrain, trees, and rock collisions')
+      console.log('🌊 Water System: Enabled with interactive lakes, rivers, and ponds')
       console.log('🎯 OPTIMIZATION STATUS:')
       console.log('✅ Instanced Rendering: Active')
       console.log('✅ Frustum Culling: Active')  
@@ -243,7 +283,20 @@ class GameEngine {
     this.player = await this.enhanced3DCharacter.init()
     
     // Position player at spawn point
-    this.enhanced3DCharacter.setPosition(0, 0, 0)
+    this.enhanced3DCharacter.setPosition(0, 2, 0) // Start slightly above ground
+    
+    // Add physics to player
+    if (this.physicsSystem && this.player) {
+      this.physicsSystem.addBody(this.player, {
+        type: 'dynamic',
+        mass: 1.0,
+        radius: 0.8,
+        height: 2.0,
+        restitution: 0.1,
+        friction: 0.8
+      })
+      console.log('GameEngine: Added physics to player character')
+    }
     
     console.log('GameEngine: Enhanced 3D character created:', this.player)
     return this.player
@@ -279,7 +332,12 @@ class GameEngine {
     
     switch (event.code) {
       case 'Space':
-        if (this.playerOnGround) {
+        // Use physics system for jumping
+        if (this.physicsSystem && this.player) {
+          if (this.physicsSystem.isOnGround(this.player)) {
+            this.physicsSystem.applyForce(this.player, new THREE.Vector3(0, 15, 0), 'impulse')
+          }
+        } else if (this.playerOnGround) {
           this.playerVelocity.y = this.jumpForce
           this.playerOnGround = false
         }
@@ -362,8 +420,15 @@ class GameEngine {
     }
     
     // Apply horizontal movement
-    this.playerVelocity.x = moveVector.x
-    this.playerVelocity.z = moveVector.z
+    if (this.physicsSystem && this.player) {
+      // Use physics system for movement
+      const force = new THREE.Vector3(moveVector.x * 50, 0, moveVector.z * 50)
+      this.physicsSystem.applyForce(this.player, force, 'force')
+    } else {
+      // Fallback to legacy movement
+      this.playerVelocity.x = moveVector.x
+      this.playerVelocity.z = moveVector.z
+    }
     
     // Update character animation based on movement
     if (isMoving) {
@@ -377,26 +442,29 @@ class GameEngine {
       this.enhanced3DCharacter.playAnimation('idle')
     }
     
-    // Apply gravity
-    this.playerVelocity.y += this.gravity
-    
-    // Apply velocity to position
-    const newPosition = this.player.position.clone().add(this.playerVelocity)
-    
-    // Ground collision
-    const terrainHeight = this.enhanced3DWorld ? this.enhanced3DWorld.getTerrainHeight(newPosition.x, newPosition.z) : 0
-    if (newPosition.y <= terrainHeight + 1) {
-      newPosition.y = terrainHeight + 1
-      this.playerVelocity.y = 0
-      this.playerOnGround = true
+    // Legacy physics for fallback mode only
+    if (!this.physicsSystem) {
+      // Apply gravity
+      this.playerVelocity.y += this.gravity
+      
+      // Apply velocity to position
+      const newPosition = this.player.position.clone().add(this.playerVelocity)
+      
+      // Ground collision
+      const terrainHeight = this.enhanced3DWorld ? this.enhanced3DWorld.getTerrainHeight(newPosition.x, newPosition.z) : 0
+      if (newPosition.y <= terrainHeight + 1) {
+        newPosition.y = terrainHeight + 1
+        this.playerVelocity.y = 0
+        this.playerOnGround = true
+      }
+      
+      // Update enhanced character position
+      this.enhanced3DCharacter.setPosition(newPosition.x, newPosition.y, newPosition.z)
     }
     
-    // Update enhanced character position
-    this.enhanced3DCharacter.setPosition(newPosition.x, newPosition.y, newPosition.z)
-    
-    // Update camera target to follow player
+    // Update camera target to follow player (works with both physics systems)
     if (this.camera.userData.orbitControl) {
-      this.camera.userData.orbitControl.target.copy(newPosition)
+      this.camera.userData.orbitControl.target.copy(this.player.position)
     }
   }
 
@@ -423,6 +491,30 @@ class GameEngine {
     
     const deltaTime = this.clock.getDelta()
     this.currentFPS = 1 / deltaTime
+    
+    // Update physics system
+    if (this.physicsSystem) {
+      this.physicsSystem.update(deltaTime)
+      
+      // Check water interaction for player
+      if (this.player && this.waterSystem) {
+        const waterInteraction = this.waterSystem.isInWater(this.player.position)
+        if (waterInteraction.inWater) {
+          this.waterSystem.applyWaterEffects(this.player, waterInteraction)
+          // Update physics body water state
+          if (this.player.physicsBody) {
+            this.player.physicsBody.inWater = true
+          }
+        } else if (this.player.physicsBody) {
+          this.player.physicsBody.inWater = false
+        }
+      }
+    }
+    
+    // Update water system
+    if (this.waterSystem) {
+      this.waterSystem.update(deltaTime)
+    }
     
     // Update enhanced 3D world or optimized renderer
     if (this.optimizedWorldRenderer) {
@@ -569,6 +661,30 @@ class GameEngine {
 
   destroy() {
     this.stop()
+    
+    // Clean up physics system
+    if (this.physicsSystem) {
+      this.physicsSystem.dispose()
+    }
+    
+    // Clean up water system
+    if (this.waterSystem) {
+      this.waterSystem.dispose()
+    }
+    
+    // Clean up other systems
+    if (this.optimizedWorldRenderer) {
+      this.optimizedWorldRenderer.dispose()
+    }
+    
+    if (this.enhanced3DCharacter) {
+      this.enhanced3DCharacter.dispose()
+    }
+    
+    if (this.enhanced3DAudio) {
+      this.enhanced3DAudio.dispose()
+    }
+    
     if (this.renderer && this.renderer.domElement) {
       this.renderer.domElement.remove()
     }
