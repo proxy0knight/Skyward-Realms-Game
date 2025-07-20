@@ -52,6 +52,12 @@ class GameEngine {
       this.renderer.setSize(container.clientWidth, container.clientHeight)
       this.renderer.shadowMap.enabled = true
       this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
+      
+      // Ensure canvas is properly styled
+      this.renderer.domElement.style.width = '100%'
+      this.renderer.domElement.style.height = '100%'
+      this.renderer.domElement.style.display = 'block'
+      
       container.appendChild(this.renderer.domElement)
       
       // Initialize enhanced 3D world
@@ -413,6 +419,27 @@ class GameEngine {
     document.addEventListener('keyup', (event) => {
       this.keysPressed.delete(event.code)
     })
+    
+          // Debug scene content
+      setTimeout(() => {
+        console.log('GameEngine: Scene debug info:', {
+          sceneChildren: this.scene.children.length,
+          cameraPosition: this.camera.position,
+          cameraTarget: this.camera.getWorldDirection(new THREE.Vector3()),
+          rendererSize: this.renderer.getSize(new THREE.Vector2()),
+          isRunning: this.isRunning
+        })
+        
+        // Add a test cube to verify rendering is working
+        if (this.scene.children.length > 0) {
+          const testGeometry = new THREE.BoxGeometry(2, 2, 2)
+          const testMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 })
+          const testCube = new THREE.Mesh(testGeometry, testMaterial)
+          testCube.position.set(0, 5, 0) // Position it above ground
+          this.scene.add(testCube)
+          console.log('GameEngine: Added red test cube at (0, 5, 0)')
+        }
+      }, 1000)
     
     console.log('GameEngine: Started successfully')
   }

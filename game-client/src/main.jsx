@@ -82,9 +82,10 @@ window.addEventListener('unhandledrejection', (event) => {
 
 // Initialize the app with error boundary
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
+  // Temporarily disable StrictMode to fix 3D rendering issue
+  // <React.StrictMode>
     <ErrorBoundary>
       <App />
     </ErrorBoundary>
-  </React.StrictMode>,
+  // </React.StrictMode>,
 )

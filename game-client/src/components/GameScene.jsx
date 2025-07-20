@@ -204,14 +204,18 @@ const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGa
           console.log('GameScene: Canvas found and mounted:', {
             width: canvas.width,
             height: canvas.height,
-            parentElement: canvas.parentElement?.tagName
+            parentElement: canvas.parentElement?.tagName,
+            canvasStyle: canvas.style.cssText,
+            isVisible: canvas.offsetWidth > 0 && canvas.offsetHeight > 0,
+            containerChildren: mountRef.current.children.length
           })
         } else {
           console.log('GameScene: Canvas status:', {
             hasGameEngine: !!gameEngine,
             hasRenderer: !!gameEngine?.renderer,
             hasCanvas: !!canvas,
-            hasMount: !!mountRef.current
+            hasMount: !!mountRef.current,
+            containerHTML: mountRef.current?.innerHTML.substring(0, 200)
           })
         }
       }, 500)
@@ -229,10 +233,18 @@ const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGa
     return () => {
       console.log('GameScene: Cleaning up...')
       // Don't reset isInitializedRef here to prevent re-initialization during React strict mode
+      // Only cleanup if we're actually unmounting, not during React strict mode double-invocation
       
       if (gameEngineRef.current) {
-        gameEngineRef.current.dispose()
-        gameEngineRef.current = null
+        console.log('GameScene: Stopping game engine...')
+        gameEngineRef.current.stop()
+        // Don't dispose immediately - let React handle the cleanup properly
+        setTimeout(() => {
+          if (gameEngineRef.current) {
+            gameEngineRef.current.dispose()
+            gameEngineRef.current = null
+          }
+        }, 100)
       }
       if (worldManagerRef.current) {
         worldManagerRef.current.dispose()
@@ -443,7 +455,8 @@ const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGa
         style={{ 
           width: '100%', 
           height: '100%',
-          position: 'relative'
+          position: 'relative',
+          overflow: 'hidden'
         }}
       />
       {/* Debug overlay */}
