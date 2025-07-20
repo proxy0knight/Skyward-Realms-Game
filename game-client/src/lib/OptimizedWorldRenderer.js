@@ -66,27 +66,29 @@ class OptimizedWorldRenderer {
   /**
    * Create optimized materials with texture atlases
    */
-  createOptimizedMaterials() {
-    // Environment material with atlas
-    this.environmentMaterial = new THREE.MeshLambertMaterial({
-      map: this.assetManager.cache.get('env_atlas'),
-      transparent: false,
-      alphaTest: 0.5
-    })
-    
-    // Vegetation material (for trees, grass)
-    this.vegetationMaterial = new THREE.MeshLambertMaterial({
-      map: this.assetManager.cache.get('env_atlas'),
-      transparent: true,
-      alphaTest: 0.5,
-      side: THREE.DoubleSide
-    })
-    
-    // Character material
-    this.characterMaterial = new THREE.MeshLambertMaterial({
-      map: this.assetManager.cache.get('char_atlas')
-    })
-  }
+     createOptimizedMaterials() {
+     // Create fallback materials (textures optional)
+     this.environmentMaterial = new THREE.MeshLambertMaterial({
+       color: 0x4a5d23, // Grass green
+       transparent: false
+     })
+     
+     // Vegetation material (for trees, grass)
+     this.vegetationMaterial = new THREE.MeshLambertMaterial({
+       color: 0x228B22, // Forest green
+       transparent: true,
+       alphaTest: 0.5,
+       side: THREE.DoubleSide
+     })
+     
+     // Rock material
+     this.rockMaterial = new THREE.MeshLambertMaterial({
+       color: 0x696969, // Gray
+       transparent: false
+     })
+     
+     console.log('OptimizedWorldRenderer: Created optimized materials')
+   }
 
   /**
    * Create optimized forest using instanced rendering

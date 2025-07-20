@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import GameEngine from '../lib/GameEngine'
+import PerformanceMonitor from './PerformanceMonitor'
 import PlayerManager from '../lib/PlayerManager'
 import WorldManager from '../lib/WorldManager'
 import CombatSystem from '../lib/CombatSystem'
@@ -472,6 +473,9 @@ const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGa
         <div>Mouse: Click to look around, ESC to unlock</div>
         <div>Space to jump</div>
       </div>
+      
+      {/* Performance Monitor */}
+      <PerformanceMonitor gameEngine={gameEngineRef.current} />
     </div>
   )
 }

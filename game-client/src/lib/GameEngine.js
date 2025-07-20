@@ -2,6 +2,8 @@ import * as THREE from 'three'
 import Enhanced3DWorld from './Enhanced3DWorld.js'
 import Enhanced3DCharacter from './Enhanced3DCharacter.js'
 import Enhanced3DAudio from './Enhanced3DAudio.js'
+import OptimizedWorldRenderer from './OptimizedWorldRenderer.js'
+import AssetManager from './AssetManager.js'
 
 class GameEngine {
   constructor() {
@@ -60,10 +62,21 @@ class GameEngine {
       
       container.appendChild(this.renderer.domElement)
       
-      // Initialize enhanced 3D world
-      console.log('GameEngine: Initializing enhanced 3D world...')
-      this.enhanced3DWorld = new Enhanced3DWorld(this.scene, this.camera, this.renderer)
-      await this.enhanced3DWorld.init()
+      // Initialize optimized world renderer
+      console.log('GameEngine: Initializing optimized world renderer...')
+      this.optimizedWorldRenderer = new OptimizedWorldRenderer(this.scene, this.camera, this.renderer)
+      const optimizedInitSuccess = await this.optimizedWorldRenderer.init()
+      
+      if (optimizedInitSuccess) {
+        console.log('GameEngine: Using optimized world renderer')
+        // Create optimized world
+        await this.createOptimizedWorld()
+      } else {
+        console.log('GameEngine: Falling back to enhanced 3D world')
+        // Fallback to original system
+        this.enhanced3DWorld = new Enhanced3DWorld(this.scene, this.camera, this.renderer)
+        await this.enhanced3DWorld.init()
+      }
       
       // Initialize enhanced 3D audio
       console.log('GameEngine: Initializing enhanced 3D audio...')
@@ -141,6 +154,33 @@ class GameEngine {
       )
       rock.castShadow = true
       this.scene.add(rock)
+    }
+  }
+
+  async createOptimizedWorld() {
+    console.log('GameEngine: Creating optimized fantasy world...')
+    
+    try {
+      // Create optimized terrain
+      await this.optimizedWorldRenderer.createOptimizedTerrain(200)
+      
+      // Generate tree positions
+      const treePositions = []
+      for (let i = 0; i < 120; i++) {
+        treePositions.push({
+          x: (Math.random() - 0.5) * 180,
+          y: 0,
+          z: (Math.random() - 0.5) * 180
+        })
+      }
+      
+      // Create optimized forest using instanced rendering
+      await this.optimizedWorldRenderer.createOptimizedForest(treePositions)
+      
+      console.log('GameEngine: Optimized world created successfully!')
+    } catch (error) {
+      console.error('GameEngine: Failed to create optimized world:', error)
+      throw error
     }
   }
 
@@ -366,8 +406,10 @@ class GameEngine {
     const deltaTime = this.clock.getDelta()
     this.currentFPS = 1 / deltaTime
     
-    // Update enhanced 3D world
-    if (this.enhanced3DWorld) {
+    // Update enhanced 3D world or optimized renderer
+    if (this.optimizedWorldRenderer) {
+      this.optimizedWorldRenderer.update(deltaTime * 1000) // Convert to milliseconds
+    } else if (this.enhanced3DWorld) {
       this.enhanced3DWorld.update(deltaTime * 1000) // Convert to milliseconds
     }
     

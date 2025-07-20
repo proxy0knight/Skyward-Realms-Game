@@ -247,17 +247,13 @@ class AssetManager {
    */
   async preloadEssentials() {
     const essentialAssets = [
-      // Environment models
-      { type: 'model', path: '/assets/models/environment/tree_oak.glb', key: 'tree_oak' },
-      { type: 'model', path: '/assets/models/environment/rock_set.glb', key: 'rocks' },
-      { type: 'model', path: '/assets/models/environment/grass_patch.glb', key: 'grass' },
+      // Environment models (optimized)
+      { type: 'model', path: '/assets/models/environment/trees/oak_tree.glb', key: 'tree_oak' },
+      { type: 'model', path: '/assets/models/environment/rocks/rock_set.glb', key: 'rocks' },
+      { type: 'model', path: '/assets/models/environment/vegetation/grass_patch.glb', key: 'grass' },
       
       // Character models
-      { type: 'model', path: '/assets/models/characters/mage_base.glb', key: 'mage_base' },
-      
-      // Textures
-      { type: 'texture', path: '/assets/textures/environment_atlas.jpg', key: 'env_atlas' },
-      { type: 'texture', path: '/assets/textures/character_atlas.jpg', key: 'char_atlas' }
+      { type: 'model', path: '/assets/models/character.gltf', key: 'mage_base' }
     ]
     
     console.log('AssetManager: Preloading essential assets...')
