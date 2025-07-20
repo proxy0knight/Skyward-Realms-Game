@@ -177,6 +177,17 @@ class GameEngine {
       // Create optimized forest using instanced rendering
       await this.optimizedWorldRenderer.createOptimizedForest(treePositions)
       
+      // Add rocks and other environmental elements
+      const rockPositions = []
+      for (let i = 0; i < 40; i++) {
+        rockPositions.push({
+          x: (Math.random() - 0.5) * 160,
+          y: 0,
+          z: (Math.random() - 0.5) * 160
+        })
+      }
+      await this.optimizedWorldRenderer.createOptimizedRocks(rockPositions)
+      
       console.log('GameEngine: Optimized world created successfully!')
       console.log('🎯 OPTIMIZATION STATUS:')
       console.log('✅ Instanced Rendering: Active')

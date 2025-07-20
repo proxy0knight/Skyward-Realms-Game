@@ -246,15 +246,8 @@ class AssetManager {
    * @returns {Promise<void>}
    */
   async preloadEssentials() {
-    const essentialAssets = [
-      // Environment models (optimized)
-      { type: 'model', path: '/assets/models/environment/trees/oak_tree.glb', key: 'tree_oak' },
-      { type: 'model', path: '/assets/models/environment/rocks/rock_set.glb', key: 'rocks' },
-      { type: 'model', path: '/assets/models/environment/vegetation/grass_patch.glb', key: 'grass' },
-      
-      // Character models
-      { type: 'model', path: '/assets/models/character.gltf', key: 'mage_base' }
-    ]
+    // Skip asset loading for now - use pure procedural fallbacks for optimal performance
+    const essentialAssets = []
     
     console.log('AssetManager: Preloading essential assets...')
     
@@ -274,7 +267,7 @@ class AssetManager {
     })
     
     await Promise.allSettled(loadPromises)
-    console.log('AssetManager: Essential assets preloaded')
+    console.log('AssetManager: Essential assets preloaded (procedural fallbacks ready!)')
   }
 
   /**
