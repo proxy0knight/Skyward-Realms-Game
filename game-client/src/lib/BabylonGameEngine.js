@@ -112,6 +112,37 @@ class BabylonGameEngine {
   }
 
   /**
+   * Load world asset assignments from localStorage
+   */
+  loadWorldAssignments() {
+    try {
+      const data = localStorage.getItem('skyward_world_assignments')
+      return data ? JSON.parse(data) : {}
+    } catch {
+      return {}
+    }
+  }
+
+  /**
+   * Load world characters from localStorage
+   */
+  loadWorldCharacters() {
+    try {
+      const data = localStorage.getItem('skyward_world_characters')
+      return data ? JSON.parse(data) : []
+    } catch {
+      return []
+    }
+  }
+
+  /**
+   * Get available characters for selection
+   */
+  getAvailableCharacters() {
+    return this.worldCharacters || []
+  }
+
+  /**
    * Setup physics engine with Cannon.js
    */
   async setupPhysics() {
@@ -348,6 +379,17 @@ class BabylonGameEngine {
    * Setup environment with fallback to procedural
    */
   async setupEnvironment() {
+    const assigned = this.worldAssignments?.skybox
+    if (assigned) {
+      const asset = this.getAssetById(assigned)
+      if (asset && asset.data) {
+        // Try to load .env from base64 (not natively supported, but placeholder for backend integration)
+        // For now, fallback to procedural skybox
+        // TODO: Implement .env loading from base64 if possible
+        this.createProceduralSkybox()
+        return
+      }
+    }
     // Skip environment texture loading for now to avoid warnings
     // Future: Add proper environment texture support when files are available
     console.log('BabylonGameEngine: Using procedural skybox (environment textures disabled)')
@@ -480,9 +522,18 @@ class BabylonGameEngine {
   }
 
   /**
-   * Create advanced terrain system
+   * Create advanced terrain system (use assigned asset if available)
    */
   async createTerrain() {
+    const assigned = this.worldAssignments?.terrain
+    if (assigned) {
+      // Try to load assigned terrain model from localStorage assets
+      const asset = this.getAssetById(assigned)
+      if (asset && asset.data) {
+        await this.loadGLBFromBase64(asset.data, 'assignedTerrain')
+        return
+      }
+    }
     console.log('BabylonGameEngine: Creating terrain...')
     
     // Create terrain using Babylon.js DynamicTerrain
@@ -549,9 +600,17 @@ class BabylonGameEngine {
   }
 
   /**
-   * Create advanced water system
+   * Create water (use assigned asset if available)
    */
   async createWater() {
+    const assigned = this.worldAssignments?.water
+    if (assigned) {
+      const asset = this.getAssetById(assigned)
+      if (asset && asset.data) {
+        await this.loadGLBFromBase64(asset.data, 'assignedWater')
+        return
+      }
+    }
     console.log('BabylonGameEngine: Creating water system...')
     
     // Create water mesh
@@ -975,6 +1034,38 @@ class BabylonGameEngine {
     if (this.scene) {
       this.scene.dispose()
     }
+  }
+
+  /**
+   * Helper: Get asset by id from localStorage assets
+   */
+  getAssetById(assetId) {
+    try {
+      const assets = JSON.parse(localStorage.getItem('skyward_assets') || '[]')
+      return assets.find(a => a.id === assetId)
+    } catch {
+      return null
+    }
+  }
+
+  /**
+   * Helper: Load GLB model from base64 data
+   */
+  async loadGLBFromBase64(base64, meshName) {
+    return new Promise((resolve, reject) => {
+      BABYLON.SceneLoader.ImportMesh(
+        '',
+        '',
+        base64,
+        this.scene,
+        (meshes) => {
+          meshes.forEach(m => { m.name = meshName; m.receiveShadows = true })
+          resolve(meshes)
+        },
+        null,
+        (error) => reject(error)
+      )
+    })
   }
 }
 
