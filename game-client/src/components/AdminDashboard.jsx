@@ -142,6 +142,7 @@ const AdminDashboard = () => {
               { id: 'upload', name: '⬆️ Upload Assets', icon: '⬆️' },
               { id: 'preview', name: '👁️ Preview', icon: '👁️' },
               { id: 'world', name: '🌍 3D World Assets', icon: '🌍' },
+              { id: 'map', name: '🗺️ Map Editor', icon: '🗺️' },
               { id: 'settings', name: '⚙️ Settings', icon: '⚙️' }
             ].map((tab) => (
               <button
@@ -193,6 +194,10 @@ const AdminDashboard = () => {
             
             {activeTab === 'world' && (
               <WorldAssetsManager assets={assets} />
+            )}
+            
+            {activeTab === 'map' && (
+              <MapEditor />
             )}
             
             {activeTab === 'settings' && (
