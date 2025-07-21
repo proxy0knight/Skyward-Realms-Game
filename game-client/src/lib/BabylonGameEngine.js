@@ -5,6 +5,11 @@ import BabylonCharacter from './BabylonCharacter.js'
 // Import physics plugin
 import { CannonJSPlugin } from '@babylonjs/core/Physics/Plugins/cannonJSPlugin'
 
+// Import camera controls and inputs
+import '@babylonjs/core/Cameras/arcRotateCamera'
+import '@babylonjs/core/Cameras/Inputs/arcRotateCameraPointersInput'
+import '@babylonjs/core/Cameras/Inputs/arcRotateCameraKeyboardMoveInput'
+
 class BabylonGameEngine {
   constructor() {
     this.engine = null
@@ -140,7 +145,14 @@ class BabylonGameEngine {
     
     // Camera settings
     this.camera.setTarget(BABYLON.Vector3.Zero())
-    this.camera.attachControls(this.canvas, true)
+    
+    // Attach controls to canvas
+    if (this.canvas && this.camera.attachControls) {
+      this.camera.attachControls(this.canvas, true)
+      console.log('✅ Camera controls attached')
+    } else {
+      console.warn('⚠️ Camera controls not available, using basic camera')
+    }
     
     // Camera constraints
     this.camera.lowerBetaLimit = 0.1
