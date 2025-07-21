@@ -798,17 +798,27 @@ class BabylonGameEngine {
    */
   updateCameraFollow() {
     if (!this.babylonCharacter) return
-    
     // Third-person: follow character
     if (this.babylonCharacter.cameraMode === 'third') {
       this.camera.setTarget(this.babylonCharacter.getPosition())
+      // Show character mesh
+      if (this.babylonCharacter.characterMesh) {
+        this.babylonCharacter.characterMesh.isVisible = true
+      }
       // (Optional: adjust camera position for third-person)
     } else if (this.babylonCharacter.cameraMode === 'first') {
-      // (Stub) First-person: move camera to character head position
+      // First-person: move camera to character head position
       const pos = this.babylonCharacter.getPosition()
-      this.camera.setTarget(pos.add(new BABYLON.Vector3(0, 1.5, 0)))
-      this.camera.alpha = 0 // (Optional: align with character forward)
-      // (Optional: hide character mesh in first-person)
+      // Place camera at head height, slightly forward
+      const headOffset = new BABYLON.Vector3(0, 1.5, 0)
+      const forward = this.camera.getTarget().subtract(this.camera.position).normalize()
+      const cameraPos = pos.add(headOffset).add(forward.scale(0.2))
+      this.camera.position = cameraPos
+      this.camera.setTarget(pos.add(headOffset).add(forward.scale(2)))
+      // Hide character mesh
+      if (this.babylonCharacter.characterMesh) {
+        this.babylonCharacter.characterMesh.isVisible = false
+      }
     }
   }
 
