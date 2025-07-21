@@ -235,16 +235,29 @@ class BabylonCharacter {
   setupGroundDetection() {
     if (!this.characterMesh || !this.scene) return
     
+    // Store reference to engine for terrain detection
+    this.gameEngine = this.scene.gameEngine
+    
     // Register render loop for ground check
     this.scene.registerBeforeRender(() => {
-      if (this.characterMesh && this.characterMesh.position.y < 0) {
-        // Reset position if falling below ground
-        this.characterMesh.position.y = 2
+      if (!this.characterMesh) return
+      
+      const position = this.characterMesh.position
+      
+      // Check if character fell below safe height
+      if (position.y < -10) {
+        // Get terrain height at current position
+        const terrainHeight = this.gameEngine?.getTerrainHeight?.(position.x, position.z) || 1
+        
+        // Reset position to terrain surface
+        this.characterMesh.position.y = terrainHeight + 2
         
         // Reset physics if available
         if (this.characterMesh.physicsImpostor) {
           this.characterMesh.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero())
         }
+        
+        console.log('BabylonCharacter: Respawned on terrain at height', terrainHeight)
       }
     })
   }
@@ -538,6 +551,15 @@ class BabylonCharacter {
   jump() {
     if (!this.characterGroup) return
     
+    // Prevent multiple jumps (simple ground check)
+    if (this.isJumping) return
+    this.isJumping = true
+    
+    // Reset jumping state after a delay
+    setTimeout(() => {
+      this.isJumping = false
+    }, 1000)
+    
     if (this.characterMesh && this.characterMesh.physicsImpostor) {
       // Physics-based jump
       const currentVelocity = this.characterMesh.physicsImpostor.getLinearVelocity()
@@ -545,20 +567,36 @@ class BabylonCharacter {
         currentVelocity.add(new BABYLON.Vector3(0, 8, 0))
       )
     } else {
-      // Simple position-based jump (fallback)
+      // Simple position-based jump (fallback) - up and down motion
+      const startY = this.characterGroup.position.y
       const jumpHeight = 2
-      const jumpDuration = 500 // ms
+      const jumpDuration = 800 // ms
       
-      BABYLON.Animation.CreateAndStartAnimation(
-        'jump',
+      // Create up animation
+      const upAnimation = BABYLON.Animation.CreateAndStartAnimation(
+        'jumpUp',
         this.characterGroup,
         'position.y',
         60,
         30,
-        this.characterGroup.position.y,
-        this.characterGroup.position.y + jumpHeight,
+        startY,
+        startY + jumpHeight,
         BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
       )
+      
+      // Create down animation after a delay
+      setTimeout(() => {
+        BABYLON.Animation.CreateAndStartAnimation(
+          'jumpDown',
+          this.characterGroup,
+          'position.y',
+          60,
+          30,
+          startY + jumpHeight,
+          startY,
+          BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+        )
+      }, jumpDuration / 2)
     }
   }
 

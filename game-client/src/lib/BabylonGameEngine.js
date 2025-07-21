@@ -78,6 +78,9 @@ class BabylonGameEngine {
       this.scene = new BABYLON.Scene(this.engine)
       this.scene.actionManager = new BABYLON.ActionManager(this.scene)
       
+      // Store reference to this engine in scene for character access
+      this.scene.gameEngine = this
+      
       // Enable physics with Cannon.js
       await this.setupPhysics()
       
@@ -595,6 +598,31 @@ class BabylonGameEngine {
   }
 
   /**
+   * Get terrain height at specific coordinates
+   */
+  getTerrainHeight(x, z) {
+    if (!this.terrain) {
+      return 1 // Default height if no terrain
+    }
+    
+    // Use raycast to find terrain height
+    const ray = new BABYLON.Ray(
+      new BABYLON.Vector3(x, 100, z),
+      new BABYLON.Vector3(0, -1, 0)
+    )
+    
+    const hit = this.scene.pickWithRay(ray, (mesh) => {
+      return mesh === this.terrain
+    })
+    
+    if (hit && hit.hit) {
+      return hit.pickedPoint.y
+    }
+    
+    return 1 // Default safe height
+  }
+
+  /**
    * Create player with GLB character model
    */
   async createPlayer(playerData) {
@@ -607,8 +635,9 @@ class BabylonGameEngine {
     // Set as player
     this.player = characterGroup
     
-    // Position player above terrain (start at Y=10 to prevent underground spawning)
-    this.babylonCharacter.setPosition(new BABYLON.Vector3(0, 10, 0))
+    // Position player on terrain surface
+    const terrainHeight = this.getTerrainHeight(0, 0)
+    this.babylonCharacter.setPosition(new BABYLON.Vector3(0, terrainHeight + 2, 0))
     
     // Update camera target
     this.camera.setTarget(this.babylonCharacter.getPosition())
