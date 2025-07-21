@@ -38,6 +38,10 @@ const MapEditor = () => {
   const [showNewMap, setShowNewMap] = useState(false)
   const [newMapName, setNewMapName] = useState('')
   const [newMapSize, setNewMapSize] = useState(DEFAULT_SIZE)
+  const [showTeleportModal, setShowTeleportModal] = useState(false)
+  const [teleportSource, setTeleportSource] = useState(null)
+  const [teleportDestMap, setTeleportDestMap] = useState('')
+  const [teleportTwoWay, setTeleportTwoWay] = useState(true)
 
   // Load maps index and current map
   useEffect(() => {
@@ -147,6 +151,60 @@ const MapEditor = () => {
       setMapsIndex([{ id: defId, name: 'World', size: DEFAULT_SIZE }])
       setCurrentMapId(defId)
     }
+  }
+
+  // Place teleport: open modal
+  const handleTeleportPlace = (x, y) => {
+    setTeleportSource({ x, y, mapId: currentMapId })
+    setTeleportDestMap('')
+    setTeleportTwoWay(true)
+    setShowTeleportModal(true)
+  }
+
+  // Confirm teleport placement
+  const handleTeleportConfirm = () => {
+    if (!teleportSource || !teleportDestMap) return
+    // Place teleport in source cell
+    setMap(prev => {
+      const newMap = prev.map(row => row.map(cell => ({ ...cell })))
+      newMap[teleportSource.y][teleportSource.x].flags = {
+        ...newMap[teleportSource.y][teleportSource.x].flags,
+        teleport: { toMapId: teleportDestMap, twoWay: teleportTwoWay }
+      }
+      saveMap(newMap)
+      return newMap
+    })
+    // If two-way, add teleport in dest map back to source
+    if (teleportTwoWay && teleportDestMap !== currentMapId) {
+      const destMapData = JSON.parse(localStorage.getItem(MAP_KEY_PREFIX + teleportDestMap) || '[]')
+      // Find first empty cell
+      let found = false
+      for (let y = 0; y < destMapData.length && !found; y++) {
+        for (let x = 0; x < destMapData[0].length && !found; x++) {
+          if (!destMapData[y][x].flags || !destMapData[y][x].flags.teleport) {
+            destMapData[y][x].flags = {
+              ...destMapData[y][x].flags,
+              teleport: { toMapId: currentMapId, twoWay: true }
+            }
+            found = true
+            break
+          }
+        }
+      }
+      localStorage.setItem(MAP_KEY_PREFIX + teleportDestMap, JSON.stringify(destMapData))
+    }
+    setShowTeleportModal(false)
+    setTeleportSource(null)
+  }
+
+  // Remove teleport flag
+  const clearTeleport = (x, y) => {
+    setMap(prev => {
+      const newMap = prev.map(row => row.map(cell => ({ ...cell })))
+      if (newMap[y][x].flags) delete newMap[y][x].flags.teleport
+      saveMap(newMap)
+      return newMap
+    })
   }
 
   return (
@@ -276,45 +334,83 @@ const MapEditor = () => {
           onMouseLeave={() => setIsPainting(false)}
         >
           {map.map((row, y) =>
-            row.map((cell, x) => (
-              <div
-                key={x + '-' + y}
-                style={{
-                  width: 20,
-                  height: 20,
-                  background: TERRAIN_TYPES.find(t => t.type === cell.type)?.color || '#aaa',
-                  border: '1px solid #222',
-                  cursor: 'pointer',
-                  position: 'relative',
-                }}
-                title={`(${x},${y}) ${cell.type}${cell.asset ? ' [Asset]' : ''}`}
-                onMouseDown={e => {
-                  e.preventDefault();
-                  setIsPainting(true);
-                  if (e.button === 2 && mode === 'asset') {
-                    clearAsset(x, y)
-                  } else if (e.button === 2 && mode === 'flag') {
-                    clearFlag(x, y, selectedFlag)
-                  } else {
-                    paintCell(x, y)
-                  }
-                }}
-                onMouseUp={() => setIsPainting(false)}
-                onMouseEnter={() => { if (isPainting) paintCell(x, y) }}
-                onContextMenu={e => { e.preventDefault(); if (mode === 'asset') clearAsset(x, y); if (mode === 'flag') clearFlag(x, y, selectedFlag) }}
-              >
-                {cell.asset && (
-                  <span style={{ position: 'absolute', top: 2, right: 2, fontSize: 10, color: '#fff', background: '#6d28d9', borderRadius: 2, padding: '0 2px' }}>A</span>
-                )}
-                {cell.flags && Object.keys(cell.flags).map(flag => (
-                  <span key={flag} style={{ position: 'absolute', bottom: 2, left: 2, fontSize: 9, color: '#fff', background: FLAG_TYPES.find(f => f.flag === flag)?.color || '#aaa', borderRadius: 2, padding: '0 2px', opacity: 0.85 }}>{flag[0].toUpperCase()}</span>
-                ))}
-              </div>
-            ))
+            row.map((cell, x) => {
+              const isTeleport = cell.flags && cell.flags.teleport
+              return (
+                <div
+                  key={x + '-' + y}
+                  style={{
+                    width: 20,
+                    height: 20,
+                    background: TERRAIN_TYPES.find(t => t.type === cell.type)?.color || '#aaa',
+                    border: '1px solid #222',
+                    cursor: 'pointer',
+                    position: 'relative',
+                  }}
+                  title={isTeleport ? `Teleport to: ${mapsIndex.find(m => m.id === cell.flags.teleport.toMapId)?.name || cell.flags.teleport.toMapId} (${cell.flags.teleport.twoWay ? 'Two-way' : 'One-way'})` : `(${x},${y}) ${cell.type}${cell.asset ? ' [Asset]' : ''}`}
+                  onMouseDown={e => {
+                    e.preventDefault();
+                    setIsPainting(true);
+                    if (mode === 'asset' && e.button === 2) {
+                      clearAsset(x, y)
+                    } else if (mode === 'flag' && selectedFlag === 'teleport' && e.button === 0) {
+                      handleTeleportPlace(x, y)
+                    } else if (mode === 'flag' && selectedFlag === 'teleport' && e.button === 2) {
+                      clearTeleport(x, y)
+                    } else if (mode === 'flag' && e.button === 2) {
+                      clearFlag(x, y, selectedFlag)
+                    } else {
+                      paintCell(x, y)
+                    }
+                  }}
+                  onMouseUp={() => setIsPainting(false)}
+                  onMouseEnter={() => { if (isPainting) paintCell(x, y) }}
+                  onContextMenu={e => { e.preventDefault(); if (mode === 'asset') clearAsset(x, y); if (mode === 'flag' && selectedFlag === 'teleport') clearTeleport(x, y); if (mode === 'flag') clearFlag(x, y, selectedFlag) }}
+                >
+                  {cell.asset && (
+                    <span style={{ position: 'absolute', top: 2, right: 2, fontSize: 10, color: '#fff', background: '#6d28d9', borderRadius: 2, padding: '0 2px' }}>A</span>
+                  )}
+                  {cell.flags && Object.keys(cell.flags).map(flag => (
+                    <span key={flag} style={{ position: 'absolute', bottom: 2, left: 2, fontSize: 9, color: '#fff', background: FLAG_TYPES.find(f => f.flag === flag)?.color || '#aaa', borderRadius: 2, padding: '0 2px', opacity: 0.85 }}>{flag[0].toUpperCase()}</span>
+                  ))}
+                  {isTeleport && (
+                    <span style={{ position: 'absolute', bottom: 2, right: 2, fontSize: 9, color: '#fff', background: '#a78bfa', borderRadius: 2, padding: '0 2px', opacity: 0.85 }}>T</span>
+                  )}
+                </div>
+              )
+            })
           )}
         </div>
       </div>
-      <div className="text-purple-300 text-xs mt-4">(Painting, asset placement, region/flag drawing, tool asset assignment, and multi-map management work! 3D integration coming soon.)</div>
+      {/* Teleport Modal */}
+      {showTeleportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => setShowTeleportModal(false)}>
+          <div className="bg-black/95 rounded-xl shadow-lg p-6 relative max-w-full" style={{ minWidth: 320, maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-white mb-4">Add Teleport Gate</h3>
+            <div className="mb-2">
+              <label className="block text-purple-300 text-sm mb-1">Destination Map</label>
+              <select value={teleportDestMap} onChange={e => setTeleportDestMap(e.target.value)} className="w-full px-3 py-2 rounded bg-black/30 border border-purple-500/50 text-white">
+                <option value="">Select map...</option>
+                {mapsIndex.filter(m => m.id !== currentMapId).map(m => (
+                  <option key={m.id} value={m.id}>{m.name} ({m.size}x{m.size})</option>
+                ))}
+              </select>
+            </div>
+            <div className="mb-4">
+              <label className="block text-purple-300 text-sm mb-1">Type</label>
+              <select value={teleportTwoWay ? 'two' : 'one'} onChange={e => setTeleportTwoWay(e.target.value === 'two')} className="w-full px-3 py-2 rounded bg-black/30 border border-purple-500/50 text-white">
+                <option value="one">One-way</option>
+                <option value="two">Two-way</option>
+              </select>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowTeleportModal(false)} className="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded-lg">Cancel</button>
+              <button onClick={handleTeleportConfirm} className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg">Add</button>
+            </div>
+          </div>
+        </div>
+      )}
+      <div className="text-purple-300 text-xs mt-4">(Painting, asset placement, region/flag drawing, tool asset assignment, multi-map management, and teleport gates work! 3D integration coming soon.)</div>
     </div>
   )
 }
