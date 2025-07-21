@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 
-const MAP_KEY = 'skyward_world_map'
+const MAPS_INDEX_KEY = 'skyward_maps_index'
+const MAP_KEY_PREFIX = 'skyward_world_map_'
 const TOOL_ASSET_KEY = 'skyward_tool_asset_assignments'
 const DEFAULT_SIZE = 32
 const DEFAULT_CELL = { type: 'ground', asset: null, flags: {} }
@@ -24,6 +25,8 @@ function createDefaultMap(size = DEFAULT_SIZE) {
 }
 
 const MapEditor = () => {
+  const [mapsIndex, setMapsIndex] = useState([])
+  const [currentMapId, setCurrentMapId] = useState('')
   const [map, setMap] = useState([])
   const [selectedTerrain, setSelectedTerrain] = useState('ground')
   const [isPainting, setIsPainting] = useState(false)
@@ -32,15 +35,32 @@ const MapEditor = () => {
   const [selectedAsset, setSelectedAsset] = useState('')
   const [selectedFlag, setSelectedFlag] = useState('spawn')
   const [toolAssets, setToolAssets] = useState({})
+  const [showNewMap, setShowNewMap] = useState(false)
+  const [newMapName, setNewMapName] = useState('')
+  const [newMapSize, setNewMapSize] = useState(DEFAULT_SIZE)
 
+  // Load maps index and current map
   useEffect(() => {
-    const saved = localStorage.getItem(MAP_KEY)
+    const idx = JSON.parse(localStorage.getItem(MAPS_INDEX_KEY) || '[]')
+    setMapsIndex(idx)
+    let mapId = idx.length > 0 ? idx[0].id : 'default'
+    if (!idx.length) {
+      // Create default map
+      mapId = 'default'
+      const def = createDefaultMap()
+      localStorage.setItem(MAP_KEY_PREFIX + mapId, JSON.stringify(def))
+      localStorage.setItem(MAPS_INDEX_KEY, JSON.stringify([{ id: mapId, name: 'World', size: DEFAULT_SIZE }]))
+      setMapsIndex([{ id: mapId, name: 'World', size: DEFAULT_SIZE }])
+    }
+    setCurrentMapId(mapId)
+  }, [])
+
+  // Load current map data
+  useEffect(() => {
+    if (!currentMapId) return
+    const saved = localStorage.getItem(MAP_KEY_PREFIX + currentMapId)
     if (saved) {
       setMap(JSON.parse(saved))
-    } else {
-      const def = createDefaultMap()
-      setMap(def)
-      localStorage.setItem(MAP_KEY, JSON.stringify(def))
     }
     // Load assets
     const assetList = JSON.parse(localStorage.getItem('skyward_assets') || '[]')
@@ -48,7 +68,12 @@ const MapEditor = () => {
     // Load tool-asset assignments
     const ta = localStorage.getItem(TOOL_ASSET_KEY)
     if (ta) setToolAssets(JSON.parse(ta))
-  }, [])
+  }, [currentMapId])
+
+  const saveMap = (mapData = map) => {
+    if (!currentMapId) return
+    localStorage.setItem(MAP_KEY_PREFIX + currentMapId, JSON.stringify(mapData))
+  }
 
   const paintCell = (x, y) => {
     setMap(prev => {
@@ -60,7 +85,7 @@ const MapEditor = () => {
       } else if (mode === 'flag') {
         newMap[y][x].flags = { ...newMap[y][x].flags, [selectedFlag]: true }
       }
-      localStorage.setItem(MAP_KEY, JSON.stringify(newMap))
+      saveMap(newMap)
       return newMap
     })
   }
@@ -69,7 +94,7 @@ const MapEditor = () => {
     setMap(prev => {
       const newMap = prev.map(row => row.map(cell => ({ ...cell })))
       newMap[y][x].asset = null
-      localStorage.setItem(MAP_KEY, JSON.stringify(newMap))
+      saveMap(newMap)
       return newMap
     })
   }
@@ -78,7 +103,7 @@ const MapEditor = () => {
     setMap(prev => {
       const newMap = prev.map(row => row.map(cell => ({ ...cell })))
       if (newMap[y][x].flags) delete newMap[y][x].flags[flag]
-      localStorage.setItem(MAP_KEY, JSON.stringify(newMap))
+      saveMap(newMap)
       return newMap
     })
   }
@@ -90,10 +115,89 @@ const MapEditor = () => {
     localStorage.setItem(TOOL_ASSET_KEY, JSON.stringify(updated))
   }
 
+  // Add new map
+  const handleAddMap = () => {
+    if (!newMapName || !newMapSize) return
+    const id = newMapName.toLowerCase().replace(/\s+/g, '_') + '_' + Date.now()
+    const newMap = createDefaultMap(Number(newMapSize))
+    localStorage.setItem(MAP_KEY_PREFIX + id, JSON.stringify(newMap))
+    const updatedIdx = [...mapsIndex, { id, name: newMapName, size: Number(newMapSize) }]
+    setMapsIndex(updatedIdx)
+    localStorage.setItem(MAPS_INDEX_KEY, JSON.stringify(updatedIdx))
+    setCurrentMapId(id)
+    setShowNewMap(false)
+    setNewMapName('')
+    setNewMapSize(DEFAULT_SIZE)
+  }
+
+  // Remove map
+  const handleRemoveMap = (id) => {
+    if (!window.confirm('Are you sure you want to delete this map?')) return
+    localStorage.removeItem(MAP_KEY_PREFIX + id)
+    const updatedIdx = mapsIndex.filter(m => m.id !== id)
+    setMapsIndex(updatedIdx)
+    localStorage.setItem(MAPS_INDEX_KEY, JSON.stringify(updatedIdx))
+    if (updatedIdx.length > 0) setCurrentMapId(updatedIdx[0].id)
+    else {
+      // If no maps left, create a new default
+      const defId = 'default'
+      const def = createDefaultMap()
+      localStorage.setItem(MAP_KEY_PREFIX + defId, JSON.stringify(def))
+      localStorage.setItem(MAPS_INDEX_KEY, JSON.stringify([{ id: defId, name: 'World', size: DEFAULT_SIZE }]))
+      setMapsIndex([{ id: defId, name: 'World', size: DEFAULT_SIZE }])
+      setCurrentMapId(defId)
+    }
+  }
+
   return (
     <div className="bg-black/30 backdrop-blur-lg rounded-xl border border-purple-500/30 p-6">
       <h2 className="text-xl font-bold text-white mb-4">🗺️ Map Editor</h2>
-      {/* Toolbar */}
+      {/* Map Selector */}
+      <div className="flex items-center gap-4 mb-4 flex-wrap">
+        <label className="text-purple-300 text-sm">Map:</label>
+        <select
+          value={currentMapId}
+          onChange={e => setCurrentMapId(e.target.value)}
+          className="px-3 py-1 rounded-lg border border-purple-500/50 bg-black/40 text-white"
+        >
+          {mapsIndex.map(m => (
+            <option key={m.id} value={m.id}>{m.name} ({m.size}x{m.size})</option>
+          ))}
+        </select>
+        <button
+          className="px-3 py-1 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm"
+          onClick={() => setShowNewMap(true)}
+        >+ New Map</button>
+        {mapsIndex.length > 1 && (
+          <button
+            className="px-3 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm"
+            onClick={() => handleRemoveMap(currentMapId)}
+          >Delete Map</button>
+        )}
+      </div>
+      {/* New Map Modal */}
+      {showNewMap && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => setShowNewMap(false)}>
+          <div className="bg-black/95 rounded-xl shadow-lg p-6 relative max-w-full" style={{ minWidth: 320, maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-white mb-4">Add New Map</h3>
+            <div className="mb-2">
+              <label className="block text-purple-300 text-sm mb-1">Map Name</label>
+              <input type="text" value={newMapName} onChange={e => setNewMapName(e.target.value)} className="w-full px-3 py-2 rounded bg-black/30 border border-purple-500/50 text-white" />
+            </div>
+            <div className="mb-4">
+              <label className="block text-purple-300 text-sm mb-1">Map Size</label>
+              <input type="number" min={8} max={128} value={newMapSize} onChange={e => setNewMapSize(e.target.value)} className="w-full px-3 py-2 rounded bg-black/30 border border-purple-500/50 text-white" />
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowNewMap(false)} className="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded-lg">Cancel</button>
+              <button onClick={handleAddMap} className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg">Add</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Toolbar and Map Grid (unchanged) */}
+      {/* ... rest of the previous MapEditor code ... */}
+      {/* (Paste the previous toolbar, grid, and painting logic here, using 'map' and 'setMap' as before) */}
       <div className="flex items-center gap-4 mb-4 flex-wrap">
         <button
           className={`px-3 py-1 rounded-lg font-semibold text-sm border-2 transition-colors ${mode === 'terrain' ? 'border-yellow-400 bg-yellow-400/20 text-yellow-200' : 'border-gray-700 bg-black/40 text-white hover:border-yellow-400'}`}
@@ -168,7 +272,7 @@ const MapEditor = () => {
       </div>
       <div className="overflow-auto" style={{ maxWidth: 800 }}>
         <div
-          style={{ display: 'grid', gridTemplateColumns: `repeat(${DEFAULT_SIZE}, 20px)`, gap: 1 }}
+          style={{ display: 'grid', gridTemplateColumns: `repeat(${map.length > 0 ? map[0].length : DEFAULT_SIZE}, 20px)`, gap: 1 }}
           onMouseLeave={() => setIsPainting(false)}
         >
           {map.map((row, y) =>
@@ -210,7 +314,7 @@ const MapEditor = () => {
           )}
         </div>
       </div>
-      <div className="text-purple-300 text-xs mt-4">(Painting, asset placement, region/flag drawing, and tool asset assignment work! 3D integration coming soon.)</div>
+      <div className="text-purple-300 text-xs mt-4">(Painting, asset placement, region/flag drawing, tool asset assignment, and multi-map management work! 3D integration coming soon.)</div>
     </div>
   )
 }
