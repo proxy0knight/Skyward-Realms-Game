@@ -448,6 +448,13 @@ class BabylonGameEngine {
       }
     })
     
+    // Camera mode toggle (C key)
+    window.addEventListener('keydown', (event) => {
+      if (event.code === 'KeyC') {
+        this.toggleCameraMode()
+      }
+    })
+    
     console.log('✅ Input system ready')
   }
 
@@ -771,14 +778,48 @@ class BabylonGameEngine {
       moveVector.addInPlace(cameraRight)
     }
     
+    // Running (Shift key)
+    const isRunning = !!this.inputMap['ShiftLeft'] || !!this.inputMap['ShiftRight']
+    
     // Apply movement
     if (moveVector.length() > 0) {
       moveVector.normalize()
-      this.babylonCharacter.move(moveVector)
+      this.babylonCharacter.move(moveVector, isRunning)
+    } else {
+      this.babylonCharacter.move(new BABYLON.Vector3(0, 0, 0), false)
     }
     
     // Update camera target
-    this.camera.setTarget(this.babylonCharacter.getPosition())
+    this.updateCameraFollow()
+  }
+
+  /**
+   * Update camera follow/position based on camera mode
+   */
+  updateCameraFollow() {
+    if (!this.babylonCharacter) return
+    
+    // Third-person: follow character
+    if (this.babylonCharacter.cameraMode === 'third') {
+      this.camera.setTarget(this.babylonCharacter.getPosition())
+      // (Optional: adjust camera position for third-person)
+    } else if (this.babylonCharacter.cameraMode === 'first') {
+      // (Stub) First-person: move camera to character head position
+      const pos = this.babylonCharacter.getPosition()
+      this.camera.setTarget(pos.add(new BABYLON.Vector3(0, 1.5, 0)))
+      this.camera.alpha = 0 // (Optional: align with character forward)
+      // (Optional: hide character mesh in first-person)
+    }
+  }
+
+  /**
+   * Toggle camera mode (first/third person)
+   */
+  toggleCameraMode() {
+    if (this.babylonCharacter) {
+      this.babylonCharacter.toggleCameraMode()
+    }
+    // Camera logic handled in updateCameraFollow
   }
 
   /**
