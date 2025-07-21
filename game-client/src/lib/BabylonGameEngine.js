@@ -333,6 +333,18 @@ class BabylonGameEngine {
   }
 
   /**
+   * Check if a file exists without causing warnings
+   */
+  async checkFileExists(filePath) {
+    try {
+      const response = await fetch(filePath, { method: 'HEAD' })
+      return response.ok
+    } catch (error) {
+      return false
+    }
+  }
+
+  /**
    * Setup environment with fallback to procedural
    */
   async setupEnvironment() {
@@ -346,15 +358,22 @@ class BabylonGameEngine {
     
     // Try to load custom environment files
     for (const envPath of environmentPaths) {
+      // Check if file exists first to avoid Babylon.js warnings
+      const fileExists = await this.checkFileExists(envPath)
+      if (!fileExists) {
+        console.log(`BabylonGameEngine: Environment file not found: ${envPath}`)
+        continue
+      }
+      
       try {
-        console.log(`BabylonGameEngine: Trying to load environment: ${envPath}`)
+        console.log(`BabylonGameEngine: Loading environment: ${envPath}`)
         const envTexture = BABYLON.CubeTexture.CreateFromPrefilteredData(envPath, this.scene)
         this.scene.environmentTexture = envTexture
         this.scene.createDefaultSkybox(envTexture, true, 1000)
         console.log(`✅ Loaded custom environment: ${envPath}`)
         return // Success! Exit early
       } catch (error) {
-        // File doesn't exist or failed to load, try next one
+        console.log(`Failed to load environment ${envPath}:`, error.message)
         continue
       }
     }

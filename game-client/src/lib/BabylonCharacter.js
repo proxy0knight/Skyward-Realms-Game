@@ -36,12 +36,12 @@ class BabylonCharacter {
       this.characterMesh = await this.loadCharacterModel()
       console.log('BabylonCharacter: GLB model loaded successfully')
       
-      // Create character group
+      // Setup physics BEFORE parenting (required by Babylon.js physics)
+      this.setupPhysics()
+      
+      // Create character group and parent the mesh
       this.characterGroup = new BABYLON.TransformNode('characterGroup', this.scene)
       this.characterMesh.parent = this.characterGroup
-      
-      // Setup physics
-      this.setupPhysics()
       
       // Add elemental effects
       await this.createElementalEffects()
@@ -258,8 +258,17 @@ class BabylonCharacter {
       
       // Prevent character from falling through terrain
       if (this.characterMesh.physicsImpostor) {
-        this.characterMesh.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero())
-        this.characterMesh.physicsImpostor.setAngularVelocity(BABYLON.Vector3.Zero())
+        // Add a small delay to ensure physics impostor is fully initialized
+        setTimeout(() => {
+          try {
+            if (this.characterMesh.physicsImpostor) {
+              this.characterMesh.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero())
+              this.characterMesh.physicsImpostor.setAngularVelocity(BABYLON.Vector3.Zero())
+            }
+          } catch (error) {
+            console.warn('BabylonCharacter: Could not set initial velocity:', error)
+          }
+        }, 100)
         
         // Add ground detection
         this.setupGroundDetection()
