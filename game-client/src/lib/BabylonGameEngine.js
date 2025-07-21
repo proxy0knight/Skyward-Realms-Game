@@ -239,8 +239,8 @@ class BabylonGameEngine {
       this.camera.alpha -= deltaX * 0.003
       this.camera.beta -= deltaY * 0.003
       
-      // Clamp beta
-      this.camera.beta = Math.max(0.1, Math.min(Math.PI - 0.1, this.camera.beta))
+      // Clamp beta to allow full vertical range
+      this.camera.beta = Math.max(0.01, Math.min(Math.PI - 0.01, this.camera.beta))
     })
     
     // Fallback: pointer events for non-locked mode
@@ -269,8 +269,8 @@ class BabylonGameEngine {
       this.camera.alpha -= deltaX * 0.01
       this.camera.beta -= deltaY * 0.01
       
-      // Clamp beta
-      this.camera.beta = Math.max(0.1, Math.min(Math.PI - 0.1, this.camera.beta))
+      // Clamp beta to allow full vertical range
+      this.camera.beta = Math.max(0.01, Math.min(Math.PI - 0.01, this.camera.beta))
       
       lastPointerX = event.clientX
       lastPointerY = event.clientY
@@ -607,8 +607,8 @@ class BabylonGameEngine {
     // Set as player
     this.player = characterGroup
     
-    // Position player
-    this.babylonCharacter.setPosition(new BABYLON.Vector3(0, 5, 0))
+    // Position player above terrain (start at Y=10 to prevent underground spawning)
+    this.babylonCharacter.setPosition(new BABYLON.Vector3(0, 10, 0))
     
     // Update camera target
     this.camera.setTarget(this.babylonCharacter.getPosition())
@@ -805,6 +805,16 @@ class BabylonGameEngine {
         console.error(`Error in event listener for ${event}:`, error)
       }
     })
+  }
+
+  /**
+   * Start the engine (compatibility method)
+   */
+  start() {
+    if (!this.isRunning) {
+      this.isRunning = true
+      console.log('BabylonGameEngine: Started')
+    }
   }
 
   /**

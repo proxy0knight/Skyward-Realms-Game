@@ -209,14 +209,44 @@ class BabylonCharacter {
         { 
           mass: 1, 
           restitution: 0.1, 
-          friction: 0.8 
+          friction: 0.8
         },
         this.scene
       )
+      
+      // Prevent character from falling through terrain
+      if (this.characterMesh.physicsImpostor) {
+        this.characterMesh.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero())
+        this.characterMesh.physicsImpostor.setAngularVelocity(BABYLON.Vector3.Zero())
+        
+        // Add ground detection
+        this.setupGroundDetection()
+      }
+      
       console.log('BabylonCharacter: Physics setup complete')
     } else {
       console.log('BabylonCharacter: Physics not available, using visual-only character')
     }
+  }
+
+  /**
+   * Setup ground detection to prevent falling through terrain
+   */
+  setupGroundDetection() {
+    if (!this.characterMesh || !this.scene) return
+    
+    // Register render loop for ground check
+    this.scene.registerBeforeRender(() => {
+      if (this.characterMesh && this.characterMesh.position.y < 0) {
+        // Reset position if falling below ground
+        this.characterMesh.position.y = 2
+        
+        // Reset physics if available
+        if (this.characterMesh.physicsImpostor) {
+          this.characterMesh.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero())
+        }
+      }
+    })
   }
 
   /**
