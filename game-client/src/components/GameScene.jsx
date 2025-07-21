@@ -159,8 +159,8 @@ const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGa
           }))
         }
         
-        // Update mouse lock status (Babylon.js handles this automatically)
-        setMouseLocked(false)
+        // Update mouse lock status from Babylon.js engine
+        setMouseLocked(gameEngine.isMouseLocked || false)
         
         // Babylon.js camera debug - only log occasionally to reduce spam
         if (gameEngine.camera && Math.random() < 0.01) {
@@ -502,8 +502,9 @@ const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGa
         <div>Position: ({gameStats.playerPosition?.x || 0}, {gameStats.playerPosition?.y || 0}, {gameStats.playerPosition?.z || 0})</div>
         <div>Camera: α:{gameStats.cameraRotation?.y || 0}° β:{gameStats.cameraRotation?.x || 0}°</div>
         <div>Engine: Babylon.js with GLB Characters</div>
+        <div>Mouse: {mouseLocked ? '🔒 Locked (ESC to unlock)' : '🔓 Click to lock mouse'}</div>
         <div>Controls: WASD to move</div>
-        <div>Mouse: Click and drag to look around</div>
+        <div>Camera: {mouseLocked ? 'Mouse look (locked)' : 'Click and drag to look around'}</div>
         <div>Space to jump</div>
       </div>
       

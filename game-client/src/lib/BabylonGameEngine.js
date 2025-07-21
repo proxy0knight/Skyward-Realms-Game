@@ -202,8 +202,48 @@ class BabylonGameEngine {
     let lastPointerX = 0
     let lastPointerY = 0
     
-    // Mouse controls
+    // Mouse lock state
+    this.isMouseLocked = false
+    
+    // Click to lock mouse
+    this.canvas.addEventListener('click', () => {
+      if (!this.isMouseLocked) {
+        this.lockMouse()
+      }
+    })
+    
+    // ESC to unlock mouse
+    document.addEventListener('keydown', (event) => {
+      if (event.code === 'Escape' && this.isMouseLocked) {
+        this.unlockMouse()
+        event.preventDefault()
+      }
+    })
+    
+    // Pointer lock change events
+    document.addEventListener('pointerlockchange', () => {
+      this.isMouseLocked = document.pointerLockElement === this.canvas
+      console.log('Mouse lock status:', this.isMouseLocked ? 'LOCKED' : 'UNLOCKED')
+    })
+    
+    // Mouse controls for locked mode
+    document.addEventListener('mousemove', (event) => {
+      if (!this.isMouseLocked) return
+      
+      const deltaX = event.movementX || 0
+      const deltaY = event.movementY || 0
+      
+      this.camera.alpha -= deltaX * 0.003
+      this.camera.beta -= deltaY * 0.003
+      
+      // Clamp beta
+      this.camera.beta = Math.max(0.1, Math.min(Math.PI - 0.1, this.camera.beta))
+    })
+    
+    // Fallback: pointer events for non-locked mode
     this.canvas.addEventListener('pointerdown', (event) => {
+      if (this.isMouseLocked) return
+      
       isPointerDown = true
       lastPointerX = event.clientX
       lastPointerY = event.clientY
@@ -211,12 +251,14 @@ class BabylonGameEngine {
     })
     
     this.canvas.addEventListener('pointerup', (event) => {
+      if (this.isMouseLocked) return
+      
       isPointerDown = false
       this.canvas.releasePointerCapture(event.pointerId)
     })
     
     this.canvas.addEventListener('pointermove', (event) => {
-      if (!isPointerDown) return
+      if (this.isMouseLocked || !isPointerDown) return
       
       const deltaX = event.clientX - lastPointerX
       const deltaY = event.clientY - lastPointerY
@@ -237,6 +279,28 @@ class BabylonGameEngine {
       this.camera.radius = Math.max(3, Math.min(50, this.camera.radius))
       event.preventDefault()
     })
+  }
+
+  /**
+   * Lock mouse pointer for FPS-style camera control
+   */
+  lockMouse() {
+    try {
+      this.canvas.requestPointerLock()
+    } catch (error) {
+      console.warn('Pointer lock not supported:', error)
+    }
+  }
+
+  /**
+   * Unlock mouse pointer
+   */
+  unlockMouse() {
+    try {
+      document.exitPointerLock()
+    } catch (error) {
+      console.warn('Exit pointer lock failed:', error)
+    }
   }
 
   /**
@@ -659,6 +723,13 @@ class BabylonGameEngine {
    */
   getFPS() {
     return Math.round(this.currentFPS)
+  }
+
+  /**
+   * Get mouse lock status
+   */
+  getMouseLockStatus() {
+    return this.isMouseLocked || false
   }
 
   /**
