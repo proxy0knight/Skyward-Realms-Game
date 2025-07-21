@@ -201,19 +201,22 @@ class BabylonCharacter {
   setupPhysics() {
     if (!this.characterMesh) return
     
-    // Add physics impostor
-    this.characterMesh.physicsImpostor = new BABYLON.PhysicsImpostor(
-      this.characterMesh,
-      BABYLON.PhysicsImpostor.CapsuleImpostor,
-      { 
-        mass: 1, 
-        restitution: 0.1, 
-        friction: 0.8 
-      },
-      this.scene
-    )
-    
-    console.log('BabylonCharacter: Physics setup complete')
+    // Add physics impostor only if physics engine is available
+    if (this.scene.getPhysicsEngine()) {
+      this.characterMesh.physicsImpostor = new BABYLON.PhysicsImpostor(
+        this.characterMesh,
+        BABYLON.PhysicsImpostor.CapsuleImpostor,
+        { 
+          mass: 1, 
+          restitution: 0.1, 
+          friction: 0.8 
+        },
+        this.scene
+      )
+      console.log('BabylonCharacter: Physics setup complete')
+    } else {
+      console.log('BabylonCharacter: Physics not available, using visual-only character')
+    }
   }
 
   /**
@@ -483,26 +486,50 @@ class BabylonCharacter {
    * Move character
    */
   move(direction) {
-    if (!this.characterMesh || !this.characterMesh.physicsImpostor) return
+    if (!this.characterGroup) return
     
-    const moveVector = direction.scale(this.moveSpeed)
-    const currentVelocity = this.characterMesh.physicsImpostor.getLinearVelocity()
+    const moveVector = direction.scale(this.moveSpeed * 0.016) // Frame-rate independent
     
-    this.characterMesh.physicsImpostor.setLinearVelocity(
-      new BABYLON.Vector3(moveVector.x, currentVelocity.y, moveVector.z)
-    )
+    if (this.characterMesh && this.characterMesh.physicsImpostor) {
+      // Physics-based movement
+      const currentVelocity = this.characterMesh.physicsImpostor.getLinearVelocity()
+      this.characterMesh.physicsImpostor.setLinearVelocity(
+        new BABYLON.Vector3(moveVector.x, currentVelocity.y, moveVector.z)
+      )
+    } else {
+      // Direct position movement (fallback)
+      this.characterGroup.position.addInPlace(moveVector)
+    }
   }
 
   /**
    * Jump
    */
   jump() {
-    if (!this.characterMesh || !this.characterMesh.physicsImpostor) return
+    if (!this.characterGroup) return
     
-    const currentVelocity = this.characterMesh.physicsImpostor.getLinearVelocity()
-    this.characterMesh.physicsImpostor.setLinearVelocity(
-      currentVelocity.add(new BABYLON.Vector3(0, 8, 0))
-    )
+    if (this.characterMesh && this.characterMesh.physicsImpostor) {
+      // Physics-based jump
+      const currentVelocity = this.characterMesh.physicsImpostor.getLinearVelocity()
+      this.characterMesh.physicsImpostor.setLinearVelocity(
+        currentVelocity.add(new BABYLON.Vector3(0, 8, 0))
+      )
+    } else {
+      // Simple position-based jump (fallback)
+      const jumpHeight = 2
+      const jumpDuration = 500 // ms
+      
+      BABYLON.Animation.CreateAndStartAnimation(
+        'jump',
+        this.characterGroup,
+        'position.y',
+        60,
+        30,
+        this.characterGroup.position.y,
+        this.characterGroup.position.y + jumpHeight,
+        BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+      )
+    }
   }
 
   /**

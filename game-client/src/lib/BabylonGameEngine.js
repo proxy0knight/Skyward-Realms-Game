@@ -1,7 +1,9 @@
 import * as BABYLON from '@babylonjs/core'
-import * as CANNON from 'cannon'
 import '@babylonjs/loaders/glTF'
 import BabylonCharacter from './BabylonCharacter.js'
+
+// Import physics plugin
+import { CannonJSPlugin } from '@babylonjs/core/Physics/Plugins/cannonJSPlugin'
 
 class BabylonGameEngine {
   constructor() {
@@ -103,11 +105,21 @@ class BabylonGameEngine {
   async setupPhysics() {
     console.log('BabylonGameEngine: Setting up physics...')
     
-    // Enable physics
-    this.scene.enablePhysics(new BABYLON.Vector3(0, -9.81, 0), new BABYLON.CannonJSPlugin())
-    this.physicsEngine = this.scene.getPhysicsEngine()
-    
-    console.log('✅ Physics engine enabled with gravity')
+    try {
+      // Import cannon dynamically
+      const cannonModule = await import('cannon')
+      const CANNON = cannonModule.default || cannonModule
+      
+      // Enable physics with Cannon.js
+      this.scene.enablePhysics(new BABYLON.Vector3(0, -9.81, 0), new CannonJSPlugin(true, 10, CANNON))
+      this.physicsEngine = this.scene.getPhysicsEngine()
+      
+      console.log('✅ Physics engine enabled with gravity')
+    } catch (error) {
+      console.warn('⚠️ Physics engine failed to initialize, using fallback:', error)
+      // Fallback: disable physics features
+      this.physicsEngine = null
+    }
   }
 
   /**
@@ -280,12 +292,18 @@ class BabylonGameEngine {
     simpleTerrain.material = terrainMaterial
     simpleTerrain.receiveShadows = true
     
-    simpleTerrain.physicsImpostor = new BABYLON.PhysicsImpostor(
-      simpleTerrain,
-      BABYLON.PhysicsImpostor.BoxImpostor,
-      { mass: 0, restitution: 0.3, friction: 0.8 },
-      this.scene
-    )
+    // Add physics if available
+    if (this.physicsEngine) {
+      simpleTerrain.physicsImpostor = new BABYLON.PhysicsImpostor(
+        simpleTerrain,
+        BABYLON.PhysicsImpostor.BoxImpostor,
+        { mass: 0, restitution: 0.3, friction: 0.8 },
+        this.scene
+      )
+      console.log('✅ Terrain physics enabled')
+    } else {
+      console.log('✅ Terrain created without physics (fallback mode)')
+    }
     
     console.log('✅ Terrain created with procedural materials and physics')
   }
@@ -315,13 +333,15 @@ class BabylonGameEngine {
     waterMesh.material = waterMaterial
     waterMesh.position.y = 2
     
-    // Water physics (trigger zone)
-    waterMesh.physicsImpostor = new BABYLON.PhysicsImpostor(
-      waterMesh,
-      BABYLON.PhysicsImpostor.BoxImpostor,
-      { mass: 0, restitution: 0, friction: 0 },
-      this.scene
-    )
+    // Water physics (trigger zone) - only if physics available
+    if (this.physicsEngine) {
+      waterMesh.physicsImpostor = new BABYLON.PhysicsImpostor(
+        waterMesh,
+        BABYLON.PhysicsImpostor.BoxImpostor,
+        { mass: 0, restitution: 0, friction: 0 },
+        this.scene
+      )
+    }
     
     this.waterMesh = waterMesh
     
@@ -382,13 +402,15 @@ class BabylonGameEngine {
         0.8 + Math.random() * 0.4
       )
       
-      // Add physics
-      treeInstance.physicsImpostor = new BABYLON.PhysicsImpostor(
-        treeInstance,
-        BABYLON.PhysicsImpostor.CylinderImpostor,
-        { mass: 0, restitution: 0.1, friction: 0.9 },
-        this.scene
-      )
+      // Add physics if available
+      if (this.physicsEngine) {
+        treeInstance.physicsImpostor = new BABYLON.PhysicsImpostor(
+          treeInstance,
+          BABYLON.PhysicsImpostor.CylinderImpostor,
+          { mass: 0, restitution: 0.1, friction: 0.9 },
+          this.scene
+        )
+      }
       
       treePositions.push(treeInstance)
     }
