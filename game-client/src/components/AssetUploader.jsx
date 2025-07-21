@@ -1,10 +1,16 @@
 import React, { useState, useRef } from 'react'
 
+const ASSET_CATEGORIES = [
+  'Ground', 'Grass', 'Bricks', 'Dirt', 'Rocks', 'Tree', 'Vegetation', 'Building', 'Structure', 'Water', 'Skybox', 'HDR', 'Lighting', 'Animal', 'Monster', 'NPC', 'Player Character', 'Other'
+]
+
 const AssetUploader = ({ onAssetUpload, onSwitchTab }) => {
   const [uploadProgress, setUploadProgress] = useState(0)
   const [isUploading, setIsUploading] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const fileInputRef = useRef(null)
+  const [category, setCategory] = useState('')
+  const [tags, setTags] = useState('')
 
   const supportedFormats = {
     models: ['.glb', '.gltf', '.obj', '.fbx'],
@@ -65,7 +71,9 @@ const AssetUploader = ({ onAssetUpload, onSwitchTab }) => {
         data: base64,
         uploadDate: new Date().toISOString(),
         loaded: false,
-        optimized: false
+        optimized: false,
+        category: category || '',
+        tags: tags.split(',').map(t => t.trim()).filter(Boolean)
       }
 
       onAssetUpload(asset)
@@ -129,7 +137,32 @@ const AssetUploader = ({ onAssetUpload, onSwitchTab }) => {
       {/* Upload Area */}
       <div className="bg-black/30 backdrop-blur-lg rounded-xl border border-purple-500/30 p-6">
         <h2 className="text-xl font-bold text-white mb-4">⬆️ Upload Assets</h2>
-        
+        {/* Category and Tags */}
+        <div className="flex flex-col md:flex-row md:space-x-4 mb-4">
+          <div className="flex-1 mb-2 md:mb-0">
+            <label className="block text-sm font-medium text-purple-300 mb-1">Category</label>
+            <select
+              value={category}
+              onChange={e => setCategory(e.target.value)}
+              className="w-full px-3 py-2 bg-black/30 border border-purple-500/50 rounded-lg text-white"
+            >
+              <option value="">Select category...</option>
+              {ASSET_CATEGORIES.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-purple-300 mb-1">Tags (comma separated)</label>
+            <input
+              type="text"
+              value={tags}
+              onChange={e => setTags(e.target.value)}
+              placeholder="e.g. grass, green, field"
+              className="w-full px-3 py-2 bg-black/30 border border-purple-500/50 rounded-lg text-white"
+            />
+          </div>
+        </div>
         {/* Drag & Drop Zone */}
         <div
           className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 ${
