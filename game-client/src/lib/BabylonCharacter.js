@@ -17,6 +17,15 @@ class BabylonCharacter {
     
     // Movement
     this.moveSpeed = 5
+    this.runSpeed = 10 // New: running speed
+    this.acceleration = 30 // New: acceleration rate
+    this.deceleration = 40 // New: deceleration rate
+    this.velocity = new BABYLON.Vector3(0, 0, 0) // New: current velocity
+    this.isRunning = false // New: running state
+    this.isGrounded = false // New: grounded state
+    this.lastGroundedTime = 0 // New: last time on ground
+    this.groundCheckRayLength = 1.2 // New: ray length for ground check
+    this.cameraMode = 'third' // New: camera mode (third/first)
     this.position = BABYLON.Vector3.Zero()
     
     // Element system
@@ -603,42 +612,52 @@ class BabylonCharacter {
   }
 
   /**
-   * Move character
+   * Move character (with acceleration, deceleration, running)
    */
-  move(direction) {
+  move(direction, isRunning = false) {
     if (!this.characterGroup) return
-    
-    const moveVector = direction.scale(this.moveSpeed * 0.016) // Frame-rate independent
-    
+    const deltaTime = this.scene.getEngine().getDeltaTime() / 1000
+    const targetSpeed = isRunning ? this.runSpeed : this.moveSpeed
+    // Only use X/Z for movement
+    const moveDir = new BABYLON.Vector3(direction.x, 0, direction.z)
+    if (moveDir.length() > 0) {
+      moveDir.normalize()
+      // Accelerate towards target speed
+      const desiredVelocity = moveDir.scale(targetSpeed)
+      this.velocity.x = this._approach(this.velocity.x, desiredVelocity.x, this.acceleration * deltaTime)
+      this.velocity.z = this._approach(this.velocity.z, desiredVelocity.z, this.acceleration * deltaTime)
+    } else {
+      // Decelerate to stop
+      this.velocity.x = this._approach(this.velocity.x, 0, this.deceleration * deltaTime)
+      this.velocity.z = this._approach(this.velocity.z, 0, this.deceleration * deltaTime)
+    }
+    // Apply movement
     if (this.characterMesh && this.characterMesh.physicsImpostor) {
       try {
-        // Physics-based movement with collision detection
         const currentVelocity = this.characterMesh.physicsImpostor.getLinearVelocity()
-        
         if (currentVelocity) {
-          // Only apply horizontal movement, preserve vertical velocity for gravity/jumping
           this.characterMesh.physicsImpostor.setLinearVelocity(
-            new BABYLON.Vector3(moveVector.x, currentVelocity.y, moveVector.z)
+            new BABYLON.Vector3(this.velocity.x, currentVelocity.y, this.velocity.z)
           )
         }
       } catch (error) {
-        console.warn('BabylonCharacter: Physics velocity error, using fallback movement:', error)
-        // Fallback to direct position movement
-        if (this.characterGroup) {
-          this.characterGroup.position.addInPlace(moveVector)
-        }
-        return
+        // Fallback to direct movement
+        this.characterGroup.position.addInPlace(new BABYLON.Vector3(this.velocity.x * deltaTime, 0, this.velocity.z * deltaTime))
       }
-      
-      // Add collision detection through raycasting
-      this.checkCollisions(moveVector)
+      this.checkCollisions(new BABYLON.Vector3(this.velocity.x, 0, this.velocity.z))
     } else {
-      // Direct position movement (fallback) with collision check
-      const newPosition = this.characterGroup.position.add(moveVector)
-      if (this.isPositionValid(newPosition)) {
-        this.characterGroup.position.addInPlace(moveVector)
-      }
+      // Fallback: direct movement
+      this.characterGroup.position.addInPlace(new BABYLON.Vector3(this.velocity.x * deltaTime, 0, this.velocity.z * deltaTime))
     }
+  }
+
+  /**
+   * Helper for smooth acceleration/deceleration
+   */
+  _approach(current, target, delta) {
+    if (current < target) return Math.min(current + delta, target)
+    if (current > target) return Math.max(current - delta, target)
+    return target
   }
 
   /**
@@ -671,6 +690,20 @@ class BabylonCharacter {
   }
 
   /**
+   * Check if character is grounded (raycast down)
+   */
+  checkGrounded() {
+    if (!this.characterMesh) return false
+    const origin = this.characterMesh.position.clone()
+    const down = new BABYLON.Vector3(0, -1, 0)
+    const ray = new BABYLON.Ray(origin, down, this.groundCheckRayLength)
+    const hit = this.scene.pickWithRay(ray, (mesh) => mesh !== this.characterMesh && mesh.checkCollisions !== false)
+    this.isGrounded = !!(hit && hit.hit && hit.distance < this.groundCheckRayLength)
+    if (this.isGrounded) this.lastGroundedTime = Date.now()
+    return this.isGrounded
+  }
+
+  /**
    * Check if position is valid (for non-physics movement)
    */
   isPositionValid(position) {
@@ -686,56 +719,27 @@ class BabylonCharacter {
   }
 
   /**
-   * Jump
+   * Jump (only if grounded)
    */
   jump() {
     if (!this.characterGroup) return
-    
-    // Prevent multiple jumps (simple ground check)
-    if (this.isJumping) return
+    this.checkGrounded()
+    if (!this.isGrounded && Date.now() - this.lastGroundedTime > 200) return // Prevent double jump
     this.isJumping = true
-    
-    // Reset jumping state after a delay
-    setTimeout(() => {
-      this.isJumping = false
-    }, 1000)
-    
+    setTimeout(() => { this.isJumping = false }, 1000)
     if (this.characterMesh && this.characterMesh.physicsImpostor) {
-      // Physics-based jump
       const currentVelocity = this.characterMesh.physicsImpostor.getLinearVelocity()
       this.characterMesh.physicsImpostor.setLinearVelocity(
-        currentVelocity.add(new BABYLON.Vector3(0, 8, 0))
+        new BABYLON.Vector3(currentVelocity.x, 8, currentVelocity.z)
       )
     } else {
-      // Simple position-based jump (fallback) - up and down motion
+      // Fallback: animate jump
       const startY = this.characterGroup.position.y
       const jumpHeight = 2
-      const jumpDuration = 800 // ms
-      
-      // Create up animation
-      const upAnimation = BABYLON.Animation.CreateAndStartAnimation(
-        'jumpUp',
-        this.characterGroup,
-        'position.y',
-        60,
-        30,
-        startY,
-        startY + jumpHeight,
-        BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
-      )
-      
-      // Create down animation after a delay
+      const jumpDuration = 800
+      BABYLON.Animation.CreateAndStartAnimation('jumpUp', this.characterGroup, 'position.y', 60, 30, startY, startY + jumpHeight, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT)
       setTimeout(() => {
-        BABYLON.Animation.CreateAndStartAnimation(
-          'jumpDown',
-          this.characterGroup,
-          'position.y',
-          60,
-          30,
-          startY + jumpHeight,
-          startY,
-          BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
-        )
+        BABYLON.Animation.CreateAndStartAnimation('jumpDown', this.characterGroup, 'position.y', 60, 30, startY + jumpHeight, startY, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT)
       }, jumpDuration / 2)
     }
   }
@@ -754,6 +758,14 @@ class BabylonCharacter {
     if (this.characterGroup) {
       this.characterGroup.position = position
     }
+  }
+
+  /**
+   * Toggle camera mode (first/third person)
+   */
+  toggleCameraMode() {
+    this.cameraMode = this.cameraMode === 'third' ? 'first' : 'third'
+    // Camera logic will be handled in the engine
   }
 
   /**
