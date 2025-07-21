@@ -1,201 +1,331 @@
 # 🏰 Skyward Realms Game
 
-A modern 3D fantasy RPG game built with React, Three.js, and cutting-edge web technologies. Features an advanced admin dashboard with 2D map editor and 3D asset management system.
+A modern 3D fantasy RPG game built with React, Babylon.js, and cutting-edge web technologies. Features beautiful procedural worlds with optional custom asset replacement and advanced physics systems.
 
 ![Skyward Realms Game](assets/images/game-logo.png)
 
 ## ✨ Features
 
 ### 🎮 Core Game Features
-- **3D World Rendering**: Immersive 3D environment with Three.js
+- **3D World Rendering**: Immersive 3D environment with Babylon.js physics
 - **Character Selection**: Choose from 4 elemental characters (Fire, Water, Earth, Air)
-- **Combat System**: Real-time combat mechanics with elemental abilities
-- **Story System**: Dynamic dialogue and quest management
-- **Inventory Management**: Complete item and equipment system
-- **Skills Panel**: Character progression and ability management
-- **Map Navigation**: Interactive world exploration
+- **Procedural Characters**: Beautiful fallback characters with elemental effects
+- **Physics System**: Cannon.js integration with collision detection
+- **Camera Controls**: Mouse lock/unlock with ESC key, full vertical look
+- **Elemental Effects**: Fire, water, earth, and air visual effects
+- **Procedural World**: Dynamic terrain, vegetation, and skybox generation
 
-### 🛠️ Admin Dashboard
-- **2D Map Editor**: Visual map creation with drag-and-drop interface
-- **3D Asset Management**: Comprehensive asset library with categories:
-  - 🏔️ **Terrain**: Ground, rocks, trees, water features
-  - 🏗️ **Structures**: Buildings, castles, monuments, ruins
-  - 👥 **Living Things**: NPCs, animals, monsters, spawn points
-- **External Asset Loading**: Support for GLTF/GLB, OBJ, FBX formats
-- **Real-time 2D-3D Sync**: Bidirectional synchronization between map editor and 3D world
-- **Asset Replacement**: Automatic replacement of existing assets
-- **User Management**: Player accounts and analytics
-- **Game Settings**: Server configuration and maintenance tools
+### 🎨 Visual Features
+- **Magical UI**: Animated backgrounds with floating particles
+- **Arabic/English Support**: Bilingual interface
+- **Responsive Design**: Works on desktop and mobile
+- **Procedural Skybox**: Beautiful gradient sky when no environment textures
+- **Particle Systems**: Elemental character effects and atmospheric particles
 
-### 🎨 Technical Features
-- **Modern React**: Built with React 18 and functional components
-- **Three.js Integration**: Advanced 3D graphics and scene management
+### 🛠️ Technical Features
+- **Modern React**: Built with React 19 and functional components
+- **Babylon.js Integration**: Advanced 3D graphics and physics
 - **Tailwind CSS**: Beautiful, responsive UI design
-- **Event-Driven Architecture**: Custom event system for game mechanics
-- **Modular Design**: Separated systems for combat, story, assets, and world management
-- **Keyboard Shortcuts**: Quick access to game features and admin tools
+- **Asset System**: Custom asset support with procedural fallbacks
+- **Error Handling**: Graceful fallbacks ensure game always works
+- **Performance Optimized**: Efficient rendering and asset loading
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js (v16 or higher)
-- npm or pnpm
+- **Node.js** (v18 or higher)
+- **npm** or **pnpm** (recommended)
+- Modern web browser with WebGL support
 
 ### Installation
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/Skyward-Realms-Game.git
+   git clone https://github.com/proxy0knight/Skyward-Realms-Game.git
    cd Skyward-Realms-Game
    ```
 
-2. **Install dependencies**
+2. **Navigate to game directory**
    ```bash
    cd game-client
-   npm install
-   # or
-   pnpm install
    ```
 
-3. **Start the development server**
+3. **Install dependencies**
    ```bash
-   npm run dev
-   # or
-   pnpm dev
+   # Using npm
+   npm install
+
+   # Using pnpm (recommended - faster)
+   pnpm install
+
+   # Using yarn
+   yarn install
    ```
 
-4. **Open your browser**
+4. **Start the development server**
+   ```bash
+   # Using npm
+   npm run dev
+
+   # Using pnpm
+   pnpm run dev
+
+   # Using yarn
+   yarn dev
+   ```
+
+5. **Open your browser**
    - Navigate to `http://localhost:5173`
-   - The game will load automatically
+   - The game will load automatically with beautiful procedural defaults
+
+## 📦 Dependencies Overview
+
+### Core Dependencies
+- **@babylonjs/core**: 3D rendering engine
+- **@babylonjs/loaders**: GLB/GLTF model loading
+- **@babylonjs/materials**: Advanced materials and shaders
+- **cannon**: Physics engine for collisions
+- **react**: Frontend framework (v19)
+- **react-dom**: React DOM rendering
+- **three**: Additional 3D utilities (legacy support)
+
+### UI Dependencies
+- **@radix-ui/***: Professional UI components
+- **tailwindcss**: Utility-first CSS framework
+- **lucide-react**: Beautiful icon library
+- **framer-motion**: Smooth animations
+- **class-variance-authority**: Component variants
+
+### Development Dependencies
+- **vite**: Fast build tool and dev server
+- **eslint**: Code linting
+- **@vitejs/plugin-react**: React integration
 
 ## 🎯 How to Play
 
 ### Main Menu
-- **Start Game**: Begin your adventure
-- **Admin Access**: Access the admin dashboard (requires admin privileges)
+- **ابدأ المغامرة (Start Adventure)**: Begin your journey
+- **لوحة التحكم (Admin Panel)**: Access admin features
 
 ### Character Selection
 Choose your elemental character:
-- 🔥 **Fire Elemental**: Fire magic and offensive abilities
-- 💧 **Water Elemental**: Healing and defensive magic
-- 🏔️ **Earth Elemental**: Stone magic and protection
-- 💨 **Air Elemental**: Wind magic and mobility
+- 🔥 **Fire Elemental**: Bright orange/red with fire particles
+- 💧 **Water Elemental**: Blue/cyan with water effects  
+- 🏔️ **Earth Elemental**: Green/brown with earth particles
+- 💨 **Air Elemental**: Light blue/white with wind effects
 
 ### In-Game Controls
-- **WASD**: Move character
-- **Mouse**: Look around
-- **I**: Open inventory
-- **K**: Open skills panel
-- **M**: Open map
-- **Q**: Open quests
-- **C**: Combat test panel
-- **S**: Story test panel
-- **V**: Model test panel
-- **A**: Admin dashboard
-- **ESC**: Close panels
+- **WASD** or **Arrow Keys**: Move character
+- **Mouse**: Look around (click to lock/unlock cursor)
+- **ESC**: Unlock mouse cursor
+- **Space**: Jump (with cooldown)
+- **Movement**: Smooth physics-based movement with collision detection
 
-## 🛠️ Admin Dashboard Usage
+## 🎨 Asset Management & Placeholders
 
-### Accessing Admin Panel
-1. From main menu: Click "Admin Access"
-2. In-game: Press 'A' key
+The game features a flexible asset system with beautiful procedural defaults and optional custom asset replacement.
 
-### 2D Map Editor
-1. **Navigate to Assets Tab** → **2D Map Editor**
-2. **Asset Palette**: Drag assets from the left panel
-3. **Tools**:
-   - **Select**: Click to select objects
-   - **Place Asset**: Drag assets to place them
-   - **Move**: Drag existing objects
-   - **Delete**: Remove selected objects
-4. **Controls**:
-   - **Zoom**: Use zoom buttons or slider
-   - **Grid**: Adjustable grid size
-   - **3D Sync**: Real-time synchronization with 3D world
-
-### 3D Asset Management
-1. **Upload External Assets**:
-   - Go to "External Assets" tab
-   - Enter asset URL (GLTF/GLB, OBJ, FBX)
-   - Set asset name and type
-   - Click "Load Asset"
-
-2. **Local File Upload**:
-   - Use "Upload Asset" buttons in Legacy Assets
-   - Supports images, audio, video, and 3D models
-   - Automatic replacement of existing assets
-
-3. **Asset Categories**:
-   - **Terrain**: Environmental objects (trees, rocks, water)
-   - **Structures**: Buildings and architectural elements
-   - **Living Things**: Characters, animals, and spawn points
-
-### 3D World Synchronization
-- **Connection Status**: Green dot indicates 3D world connection
-- **Sync Modes**:
-  - **Bidirectional**: Changes sync both ways
-  - **2D → 3D Only**: Only map changes affect 3D world
-  - **3D → 2D Only**: Only 3D changes affect map
-- **Manual Controls**:
-  - **Sync All to 3D**: Manually sync all objects
-  - **Clear 3D Objects**: Remove all 3D objects
-
-## 📁 Project Structure
+### 📁 Asset Directory Structure
 
 ```
-Skyward-Realms-Game/
-├── assets/                 # Game assets (images, audio)
-├── game-client/           # Main React application
-│   ├── src/
-│   │   ├── components/    # React components
-│   │   │   ├── ui/        # Reusable UI components
-│   │   │   └── ...        # Game-specific components
-│   │   ├── lib/           # Game systems and utilities
-│   │   │   ├── GameEngine.js
-│   │   │   ├── CombatSystem.js
-│   │   │   ├── StorySystem.js
-│   │   │   └── ...
-│   │   └── main.jsx       # Application entry point
-│   ├── package.json       # Dependencies and scripts
-│   └── vite.config.js     # Build configuration
-├── README.md              # This file
-└── ...                    # Documentation and guides
+game-client/public/
+├── assets/
+│   ├── models/
+│   │   ├── characters/         # Custom character GLB models
+│   │   │   ├── [ADD] fire.glb
+│   │   │   ├── [ADD] water.glb  
+│   │   │   ├── [ADD] earth.glb
+│   │   │   └── [ADD] air.glb
+│   │   ├── props/             # Environment props/objects
+│   │   └── weapons/           # Weapon models
+│   ├── images/
+│   │   └── game-logo.png      # Game logo (can be replaced)
+│   └── audio/                 # Sound effects and music
+├── textures/                  # Environment maps and textures
+│   ├── [ADD] environment.env  # Babylon.js environment
+│   ├── [ADD] environment.hdr  # HDR environment
+│   └── [ADD] skybox.env       # Alternative environment
+└── particles/                 # Particle effect textures
+    └── [ADD] *.png files
 ```
 
-## 🎨 Asset Management
+### 🎭 Character Models (Optional Replacements)
 
-### Supported Formats
-- **3D Models**: GLTF/GLB, OBJ, FBX
-- **Images**: JPG, PNG, WebP
-- **Audio**: MP3, WAV, OGG
-- **Data**: JSON, CSV
+**Location:** `/public/assets/models/characters/`
 
-### Asset Categories
-- **Player Assets**: Character models, animations, textures
-- **Environment Assets**: Terrain, buildings, props
-- **Item Assets**: Weapons, armor, consumables
-- **Other Assets**: UI elements, audio, effects
+Add GLB files to replace procedural characters:
 
-## 🔧 Development
+**Fire Element:**
+- `fire.glb` (primary)
+- `fire_character.glb` (alternative)
+
+**Water Element:**
+- `water.glb` (primary)  
+- `water_character.glb` (alternative)
+
+**Earth Element:**
+- `earth.glb` (primary)
+- `earth_character.glb` (alternative)
+
+**Air Element:**
+- `air.glb` (primary)
+- `wind.glb` (alternative)
+- `air_character.glb` (alternative)
+
+#### Character Model Requirements:
+- **Format:** `.glb` (preferred) or `.gltf`
+- **Scale:** Roughly 2 units tall
+- **Origin:** Centered at (0,0,0)
+- **Animations:** Optional (idle, walk, run, jump)
+
+#### Fallback Behavior:
+If no GLB model is found, beautiful **procedural characters** are created with:
+- Elemental colors and materials
+- Particle effects matching element type
+- Full physics and collision detection
+- Professional appearance
+
+### 🌍 Environment Maps (Optional)
+
+**Location:** `/public/textures/`
+
+Add environment files for realistic lighting:
+
+1. `environment.env` (Babylon.js format - preferred)
+2. `environment.hdr` (HDR format)  
+3. `skybox.env` (alternative name)
+4. `world.env` (alternative name)
+
+#### Environment Requirements:
+- **Formats:** `.env` (Babylon.js), `.hdr`, `.exr`
+- **Resolution:** 1024x512 or higher
+- **Content:** 360° panoramic environment
+
+#### Fallback Behavior:
+Without environment files, a **beautiful procedural sky** is created with:
+- Gradient blue atmosphere
+- Proper lighting simulation
+- Clean, professional look
+
+### 🖼️ Other Replaceable Assets
+
+**Game Logo:**
+- Replace `/public/assets/images/game-logo.png` with your custom logo
+- **Recommended:** 256x256 PNG with transparency
+
+**Audio Files (Future):**
+```
+public/assets/audio/
+├── music/
+│   ├── [ADD] background.mp3
+│   ├── [ADD] combat.mp3  
+│   └── [ADD] ambient.mp3
+├── sfx/
+│   ├── [ADD] jump.wav
+│   ├── [ADD] footsteps.wav
+│   └── elemental/
+│       ├── [ADD] fire_cast.wav
+│       ├── [ADD] water_splash.wav
+│       ├── [ADD] earth_rumble.wav
+│       └── [ADD] wind_whoosh.wav
+```
+
+## 🛠️ Development
 
 ### Available Scripts
 ```bash
 # Development
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run preview      # Preview production build
+npm run dev          # Start development server with hot reload
+npm run build        # Build optimized production version
+npm run preview      # Preview production build locally
 
-# Testing
-npm run test         # Run tests
-npm run lint         # Lint code
+# Code Quality  
+npm run lint         # Check code for issues
+```
+
+### Project Structure
+```
+Skyward-Realms-Game/
+├── game-client/              # Main React application
+│   ├── src/
+│   │   ├── components/       # React components
+│   │   │   ├── ui/          # Reusable UI components  
+│   │   │   ├── MainMenu.jsx # Main menu component
+│   │   │   ├── GameScene.jsx# 3D game scene
+│   │   │   └── ...          # Other components
+│   │   ├── lib/             # Game systems
+│   │   │   ├── BabylonGameEngine.js  # Main game engine
+│   │   │   ├── BabylonCharacter.js   # Character system
+│   │   │   └── ...          # Other systems
+│   │   └── main.jsx         # Application entry point
+│   ├── public/              # Static assets
+│   │   ├── assets/          # Game assets (models, images, audio)
+│   │   └── textures/        # Environment textures
+│   ├── package.json         # Dependencies and scripts
+│   └── vite.config.js       # Build configuration
+├── README.md                # This file
+└── .gitignore              # Git ignore patterns
 ```
 
 ### Key Technologies
-- **Frontend**: React 18, Vite, Tailwind CSS
-- **3D Graphics**: Three.js, GLTF Loader
-- **State Management**: React Hooks, Context API
-- **Build Tool**: Vite
-- **Package Manager**: npm/pnpm
+- **Frontend**: React 19, Vite, Tailwind CSS
+- **3D Graphics**: Babylon.js, GLB/GLTF loading
+- **Physics**: Cannon.js physics engine
+- **Build Tool**: Vite (fast HMR and building)
+- **Package Manager**: pnpm (faster than npm)
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+**Models Not Loading?**
+1. Check file is in `/public/assets/models/characters/`
+2. Verify filename matches expected names (fire.glb, water.glb, etc.)
+3. Ensure GLB format is valid
+4. Check browser console for error messages
+5. **Fallback**: Beautiful procedural characters will appear automatically
+
+**Environment Not Loading?**
+1. Confirm file is in `/public/textures/`
+2. Try different formats (.env, .hdr)
+3. Check file size isn't too large (>50MB)
+4. **Fallback**: Procedural sky will be used automatically
+
+**Physics Errors?**
+1. Restart development server: `npm run dev`
+2. Clear browser cache (Ctrl+F5)
+3. Check browser console for detailed errors
+4. **Fallback**: Movement fallback prevents crashes
+
+**Performance Issues?**
+1. Close other browser tabs
+2. Update graphics drivers
+3. Try different browser (Chrome recommended)
+4. Reduce asset file sizes
+
+### Getting Help
+- Check browser console (F12) for error messages
+- Ensure all dependencies are installed: `npm install`
+- Try deleting `node_modules` and reinstalling
+- The game uses graceful fallbacks - it should always work!
+
+## 🎨 Asset Sources (Free Resources)
+
+### 3D Models
+- **Sketchfab**: Free downloadable models
+- **Poly Haven**: Free 3D assets
+- **Blender**: Create custom models
+- **Mixamo**: Character animations
+
+### Environment Maps  
+- **Poly Haven** (polyhaven.com): Free HDR environments
+- **HDRI Haven**: High-quality skies
+- **Blender**: Generate procedural environments
+
+### Textures
+- **Textures.com**: High-quality textures
+- **Freepik**: Free texture packs
+- **Unsplash**: Free photography
 
 ## 🤝 Contributing
 
@@ -211,20 +341,26 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- **Three.js**: 3D graphics library
-- **React**: UI framework
-- **Tailwind CSS**: Styling framework
-- **Lucide React**: Icon library
-- **Vite**: Build tool
+- **Babylon.js**: Powerful 3D engine
+- **React**: Modern UI framework  
+- **Tailwind CSS**: Utility-first styling
+- **Cannon.js**: Physics simulation
+- **Lucide React**: Beautiful icons
+- **Vite**: Lightning-fast build tool
 
 ## 📞 Support
 
-If you encounter any issues or have questions:
-1. Check the [Issues](https://github.com/YOUR_USERNAME/Skyward-Realms-Game/issues) page
-2. Create a new issue with detailed description
-3. Include system information and error logs
+If you encounter any issues:
+1. Check the [Issues](https://github.com/proxy0knight/Skyward-Realms-Game/issues) page
+2. Create a new issue with:
+   - System information (OS, browser, Node.js version)
+   - Error messages from browser console
+   - Steps to reproduce the problem
+3. The game uses fallback systems - it should work even with missing assets!
 
 ---
+
+**🎮 Ready to play? Run `cd game-client && npm install && npm run dev` and start your adventure!**
 
 **Made with ❤️ for the gaming community**
 
