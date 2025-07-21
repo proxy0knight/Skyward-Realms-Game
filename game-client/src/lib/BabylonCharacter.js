@@ -62,15 +62,54 @@ class BabylonCharacter {
    * Load GLB character model based on element
    */
   async loadCharacterModel() {
+    // List of possible model paths for each element (in order of preference)
     const modelPaths = {
-      fire: '/assets/models/characters/fire.glb',
-      water: '/assets/models/characters/water.glb',
-      earth: '/assets/models/characters/earth.glb',
-      air: '/assets/models/characters/wind.glb'
+      fire: [
+        '/assets/models/characters/fire.glb',
+        '/assets/models/characters/fire_character.glb',
+        '/assets/models/fire.glb'
+      ],
+      water: [
+        '/assets/models/characters/water.glb',
+        '/assets/models/characters/water_character.glb', 
+        '/assets/models/water.glb'
+      ],
+      earth: [
+        '/assets/models/characters/earth.glb',
+        '/assets/models/characters/earth_character.glb',
+        '/assets/models/earth.glb'
+      ],
+      air: [
+        '/assets/models/characters/air.glb',
+        '/assets/models/characters/wind.glb',
+        '/assets/models/characters/air_character.glb',
+        '/assets/models/air.glb'
+      ]
     }
     
-    const modelPath = modelPaths[this.element.id] || '/assets/models/characters/fire.glb'
+    const pathsToTry = modelPaths[this.element.id] || modelPaths.fire
     
+    // Try each path until one works
+    for (const modelPath of pathsToTry) {
+      try {
+        console.log(`BabylonCharacter: Trying to load model: ${modelPath}`)
+        const characterMesh = await this.loadSingleModel(modelPath)
+        console.log(`✅ Loaded character model: ${modelPath}`)
+        return characterMesh
+      } catch (error) {
+        console.log(`Failed to load ${modelPath}, trying next...`)
+        continue
+      }
+    }
+    
+    // If we get here, no models were found
+    throw new Error(`No character models found for element: ${this.element.id}`)
+  }
+
+  /**
+   * Load a single model file
+   */
+  async loadSingleModel(modelPath) {
     return new Promise((resolve, reject) => {
       BABYLON.SceneLoader.ImportMesh(
         '',

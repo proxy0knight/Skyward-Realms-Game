@@ -88,7 +88,7 @@ class BabylonGameEngine {
       this.setupCamera()
       
       // Setup lighting
-      this.setupLighting()
+      await this.setupLighting()
       
       // Setup input
       this.setupInput()
@@ -333,20 +333,61 @@ class BabylonGameEngine {
   }
 
   /**
-   * Setup advanced lighting with PBR
+   * Setup environment with fallback to procedural
    */
-  setupLighting() {
-    console.log('BabylonGameEngine: Setting up lighting...')
+  async setupEnvironment() {
+    // List of environment files to try (in order of preference)
+    const environmentPaths = [
+      '/textures/environment.env',     // Babylon.js format
+      '/textures/environment.hdr',     // HDR format  
+      '/textures/skybox.env',         // Alternative name
+      '/textures/world.env'           // Alternative name
+    ]
     
-    // Create procedural environment (avoids file loading warnings)
-    console.log('BabylonGameEngine: Creating procedural skybox')
+    // Try to load custom environment files
+    for (const envPath of environmentPaths) {
+      try {
+        console.log(`BabylonGameEngine: Trying to load environment: ${envPath}`)
+        const envTexture = BABYLON.CubeTexture.CreateFromPrefilteredData(envPath, this.scene)
+        this.scene.environmentTexture = envTexture
+        this.scene.createDefaultSkybox(envTexture, true, 1000)
+        console.log(`✅ Loaded custom environment: ${envPath}`)
+        return // Success! Exit early
+      } catch (error) {
+        // File doesn't exist or failed to load, try next one
+        continue
+      }
+    }
+    
+    // If no custom environment found, create procedural skybox
+    console.log('BabylonGameEngine: No custom environment found, creating procedural skybox')
+    this.createProceduralSkybox()
+  }
+
+  /**
+   * Create beautiful procedural skybox
+   */
+  createProceduralSkybox() {
     const skybox = BABYLON.MeshBuilder.CreateSphere('skyBox', {diameter:1000}, this.scene)
     const skyboxMaterial = new BABYLON.StandardMaterial('skyBox', this.scene)
-      skyboxMaterial.backFaceCulling = false
-      skyboxMaterial.diffuseColor = new BABYLON.Color3(0.2, 0.5, 1.0)
-      skybox.material = skyboxMaterial
-      skybox.infiniteDistance = true
-    }
+    skyboxMaterial.backFaceCulling = false
+    skyboxMaterial.diffuseColor = new BABYLON.Color3(0.2, 0.5, 1.0)
+    skybox.material = skyboxMaterial
+    skybox.infiniteDistance = true
+    
+    // Add gradient effect
+    skyboxMaterial.disableLighting = true
+    console.log('✅ Procedural skybox created')
+  }
+
+  /**
+   * Setup advanced lighting with PBR
+   */
+  async setupLighting() {
+    console.log('BabylonGameEngine: Setting up lighting...')
+    
+    // Try to load custom environment, fallback to procedural
+    await this.setupEnvironment()
     
     // Main directional light (sun)
     const sunLight = new BABYLON.DirectionalLight('sunLight', new BABYLON.Vector3(-1, -1, -1), this.scene)
