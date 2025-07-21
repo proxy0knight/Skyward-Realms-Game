@@ -7,6 +7,7 @@ import { CannonJSPlugin } from '@babylonjs/core/Physics/Plugins/cannonJSPlugin'
 
 // Import camera controls and inputs
 import '@babylonjs/core/Cameras/arcRotateCamera'
+import '@babylonjs/core/Cameras/universalCamera'
 import '@babylonjs/core/Cameras/Inputs/arcRotateCameraPointersInput'
 import '@babylonjs/core/Cameras/Inputs/arcRotateCameraKeyboardMoveInput'
 
@@ -133,39 +134,132 @@ class BabylonGameEngine {
   setupCamera() {
     console.log('BabylonGameEngine: Setting up camera...')
     
-    // Create arc rotate camera (third person)
-    this.camera = new BABYLON.ArcRotateCamera(
-      'camera',
-      -Math.PI / 2,
-      Math.PI / 2.5,
-      10,
-      BABYLON.Vector3.Zero(),
-      this.scene
-    )
-    
-    // Camera settings
-    this.camera.setTarget(BABYLON.Vector3.Zero())
-    
-    // Attach controls to canvas
-    if (this.canvas && this.camera.attachControls) {
-      this.camera.attachControls(this.canvas, true)
-      console.log('✅ Camera controls attached')
-    } else {
-      console.warn('⚠️ Camera controls not available, using basic camera')
+    try {
+      // Create arc rotate camera (third person)
+      this.camera = new BABYLON.ArcRotateCamera(
+        'camera',
+        -Math.PI / 2,
+        Math.PI / 2.5,
+        10,
+        BABYLON.Vector3.Zero(),
+        this.scene
+      )
+      
+      // Camera settings
+      this.camera.setTarget(BABYLON.Vector3.Zero())
+      
+      // Camera constraints
+      this.camera.lowerBetaLimit = 0.1
+      this.camera.upperBetaLimit = Math.PI / 2
+      this.camera.lowerRadiusLimit = 3
+      this.camera.upperRadiusLimit = 50
+      
+      // Smooth controls
+      this.camera.inertia = 0.5
+      this.camera.angularSensibilityX = 1000
+      this.camera.angularSensibilityY = 1000
+      
+      // Try to attach controls with multiple fallback methods
+      this.attachCameraControls()
+      
+      console.log('✅ Camera setup complete')
+    } catch (error) {
+      console.error('❌ Camera setup failed:', error)
+      // Fallback: create simple free camera
+      this.createFallbackCamera()
     }
+  }
+
+  /**
+   * Attach camera controls with fallbacks
+   */
+  attachCameraControls() {
+    try {
+      // Method 1: Try attachControls if available
+      if (this.camera.attachControls && typeof this.camera.attachControls === 'function') {
+        this.camera.attachControls(this.canvas, true)
+        console.log('✅ Camera controls attached via attachControls')
+        return
+      }
+      
+      // Method 2: Manual control setup
+      this.setupManualCameraControls()
+      console.log('✅ Manual camera controls setup')
+      
+    } catch (error) {
+      console.warn('⚠️ Camera controls setup failed:', error)
+      console.log('Camera will work but without mouse/keyboard controls')
+    }
+  }
+
+  /**
+   * Setup manual camera controls as fallback
+   */
+  setupManualCameraControls() {
+    if (!this.canvas) return
     
-    // Camera constraints
-    this.camera.lowerBetaLimit = 0.1
-    this.camera.upperBetaLimit = Math.PI / 2
-    this.camera.lowerRadiusLimit = 3
-    this.camera.upperRadiusLimit = 50
+    let isPointerDown = false
+    let lastPointerX = 0
+    let lastPointerY = 0
     
-    // Smooth controls
-    this.camera.inertia = 0.5
-    this.camera.angularSensibilityX = 1000
-    this.camera.angularSensibilityY = 1000
+    // Mouse controls
+    this.canvas.addEventListener('pointerdown', (event) => {
+      isPointerDown = true
+      lastPointerX = event.clientX
+      lastPointerY = event.clientY
+      this.canvas.setPointerCapture(event.pointerId)
+    })
     
-    console.log('✅ Camera setup complete')
+    this.canvas.addEventListener('pointerup', (event) => {
+      isPointerDown = false
+      this.canvas.releasePointerCapture(event.pointerId)
+    })
+    
+    this.canvas.addEventListener('pointermove', (event) => {
+      if (!isPointerDown) return
+      
+      const deltaX = event.clientX - lastPointerX
+      const deltaY = event.clientY - lastPointerY
+      
+      this.camera.alpha -= deltaX * 0.01
+      this.camera.beta -= deltaY * 0.01
+      
+      // Clamp beta
+      this.camera.beta = Math.max(0.1, Math.min(Math.PI - 0.1, this.camera.beta))
+      
+      lastPointerX = event.clientX
+      lastPointerY = event.clientY
+    })
+    
+    // Wheel zoom
+    this.canvas.addEventListener('wheel', (event) => {
+      this.camera.radius += event.deltaY * 0.01
+      this.camera.radius = Math.max(3, Math.min(50, this.camera.radius))
+      event.preventDefault()
+    })
+  }
+
+  /**
+   * Create fallback camera if ArcRotateCamera fails
+   */
+  createFallbackCamera() {
+    console.log('BabylonGameEngine: Creating fallback camera...')
+    
+    try {
+      // Create simple universal camera
+      this.camera = new BABYLON.UniversalCamera(
+        'fallbackCamera',
+        new BABYLON.Vector3(0, 5, -10),
+        this.scene
+      )
+      
+      this.camera.lookAt(BABYLON.Vector3.Zero())
+      console.log('✅ Fallback camera created')
+    } catch (error) {
+      console.error('❌ Even fallback camera failed:', error)
+      // Create most basic camera
+      this.camera = new BABYLON.Camera('basicCamera', BABYLON.Vector3.Zero(), this.scene)
+    }
   }
 
   /**
