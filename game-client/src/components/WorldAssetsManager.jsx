@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 
 const defaultRoles = [
   { key: 'terrain', label: 'Terrain Model', type: 'model' },
@@ -6,10 +6,31 @@ const defaultRoles = [
   { key: 'water', label: 'Water Model', type: 'model' },
 ]
 
+const ASSIGNMENTS_KEY = 'skyward_world_assignments'
+const CHARACTERS_KEY = 'skyward_world_characters'
+
 const WorldAssetsManager = ({ assets }) => {
   const [assignments, setAssignments] = useState({})
   const [characters, setCharacters] = useState([])
   const [newChar, setNewChar] = useState({ name: '', description: '', modelId: '' })
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    const savedAssignments = localStorage.getItem(ASSIGNMENTS_KEY)
+    if (savedAssignments) setAssignments(JSON.parse(savedAssignments))
+    const savedChars = localStorage.getItem(CHARACTERS_KEY)
+    if (savedChars) setCharacters(JSON.parse(savedChars))
+  }, [])
+
+  // Save assignments to localStorage
+  useEffect(() => {
+    localStorage.setItem(ASSIGNMENTS_KEY, JSON.stringify(assignments))
+  }, [assignments])
+
+  // Save characters to localStorage
+  useEffect(() => {
+    localStorage.setItem(CHARACTERS_KEY, JSON.stringify(characters))
+  }, [characters])
 
   // Assign asset to world role
   const handleAssign = (roleKey, assetId) => {
