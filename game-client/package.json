@@ -10,6 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@babylonjs/core": "^8.17.0",
+    "@babylonjs/inspector": "^8.17.0",
+    "@babylonjs/loaders": "^8.17.0",
+    "@babylonjs/materials": "^8.17.0",
     "@hookform/resolvers": "^5.0.1",
     "@radix-ui/react-accordion": "^1.2.10",
     "@radix-ui/react-alert-dialog": "^1.1.13",
@@ -39,6 +43,7 @@
     "@radix-ui/react-tooltip": "^1.2.6",
     "@tailwindcss/vite": "^4.1.7",
     "@types/three": "^0.178.1",
+    "cannon": "^0.6.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

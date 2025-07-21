@@ -1,6 +1,7 @@
 import * as BABYLON from '@babylonjs/core'
 import * as CANNON from 'cannon'
 import '@babylonjs/loaders/glTF'
+import BabylonCharacter from './BabylonCharacter.js'
 
 class BabylonGameEngine {
   constructor() {
@@ -18,6 +19,9 @@ class BabylonGameEngine {
     this.terrainSystem = null
     this.characterSystem = null
     this.audioSystem = null
+    
+    // Character
+    this.babylonCharacter = null
     
     // Performance
     this.currentFPS = 0
@@ -146,10 +150,21 @@ class BabylonGameEngine {
   setupLighting() {
     console.log('BabylonGameEngine: Setting up lighting...')
     
-    // Create environment
-    const envTexture = BABYLON.CubeTexture.CreateFromPrefilteredData('/textures/environment.env', this.scene)
-    this.scene.environmentTexture = envTexture
-    this.scene.createDefaultSkybox(envTexture, true, 1000)
+    // Create environment (use procedural skybox if env texture fails)
+    try {
+      const envTexture = BABYLON.CubeTexture.CreateFromPrefilteredData('/textures/environment.env', this.scene)
+      this.scene.environmentTexture = envTexture
+      this.scene.createDefaultSkybox(envTexture, true, 1000)
+    } catch (error) {
+      console.log('BabylonGameEngine: Using procedural skybox')
+      // Create simple procedural skybox
+      const skybox = BABYLON.MeshBuilder.CreateSphere('skyBox', {diameter:1000}, this.scene)
+      const skyboxMaterial = new BABYLON.StandardMaterial('skyBox', this.scene)
+      skyboxMaterial.backFaceCulling = false
+      skyboxMaterial.diffuseColor = new BABYLON.Color3(0.2, 0.5, 1.0)
+      skybox.material = skyboxMaterial
+      skybox.infiniteDistance = true
+    }
     
     // Main directional light (sun)
     const sunLight = new BABYLON.DirectionalLight('sunLight', new BABYLON.Vector3(-1, -1, -1), this.scene)
@@ -209,8 +224,8 @@ class BabylonGameEngine {
     // Create vegetation
     await this.createVegetation()
     
-    // Create player
-    await this.createPlayer()
+    // Create player will be called from GameScene
+    // await this.createPlayer()
     
     console.log('✅ Game world created successfully!')
   }
@@ -251,66 +266,28 @@ class BabylonGameEngine {
       heightmapData[i] = Math.sin(x * 0.5) * 2 + Math.cos(z * 0.3) * 1.5
     }
     
-    // Create terrain mesh
-    const terrain = BABYLON.MeshBuilder.CreateGroundFromHeightMap(
-      'terrain',
-      '/textures/heightmap.png',
-      {
-        width: 400,
-        height: 400,
-        subdivisions: 200,
-        minHeight: 0,
-        maxHeight: 20,
-        onReady: (groundMesh) => {
-          // Create PBR material
-          const terrainMaterial = new BABYLON.PBRMaterial('terrainMaterial', this.scene)
-          terrainMaterial.baseTexture = new BABYLON.Texture('/textures/grass_diffuse.jpg', this.scene)
-          terrainMaterial.normalTexture = new BABYLON.Texture('/textures/grass_normal.jpg', this.scene)
-          terrainMaterial.metallicTexture = new BABYLON.Texture('/textures/grass_metallic.jpg', this.scene)
-          terrainMaterial.baseTexture.uOffset = 0
-          terrainMaterial.baseTexture.vOffset = 0
-          terrainMaterial.baseTexture.uScale = 20
-          terrainMaterial.baseTexture.vScale = 20
-          terrainMaterial.roughness = 0.8
-          terrainMaterial.metallic = 0.1
-          
-          groundMesh.material = terrainMaterial
-          groundMesh.receiveShadows = true
-          
-          // Add physics
-          groundMesh.physicsImpostor = new BABYLON.PhysicsImpostor(
-            groundMesh,
-            BABYLON.PhysicsImpostor.HeightmapImpostor,
-            { mass: 0, restitution: 0.3, friction: 0.8 },
-            this.scene
-          )
-          
-          console.log('✅ Terrain created with PBR materials and physics')
-        }
-      },
+    // Create simple terrain (skip heightmap to avoid texture loading issues)
+    const simpleTerrain = BABYLON.MeshBuilder.CreateGround('terrain', {
+      width: 400,
+      height: 400,
+      subdivisions: 100
+    }, this.scene)
+    
+    const terrainMaterial = new BABYLON.PBRMaterial('terrainMaterial', this.scene)
+    terrainMaterial.baseColor = new BABYLON.Color3(0.2, 0.6, 0.2)
+    terrainMaterial.roughness = 0.8
+    terrainMaterial.metallic = 0.1
+    simpleTerrain.material = terrainMaterial
+    simpleTerrain.receiveShadows = true
+    
+    simpleTerrain.physicsImpostor = new BABYLON.PhysicsImpostor(
+      simpleTerrain,
+      BABYLON.PhysicsImpostor.BoxImpostor,
+      { mass: 0, restitution: 0.3, friction: 0.8 },
       this.scene
     )
     
-    // Fallback simple terrain if heightmap fails
-    if (!terrain) {
-      const simpleTerrain = BABYLON.MeshBuilder.CreateGround('simpleTerrain', {
-        width: 400,
-        height: 400,
-        subdivisions: 100
-      }, this.scene)
-      
-      const terrainMaterial = new BABYLON.StandardMaterial('terrainMaterial', this.scene)
-      terrainMaterial.diffuseColor = new BABYLON.Color3(0.2, 0.6, 0.2)
-      simpleTerrain.material = terrainMaterial
-      simpleTerrain.receiveShadows = true
-      
-      simpleTerrain.physicsImpostor = new BABYLON.PhysicsImpostor(
-        simpleTerrain,
-        BABYLON.PhysicsImpostor.BoxImpostor,
-        { mass: 0, restitution: 0.3, friction: 0.8 },
-        this.scene
-      )
-    }
+    console.log('✅ Terrain created with procedural materials and physics')
   }
 
   /**
@@ -326,21 +303,14 @@ class BabylonGameEngine {
       subdivisions: 32
     }, this.scene)
     
-    // Advanced water material
-    const waterMaterial = new BABYLON.WaterMaterial('waterMaterial', this.scene)
-    waterMaterial.bumpTexture = new BABYLON.Texture('/textures/normalMap.jpg', this.scene)
-    waterMaterial.windForce = -5
-    waterMaterial.waveHeight = 0.3
-    waterMaterial.windDirection = new BABYLON.Vector2(1, 1)
-    waterMaterial.waterColor = new BABYLON.Color3(0, 0.3, 0.6)
-    waterMaterial.colorBlendFactor = 0.3
-    waterMaterial.bumpHeight = 0.1
-    waterMaterial.waveLength = 0.1
+    // Simple water material (avoid texture dependencies)
+    const waterMaterial = new BABYLON.PBRMaterial('waterMaterial', this.scene)
+    waterMaterial.baseColor = new BABYLON.Color3(0, 0.3, 0.6)
+    waterMaterial.roughness = 0.1
+    waterMaterial.metallic = 0.0
+    waterMaterial.alpha = 0.8
     
-    // Add reflections
-    waterMaterial.addToRenderList(this.scene.meshes[0]) // Terrain
-    
-    waterMaterial.reflectionTexture.renderList.push(this.scene.meshes[0])
+    // Simple transparent water effect
     
     waterMesh.material = waterMaterial
     waterMesh.position.y = 2
@@ -430,45 +400,26 @@ class BabylonGameEngine {
   }
 
   /**
-   * Create player with physics
+   * Create player with GLB character model
    */
-  async createPlayer() {
-    console.log('BabylonGameEngine: Creating player...')
+  async createPlayer(playerData) {
+    console.log('BabylonGameEngine: Creating enhanced player character...')
     
-    // Create player mesh
-    const playerMesh = BABYLON.MeshBuilder.CreateCapsule('player', {
-      radius: 0.5,
-      height: 2
-    }, this.scene)
-    
-    // Player material
-    const playerMaterial = new BABYLON.PBRMaterial('playerMaterial', this.scene)
-    playerMaterial.baseColor = new BABYLON.Color3(0.2, 0.5, 1)
-    playerMaterial.metallic = 0.1
-    playerMaterial.roughness = 0.6
-    playerMesh.material = playerMaterial
-    
-    // Position player
-    playerMesh.position = new BABYLON.Vector3(0, 5, 0)
-    
-    // Add physics
-    playerMesh.physicsImpostor = new BABYLON.PhysicsImpostor(
-      playerMesh,
-      BABYLON.PhysicsImpostor.CapsuleImpostor,
-      { mass: 1, restitution: 0.1, friction: 0.8 },
-      this.scene
-    )
-    
-    // Enable shadows
-    this.shadowGenerator.addShadowCaster(playerMesh)
+    // Create Babylon character
+    this.babylonCharacter = new BabylonCharacter(this.scene, playerData)
+    const characterGroup = await this.babylonCharacter.init()
     
     // Set as player
-    this.player = playerMesh
+    this.player = characterGroup
+    
+    // Position player
+    this.babylonCharacter.setPosition(new BABYLON.Vector3(0, 5, 0))
     
     // Update camera target
-    this.camera.setTarget(this.player.position)
+    this.camera.setTarget(this.babylonCharacter.getPosition())
     
-    console.log('✅ Player created with physics')
+    console.log('✅ Enhanced player character created with GLB model and elemental effects')
+    return characterGroup
   }
 
   /**
@@ -500,14 +451,12 @@ class BabylonGameEngine {
    * Handle keyboard input
    */
   handleKeyDown(event) {
-    if (!this.player) return
+    if (!this.babylonCharacter) return
     
     switch (event.code) {
       case 'Space':
         // Jump
-        this.player.physicsImpostor.setLinearVelocity(
-          this.player.physicsImpostor.getLinearVelocity().add(new BABYLON.Vector3(0, 8, 0))
-        )
+        this.babylonCharacter.jump()
         break
     }
   }
@@ -516,9 +465,8 @@ class BabylonGameEngine {
    * Update player movement
    */
   updateMovement() {
-    if (!this.player) return
+    if (!this.babylonCharacter) return
     
-    const moveSpeed = 5
     const moveVector = new BABYLON.Vector3()
     
     // Get camera direction
@@ -527,27 +475,26 @@ class BabylonGameEngine {
     
     // Calculate movement
     if (this.inputMap['KeyW']) {
-      moveVector.addInPlace(cameraDirection.scale(moveSpeed))
+      moveVector.addInPlace(cameraDirection)
     }
     if (this.inputMap['KeyS']) {
-      moveVector.addInPlace(cameraDirection.scale(-moveSpeed))
+      moveVector.addInPlace(cameraDirection.scale(-1))
     }
     if (this.inputMap['KeyA']) {
-      moveVector.addInPlace(cameraRight.scale(-moveSpeed))
+      moveVector.addInPlace(cameraRight.scale(-1))
     }
     if (this.inputMap['KeyD']) {
-      moveVector.addInPlace(cameraRight.scale(moveSpeed))
+      moveVector.addInPlace(cameraRight)
     }
     
     // Apply movement
     if (moveVector.length() > 0) {
-      this.player.physicsImpostor.setLinearVelocity(
-        new BABYLON.Vector3(moveVector.x, this.player.physicsImpostor.getLinearVelocity().y, moveVector.z)
-      )
+      moveVector.normalize()
+      this.babylonCharacter.move(moveVector)
     }
     
     // Update camera target
-    this.camera.setTarget(this.player.position)
+    this.camera.setTarget(this.babylonCharacter.getPosition())
   }
 
   /**

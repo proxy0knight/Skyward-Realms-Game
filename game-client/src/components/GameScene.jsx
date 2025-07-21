@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import GameEngine from '../lib/GameEngine'
-// import BabylonGameEngine from '../lib/BabylonGameEngine'
+// import GameEngine from '../lib/GameEngine'
+import BabylonGameEngine from '../lib/BabylonGameEngine'
 import PerformanceMonitor from './PerformanceMonitor'
 import PlayerManager from '../lib/PlayerManager'
 import WorldManager from '../lib/WorldManager'
@@ -27,7 +27,7 @@ const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGa
   })
   const isInitializedRef = useRef(false)
   const [mouseLocked, setMouseLocked] = useState(false)
-  const [engineType, setEngineType] = useState('three') // 'three' or 'babylon'
+  const [engineType, setEngineType] = useState('babylon') // 'three' or 'babylon'
 
   useEffect(() => {
     console.log('GameScene: Initializing 3D game...')
@@ -59,18 +59,18 @@ const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGa
     // Async initialization function
     const initializeGame = async () => {
       try {
-        // Initialize game engine
-        console.log('GameScene: Creating GameEngine...')
-        const gameEngine = new GameEngine()
+        // Initialize Babylon.js game engine
+        console.log('GameScene: Creating BabylonGameEngine...')
+        const gameEngine = new BabylonGameEngine()
         gameEngineRef.current = gameEngine
         
-        console.log('GameScene: Initializing GameEngine...')
+        console.log('GameScene: Initializing BabylonGameEngine...')
         const initSuccess = await gameEngine.init(mountRef.current)
         if (!initSuccess) {
-          console.error('GameScene: Failed to initialize game engine')
+          console.error('GameScene: Failed to initialize Babylon.js game engine')
           return
         }
-        console.log('GameScene: GameEngine initialized successfully')
+        console.log('GameScene: BabylonGameEngine initialized successfully')
 
       // Initialize player manager
       console.log('GameScene: Creating PlayerManager...')
@@ -88,10 +88,10 @@ const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGa
         playerManager.updatePlayer('local_player', player)
       }
 
-      // Create player in 3D world
-      console.log('GameScene: Creating player in 3D world...')
+      // Create player in 3D world with Babylon.js
+      console.log('GameScene: Creating player in Babylon.js world...')
       const playerMesh = await gameEngine.createPlayer(playerData)
-      console.log('GameScene: Player created:', playerMesh)
+      console.log('GameScene: Babylon.js player created:', playerMesh)
 
       // Initialize world manager
       console.log('GameScene: Creating WorldManager...')
@@ -142,34 +142,32 @@ const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGa
         skillManager.updateBuffs()
         explorationSystem.update(deltaTime)
         
-        // Update game stats
-        if (gameEngine.currentFPS !== undefined) {
+        // Update game stats for Babylon.js
+        if (gameEngine.getFPS) {
+          const playerPos = gameEngine.babylonCharacter ? gameEngine.babylonCharacter.getPosition() : { x: 0, y: 0, z: 0 }
           setGameStats(prev => ({
-            fps: gameEngine.currentFPS,
-            playerPosition: gameEngine.player ? {
-              x: Math.round(gameEngine.player.position.x * 100) / 100,
-              y: Math.round(gameEngine.player.position.y * 100) / 100,
-              z: Math.round(gameEngine.player.position.z * 100) / 100
-            } : { x: 0, y: 0, z: 0 },
-            cameraRotation: gameEngine.camera?.userData?.orbitControl ? {
-              y: Math.round(gameEngine.camera.userData.orbitControl.rotationY * 180 / Math.PI),
-              x: Math.round(gameEngine.camera.userData.orbitControl.rotationX * 180 / Math.PI)
+            fps: gameEngine.getFPS(),
+            playerPosition: {
+              x: Math.round(playerPos.x * 100) / 100,
+              y: Math.round(playerPos.y * 100) / 100,
+              z: Math.round(playerPos.z * 100) / 100
+            },
+            cameraRotation: gameEngine.camera ? {
+              y: Math.round(gameEngine.camera.alpha * 180 / Math.PI),
+              x: Math.round(gameEngine.camera.beta * 180 / Math.PI)
             } : { y: 0, x: 0 }
           }))
         }
         
-        // Update mouse lock status
-        setMouseLocked(gameEngine.mouse?.isLocked || false)
+        // Update mouse lock status (Babylon.js handles this automatically)
+        setMouseLocked(false)
         
-        // Debug camera state - only log occasionally to reduce spam
-        if (gameEngine.camera && gameEngine.camera.userData.orbitControl && Math.random() < 0.01) {
-          const orbit = gameEngine.camera.userData.orbitControl
-          console.log('Camera orbit:', {
-            distance: orbit.distance.toFixed(2),
-            height: orbit.height.toFixed(2),
-            rotationY: (orbit.rotationY * 180 / Math.PI).toFixed(1) + '°',
-            rotationX: (orbit.rotationX * 180 / Math.PI).toFixed(1) + '°',
-            mouseLocked: gameEngine.mouse?.isLocked
+        // Babylon.js camera debug - only log occasionally to reduce spam
+        if (gameEngine.camera && Math.random() < 0.01) {
+          console.log('Babylon Camera state:', {
+            alpha: (gameEngine.camera.alpha * 180 / Math.PI).toFixed(1) + '°',
+            beta: (gameEngine.camera.beta * 180 / Math.PI).toFixed(1) + '°',
+            radius: gameEngine.camera.radius.toFixed(2)
           })
         }
         
@@ -473,6 +471,8 @@ const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGa
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
             }`}
+            disabled={true}
+            title="Switched to Babylon.js"
           >
             Three.js
           </button>
@@ -483,28 +483,27 @@ const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGa
                 ? 'bg-purple-600 text-white'
                 : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
             }`}
-            disabled={true}
-            title="Install Babylon.js dependencies first"
+            disabled={false}
           >
             Babylon.js
           </button>
         </div>
         <div className="text-xs text-yellow-300 mb-2">
-          {engineType === 'three' ? '⚡ Three.js Active' : '🚀 Babylon.js Ready'}
+          🚀 Babylon.js Active with GLB Characters
         </div>
       </div>
 
       {/* Debug overlay */}
       <div className="absolute top-32 left-4 bg-black/70 text-white p-2 rounded text-xs z-10">
-        <div>3D Game Scene Active</div>
+        <div>🚀 Babylon.js Game Scene Active</div>
         <div>Player: {player?.name || 'None'}</div>
         <div>Element: {player?.element?.name || 'None'}</div>
         <div>FPS: {gameStats.fps}</div>
         <div>Position: ({gameStats.playerPosition?.x || 0}, {gameStats.playerPosition?.y || 0}, {gameStats.playerPosition?.z || 0})</div>
-        <div>Camera: Y:{gameStats.cameraRotation?.y || 0}° X:{gameStats.cameraRotation?.x || 0}°</div>
-        <div>Mouse: {mouseLocked ? '🔒 Locked' : '🔓 Unlocked'}</div>
-        <div>Controls: WASD to move (camera-relative)</div>
-        <div>Mouse: Click to look around, ESC to unlock</div>
+        <div>Camera: α:{gameStats.cameraRotation?.y || 0}° β:{gameStats.cameraRotation?.x || 0}°</div>
+        <div>Engine: Babylon.js with GLB Characters</div>
+        <div>Controls: WASD to move</div>
+        <div>Mouse: Click and drag to look around</div>
         <div>Space to jump</div>
       </div>
       
