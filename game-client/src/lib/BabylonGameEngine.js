@@ -338,16 +338,10 @@ class BabylonGameEngine {
   setupLighting() {
     console.log('BabylonGameEngine: Setting up lighting...')
     
-    // Create environment (use procedural skybox if env texture fails)
-    try {
-      const envTexture = BABYLON.CubeTexture.CreateFromPrefilteredData('/textures/environment.env', this.scene)
-      this.scene.environmentTexture = envTexture
-      this.scene.createDefaultSkybox(envTexture, true, 1000)
-    } catch (error) {
-      console.log('BabylonGameEngine: Using procedural skybox')
-      // Create simple procedural skybox
-      const skybox = BABYLON.MeshBuilder.CreateSphere('skyBox', {diameter:1000}, this.scene)
-      const skyboxMaterial = new BABYLON.StandardMaterial('skyBox', this.scene)
+    // Create procedural environment (avoids file loading warnings)
+    console.log('BabylonGameEngine: Creating procedural skybox')
+    const skybox = BABYLON.MeshBuilder.CreateSphere('skyBox', {diameter:1000}, this.scene)
+    const skyboxMaterial = new BABYLON.StandardMaterial('skyBox', this.scene)
       skyboxMaterial.backFaceCulling = false
       skyboxMaterial.diffuseColor = new BABYLON.Color3(0.2, 0.5, 1.0)
       skybox.material = skyboxMaterial

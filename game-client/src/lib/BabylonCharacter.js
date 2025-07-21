@@ -34,6 +34,7 @@ class BabylonCharacter {
     try {
       // Load GLB character model
       this.characterMesh = await this.loadCharacterModel()
+      console.log('BabylonCharacter: GLB model loaded successfully')
       
       // Create character group
       this.characterGroup = new BABYLON.TransformNode('characterGroup', this.scene)
@@ -48,7 +49,7 @@ class BabylonCharacter {
       // Setup animations
       this.setupAnimations()
       
-      console.log('BabylonCharacter: Character loaded successfully!')
+      console.log('BabylonCharacter: GLB character with effects loaded successfully!')
       return this.characterGroup
       
     } catch (error) {
