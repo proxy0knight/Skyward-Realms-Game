@@ -733,6 +733,39 @@ class BabylonGameEngine {
   }
 
   /**
+   * Add game object to scene (compatibility method for WorldManager)
+   */
+  addGameObject(id, object) {
+    // For Babylon.js, we'll add objects directly to the scene
+    if (object.mesh) {
+      this.scene.addMesh(object.mesh)
+    }
+    
+    // Store reference for later removal if needed
+    if (!this.gameObjects) {
+      this.gameObjects = new Map()
+    }
+    this.gameObjects.set(id, object)
+    
+    console.log(`BabylonGameEngine: Added game object ${id}`)
+  }
+
+  /**
+   * Remove game object from scene
+   */
+  removeGameObject(id) {
+    if (!this.gameObjects || !this.gameObjects.has(id)) return
+    
+    const object = this.gameObjects.get(id)
+    if (object.mesh) {
+      object.mesh.dispose()
+    }
+    
+    this.gameObjects.delete(id)
+    console.log(`BabylonGameEngine: Removed game object ${id}`)
+  }
+
+  /**
    * Stop the engine
    */
   stop() {
