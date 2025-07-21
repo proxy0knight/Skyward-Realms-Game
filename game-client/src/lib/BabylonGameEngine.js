@@ -38,6 +38,9 @@ class BabylonGameEngine {
     // Input
     this.inputMap = {}
     
+    // Event system for compatibility with CombatSystem
+    this.eventListeners = new Map()
+    
     console.log('BabylonGameEngine: Initialized')
   }
 
@@ -763,6 +766,45 @@ class BabylonGameEngine {
     
     this.gameObjects.delete(id)
     console.log(`BabylonGameEngine: Removed game object ${id}`)
+  }
+
+  /**
+   * Add event listener (compatibility method for CombatSystem)
+   */
+  on(event, callback) {
+    if (!this.eventListeners.has(event)) {
+      this.eventListeners.set(event, [])
+    }
+    this.eventListeners.get(event).push(callback)
+  }
+
+  /**
+   * Remove event listener
+   */
+  off(event, callback) {
+    if (!this.eventListeners.has(event)) return
+    
+    const listeners = this.eventListeners.get(event)
+    const index = listeners.indexOf(callback)
+    if (index > -1) {
+      listeners.splice(index, 1)
+    }
+  }
+
+  /**
+   * Emit event to all listeners
+   */
+  emit(event, ...args) {
+    if (!this.eventListeners.has(event)) return
+    
+    const listeners = this.eventListeners.get(event)
+    listeners.forEach(callback => {
+      try {
+        callback(...args)
+      } catch (error) {
+        console.error(`Error in event listener for ${event}:`, error)
+      }
+    })
   }
 
   /**
