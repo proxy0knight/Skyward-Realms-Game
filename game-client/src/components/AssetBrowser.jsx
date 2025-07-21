@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useRef, useEffect } from 'react'
 import Modal from './ui/modal.jsx'
 
 const AssetBrowser = ({ assets, onSelectAsset, onDeleteAsset, selectedAsset }) => {
@@ -41,6 +41,27 @@ const AssetBrowser = ({ assets, onSelectAsset, onDeleteAsset, selectedAsset }) =
     setEditAsset(asset)
     setEditCategory(asset.category || '')
     setEditTags((asset.tags || []).join(', '))
+  }
+
+  // Babylon.js preview for GLB/GLTF
+  const ModelPreview = ({ asset }) => {
+    const canvasRef = useRef(null)
+    useEffect(() => {
+      if (!asset || asset.type !== 'model' || !asset.data) return
+      let engine, scene
+      import('@babylonjs/core').then(BABYLON => {
+        engine = new BABYLON.Engine(canvasRef.current, true)
+        scene = new BABYLON.Scene(engine)
+        const camera = new BABYLON.ArcRotateCamera('cam', Math.PI/2, Math.PI/2.5, 3, BABYLON.Vector3.Zero(), scene)
+        camera.attachControl(canvasRef.current, true)
+        new BABYLON.HemisphericLight('light', new BABYLON.Vector3(0,1,0), scene)
+        BABYLON.SceneLoader.ImportMesh('', '', asset.data, scene, () => {
+          engine.runRenderLoop(() => scene.render())
+        })
+      })
+      return () => { engine && engine.dispose() }
+    }, [asset])
+    return <canvas ref={canvasRef} style={{ width: 240, height: 180, background: '#222', borderRadius: 8 }} />
   }
 
   const handleEditSave = () => {
@@ -418,6 +439,12 @@ const AssetBrowser = ({ assets, onSelectAsset, onDeleteAsset, selectedAsset }) =
         <Modal onClose={() => setEditAsset(null)}>
           <div className="p-6 bg-black/90 rounded-xl max-w-md mx-auto">
             <h2 className="text-xl font-bold text-white mb-4">Edit Asset</h2>
+            {editAsset.type === 'model' && editAsset.data && (
+              <div className="mb-4 flex flex-col items-center">
+                <div className="mb-2 text-purple-300 text-xs">3D Preview</div>
+                <ModelPreview asset={editAsset} />
+              </div>
+            )}
             <div className="mb-4">
               <label className="block text-sm font-medium text-purple-300 mb-1">Category</label>
               <input
