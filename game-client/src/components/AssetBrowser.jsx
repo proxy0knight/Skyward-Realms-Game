@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react'
+import Modal from './ui/modal.jsx'
 
 const AssetBrowser = ({ assets, onSelectAsset, onDeleteAsset, selectedAsset }) => {
   const [searchTerm, setSearchTerm] = useState('')
@@ -7,6 +8,9 @@ const AssetBrowser = ({ assets, onSelectAsset, onDeleteAsset, selectedAsset }) =
   const [viewMode, setViewMode] = useState('grid')
   const [filterCategory, setFilterCategory] = useState('all')
   const [filterTag, setFilterTag] = useState('')
+  const [editAsset, setEditAsset] = useState(null)
+  const [editCategory, setEditCategory] = useState('')
+  const [editTags, setEditTags] = useState('')
 
   const allCategories = Array.from(new Set(assets.map(a => a.category).filter(Boolean)))
   const allTags = Array.from(new Set(assets.flatMap(a => a.tags || [])))
@@ -31,6 +35,26 @@ const AssetBrowser = ({ assets, onSelectAsset, onDeleteAsset, selectedAsset }) =
   const formatDate = (dateString) => {
     const date = new Date(dateString)
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  }
+
+  const handleEditClick = (asset) => {
+    setEditAsset(asset)
+    setEditCategory(asset.category || '')
+    setEditTags((asset.tags || []).join(', '))
+  }
+
+  const handleEditSave = () => {
+    if (!editAsset) return
+    const updatedAssets = assets.map(a =>
+      a.id === editAsset.id
+        ? { ...a, category: editCategory, tags: editTags.split(',').map(t => t.trim()).filter(Boolean) }
+        : a
+    )
+    localStorage.setItem('skyward_assets', JSON.stringify(updatedAssets))
+    setEditAsset(null)
+    setEditCategory('')
+    setEditTags('')
+    window.location.reload() // Quick way to refresh UI; in a real app, use state management
   }
 
   const filteredAndSortedAssets = useMemo(() => {
@@ -83,13 +107,22 @@ const AssetBrowser = ({ assets, onSelectAsset, onDeleteAsset, selectedAsset }) =
               <div className="text-purple-300 text-xs">{asset.type.toUpperCase()}</div>
             </div>
           </div>
-          <button
-            onClick={(e) => handleDeleteAsset(asset, e)}
-            className="text-red-400 hover:text-red-300 transition-colors"
-            title="Delete asset"
-          >
-            🗑️
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={(e) => { e.stopPropagation(); handleEditClick(asset) }}
+              className="text-blue-400 hover:text-blue-300 transition-colors"
+              title="Edit asset"
+            >
+              ✏️
+            </button>
+            <button
+              onClick={(e) => handleDeleteAsset(asset, e)}
+              className="text-red-400 hover:text-red-300 transition-colors"
+              title="Delete asset"
+            >
+              🗑️
+            </button>
+          </div>
         </div>
         {/* Category and Tags */}
         <div className="flex flex-wrap gap-1 mb-2">
@@ -158,6 +191,13 @@ const AssetBrowser = ({ assets, onSelectAsset, onDeleteAsset, selectedAsset }) =
           {asset.optimized && (
             <span className="px-2 py-1 rounded text-xs bg-blue-600 text-white">⚡</span>
           )}
+          <button
+            onClick={(e) => { e.stopPropagation(); handleEditClick(asset) }}
+            className="text-blue-400 hover:text-blue-300 transition-colors"
+            title="Edit asset"
+          >
+            ✏️
+          </button>
           <button
             onClick={(e) => handleDeleteAsset(asset, e)}
             className="text-red-400 hover:text-red-300 transition-colors ml-2"
@@ -371,6 +411,43 @@ const AssetBrowser = ({ assets, onSelectAsset, onDeleteAsset, selectedAsset }) =
             </div>
           </div>
         </div>
+      )}
+
+      {/* Edit Modal */}
+      {editAsset && (
+        <Modal onClose={() => setEditAsset(null)}>
+          <div className="p-6 bg-black/90 rounded-xl max-w-md mx-auto">
+            <h2 className="text-xl font-bold text-white mb-4">Edit Asset</h2>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-purple-300 mb-1">Category</label>
+              <input
+                type="text"
+                value={editCategory}
+                onChange={e => setEditCategory(e.target.value)}
+                className="w-full px-3 py-2 bg-black/30 border border-purple-500/50 rounded-lg text-white"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-purple-300 mb-1">Tags (comma separated)</label>
+              <input
+                type="text"
+                value={editTags}
+                onChange={e => setEditTags(e.target.value)}
+                className="w-full px-3 py-2 bg-black/30 border border-purple-500/50 rounded-lg text-white"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setEditAsset(null)}
+                className="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded-lg"
+              >Cancel</button>
+              <button
+                onClick={handleEditSave}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
+              >Save</button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   )
