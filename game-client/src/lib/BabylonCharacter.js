@@ -59,6 +59,18 @@ class BabylonCharacter {
   }
 
   /**
+   * Check if a file exists without causing errors
+   */
+  async checkFileExists(filePath) {
+    try {
+      const response = await fetch(filePath, { method: 'HEAD' })
+      return response.ok
+    } catch (error) {
+      return false
+    }
+  }
+
+  /**
    * Load GLB character model based on element
    */
   async loadCharacterModel() {
@@ -91,13 +103,20 @@ class BabylonCharacter {
     
     // Try each path until one works
     for (const modelPath of pathsToTry) {
+      // Check if file exists first
+      const fileExists = await this.checkFileExists(modelPath)
+      if (!fileExists) {
+        console.log(`BabylonCharacter: Model file not found: ${modelPath}`)
+        continue
+      }
+      
       try {
-        console.log(`BabylonCharacter: Trying to load model: ${modelPath}`)
+        console.log(`BabylonCharacter: Loading model: ${modelPath}`)
         const characterMesh = await this.loadSingleModel(modelPath)
         console.log(`✅ Loaded character model: ${modelPath}`)
         return characterMesh
       } catch (error) {
-        console.log(`Failed to load ${modelPath}, trying next...`)
+        console.log(`Failed to load ${modelPath}:`, error.message)
         continue
       }
     }
@@ -243,18 +262,25 @@ class BabylonCharacter {
     
     // Add physics impostor only if physics engine is available
     if (this.scene.getPhysicsEngine()) {
-      this.characterMesh.physicsImpostor = new BABYLON.PhysicsImpostor(
-        this.characterMesh,
-        BABYLON.PhysicsImpostor.CapsuleImpostor,
-        { 
-          mass: 1, 
-          restitution: 0.1, 
-          friction: 0.8,
-          // Enable collision detection
-          ignoreCollisions: false
-        },
-        this.scene
-      )
+      try {
+        this.characterMesh.physicsImpostor = new BABYLON.PhysicsImpostor(
+          this.characterMesh,
+          BABYLON.PhysicsImpostor.CapsuleImpostor,
+          { 
+            mass: 1, 
+            restitution: 0.1, 
+            friction: 0.8,
+            // Enable collision detection
+            ignoreCollisions: false
+          },
+          this.scene
+        )
+      } catch (error) {
+        console.warn('BabylonCharacter: Could not create physics impostor:', error)
+        this.characterMesh.physicsImpostor = null
+        console.log('BabylonCharacter: Physics disabled for this character')
+        return
+      }
       
       // Prevent character from falling through terrain
       if (this.characterMesh.physicsImpostor) {
@@ -585,13 +611,24 @@ class BabylonCharacter {
     const moveVector = direction.scale(this.moveSpeed * 0.016) // Frame-rate independent
     
     if (this.characterMesh && this.characterMesh.physicsImpostor) {
-      // Physics-based movement with collision detection
-      const currentVelocity = this.characterMesh.physicsImpostor.getLinearVelocity()
-      
-      // Only apply horizontal movement, preserve vertical velocity for gravity/jumping
-      this.characterMesh.physicsImpostor.setLinearVelocity(
-        new BABYLON.Vector3(moveVector.x, currentVelocity.y, moveVector.z)
-      )
+      try {
+        // Physics-based movement with collision detection
+        const currentVelocity = this.characterMesh.physicsImpostor.getLinearVelocity()
+        
+        if (currentVelocity) {
+          // Only apply horizontal movement, preserve vertical velocity for gravity/jumping
+          this.characterMesh.physicsImpostor.setLinearVelocity(
+            new BABYLON.Vector3(moveVector.x, currentVelocity.y, moveVector.z)
+          )
+        }
+      } catch (error) {
+        console.warn('BabylonCharacter: Physics velocity error, using fallback movement:', error)
+        // Fallback to direct position movement
+        if (this.characterGroup) {
+          this.characterGroup.position.addInPlace(moveVector)
+        }
+        return
+      }
       
       // Add collision detection through raycasting
       this.checkCollisions(moveVector)

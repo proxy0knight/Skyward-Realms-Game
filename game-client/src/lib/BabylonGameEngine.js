@@ -348,7 +348,13 @@ class BabylonGameEngine {
    * Setup environment with fallback to procedural
    */
   async setupEnvironment() {
-    // List of environment files to try (in order of preference)
+    // Skip environment texture loading for now to avoid warnings
+    // Future: Add proper environment texture support when files are available
+    console.log('BabylonGameEngine: Using procedural skybox (environment textures disabled)')
+    this.createProceduralSkybox()
+    
+    // TODO: Uncomment this when you want to enable environment texture loading
+    /*
     const environmentPaths = [
       '/textures/environment.env',     // Babylon.js format
       '/textures/environment.hdr',     // HDR format  
@@ -356,31 +362,25 @@ class BabylonGameEngine {
       '/textures/world.env'           // Alternative name
     ]
     
-    // Try to load custom environment files
     for (const envPath of environmentPaths) {
-      // Check if file exists first to avoid Babylon.js warnings
       const fileExists = await this.checkFileExists(envPath)
-      if (!fileExists) {
-        console.log(`BabylonGameEngine: Environment file not found: ${envPath}`)
-        continue
-      }
-      
-      try {
-        console.log(`BabylonGameEngine: Loading environment: ${envPath}`)
-        const envTexture = BABYLON.CubeTexture.CreateFromPrefilteredData(envPath, this.scene)
-        this.scene.environmentTexture = envTexture
-        this.scene.createDefaultSkybox(envTexture, true, 1000)
-        console.log(`✅ Loaded custom environment: ${envPath}`)
-        return // Success! Exit early
-      } catch (error) {
-        console.log(`Failed to load environment ${envPath}:`, error.message)
-        continue
+      if (fileExists) {
+        try {
+          console.log(`BabylonGameEngine: Loading environment: ${envPath}`)
+          const envTexture = BABYLON.CubeTexture.CreateFromPrefilteredData(envPath, this.scene)
+          this.scene.environmentTexture = envTexture
+          this.scene.createDefaultSkybox(envTexture, true, 1000)
+          console.log(`✅ Loaded custom environment: ${envPath}`)
+          return
+        } catch (error) {
+          console.log(`Failed to load environment ${envPath}:`, error.message)
+        }
       }
     }
     
-    // If no custom environment found, create procedural skybox
     console.log('BabylonGameEngine: No custom environment found, creating procedural skybox')
     this.createProceduralSkybox()
+    */
   }
 
   /**
