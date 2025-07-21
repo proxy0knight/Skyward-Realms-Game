@@ -209,7 +209,9 @@ class BabylonCharacter {
         { 
           mass: 1, 
           restitution: 0.1, 
-          friction: 0.8
+          friction: 0.8,
+          // Enable collision detection
+          ignoreCollisions: false
         },
         this.scene
       )
@@ -534,15 +536,67 @@ class BabylonCharacter {
     const moveVector = direction.scale(this.moveSpeed * 0.016) // Frame-rate independent
     
     if (this.characterMesh && this.characterMesh.physicsImpostor) {
-      // Physics-based movement
+      // Physics-based movement with collision detection
       const currentVelocity = this.characterMesh.physicsImpostor.getLinearVelocity()
+      
+      // Only apply horizontal movement, preserve vertical velocity for gravity/jumping
       this.characterMesh.physicsImpostor.setLinearVelocity(
         new BABYLON.Vector3(moveVector.x, currentVelocity.y, moveVector.z)
       )
+      
+      // Add collision detection through raycasting
+      this.checkCollisions(moveVector)
     } else {
-      // Direct position movement (fallback)
-      this.characterGroup.position.addInPlace(moveVector)
+      // Direct position movement (fallback) with collision check
+      const newPosition = this.characterGroup.position.add(moveVector)
+      if (this.isPositionValid(newPosition)) {
+        this.characterGroup.position.addInPlace(moveVector)
+      }
     }
+  }
+
+  /**
+   * Check for collisions using raycasting
+   */
+  checkCollisions(moveVector) {
+    if (!this.scene || !this.characterMesh) return
+    
+    const origin = this.characterMesh.position.clone()
+    const direction = moveVector.normalize()
+    const ray = new BABYLON.Ray(origin, direction)
+    
+    // Check collision with terrain and objects
+    const hit = this.scene.pickWithRay(ray, (mesh) => {
+      return mesh !== this.characterMesh && 
+             mesh !== this.characterGroup && 
+             mesh.checkCollisions !== false
+    })
+    
+    // If collision detected and close, stop movement
+    if (hit && hit.hit && hit.distance < 2) {
+      // Reset velocity to prevent clipping
+      if (this.characterMesh.physicsImpostor) {
+        const currentVelocity = this.characterMesh.physicsImpostor.getLinearVelocity()
+        this.characterMesh.physicsImpostor.setLinearVelocity(
+          new BABYLON.Vector3(0, currentVelocity.y, 0)
+        )
+      }
+    }
+  }
+
+  /**
+   * Check if position is valid (for non-physics movement)
+   */
+  isPositionValid(position) {
+    if (!this.scene) return true
+    
+    // Simple bounds check
+    const maxDistance = 100 // Maximum distance from origin
+    if (position.length() > maxDistance) {
+      return false
+    }
+    
+    return true
   }
 
   /**

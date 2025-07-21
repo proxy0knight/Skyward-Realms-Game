@@ -242,8 +242,8 @@ class BabylonGameEngine {
       this.camera.alpha -= deltaX * 0.003
       this.camera.beta -= deltaY * 0.003
       
-      // Clamp beta to allow full vertical range
-      this.camera.beta = Math.max(0.01, Math.min(Math.PI - 0.01, this.camera.beta))
+      // Clamp beta to allow nearly full vertical range (look straight up and down)
+      this.camera.beta = Math.max(0.001, Math.min(Math.PI - 0.001, this.camera.beta))
     })
     
     // Fallback: pointer events for non-locked mode
@@ -272,8 +272,8 @@ class BabylonGameEngine {
       this.camera.alpha -= deltaX * 0.01
       this.camera.beta -= deltaY * 0.01
       
-      // Clamp beta to allow full vertical range
-      this.camera.beta = Math.max(0.01, Math.min(Math.PI - 0.01, this.camera.beta))
+      // Clamp beta to allow nearly full vertical range (look straight up and down)
+      this.camera.beta = Math.max(0.001, Math.min(Math.PI - 0.001, this.camera.beta))
       
       lastPointerX = event.clientX
       lastPointerY = event.clientY
@@ -441,6 +441,9 @@ class BabylonGameEngine {
           this.scene
         )
         
+        // Enable collision detection for terrain
+        terrain.checkCollisions = true
+        
         // Add to shadow casters
         terrain.receiveShadows = true
       }
@@ -586,6 +589,9 @@ class BabylonGameEngine {
           { mass: 0, restitution: 0.1, friction: 0.9 },
           this.scene
         )
+        
+        // Enable collision detection for trees
+        treeInstance.checkCollisions = true
       }
       
       treePositions.push(treeInstance)
