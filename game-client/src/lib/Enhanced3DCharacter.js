@@ -65,31 +65,66 @@ class Enhanced3DCharacter {
   }
 
   async createCharacterBody() {
-    // Use procedural character for now (skip GLTF loading to avoid errors)
-    console.log('Enhanced3DCharacter: Creating procedural character...')
-    this.body = await this.createProceduralCharacter()
-    
-    this.characterGroup.add(this.body)
+    // Try to load GLB character model first
+    console.log('Enhanced3DCharacter: Loading GLB character model...')
+    try {
+      this.body = await this.loadCharacterModel()
+      this.characterGroup.add(this.body)
+      console.log('Enhanced3DCharacter: GLB character model loaded successfully')
+    } catch (error) {
+      console.warn('Enhanced3DCharacter: Could not load GLB model, falling back to procedural character:', error)
+      this.body = await this.createProceduralCharacter()
+      this.characterGroup.add(this.body)
+    }
     console.log('Enhanced3DCharacter: Character body created')
   }
 
-  async loadCharacterModel() {
-    // Try to load different character models based on element
+    async loadCharacterModel() {
+    // Load different GLB character models based on element
     const modelPaths = {
-      fire: '/assets/models/character.gltf',
-      water: '/assets/models/character.gltf',
-      earth: '/assets/models/character.gltf',
-      air: '/assets/models/character.gltf'
+      fire: '/assets/models/characters/fire.glb',
+      water: '/assets/models/characters/water.glb',
+      earth: '/assets/models/characters/earth.glb',
+      air: '/assets/models/characters/wind.glb'
     }
     
-    const modelPath = modelPaths[this.element.id] || '/assets/models/character.gltf'
+    const modelPath = modelPaths[this.element.id] || '/assets/models/characters/fire.glb'
     
     return new Promise((resolve, reject) => {
       this.loader.load(
         modelPath,
         (gltf) => {
           const model = gltf.scene
-          model.scale.setScalar(1.5)
+          
+          // Scale the model appropriately
+          model.scale.setScalar(2.0)
+          
+          // Position the model at ground level
+          model.position.y = 0
+          
+          // Enable shadows
+          model.traverse((child) => {
+            if (child.isMesh) {
+              child.castShadow = true
+              child.receiveShadow = true
+              
+              // Apply element-based material modifications
+              if (child.material) {
+                const elementColors = this.getElementColors()
+                child.material = child.material.clone()
+                
+                // Add element-based color tinting
+                if (child.material.map) {
+                  child.material.color.setHex(elementColors.primary)
+                  child.material.color.multiplyScalar(0.8) // Subtle tinting
+                }
+                
+                // Add element-based emissive glow
+                child.material.emissive = new THREE.Color(elementColors.glow)
+                child.material.emissiveIntensity = 0.1
+              }
+            }
+          })
           
           // Setup animations if available
           if (gltf.animations && gltf.animations.length > 0) {
@@ -100,17 +135,30 @@ class Enhanced3DCharacter {
               this.actions[clip.name] = action
             })
             
-            // Play idle animation
-            if (this.actions.idle) {
-              this.currentAction = this.actions.idle
+            // Play idle animation if available
+            const idleActions = ['idle', 'Idle', 'idle_01', 'Armature|idle']
+            const foundIdle = idleActions.find(name => this.actions[name])
+            
+            if (foundIdle) {
+              this.currentAction = this.actions[foundIdle]
               this.currentAction.play()
+              console.log('Enhanced3DCharacter: Playing idle animation:', foundIdle)
+            } else if (Object.keys(this.actions).length > 0) {
+              // Play first available animation
+              const firstAction = Object.values(this.actions)[0]
+              this.currentAction = firstAction
+              this.currentAction.play()
+              console.log('Enhanced3DCharacter: Playing first available animation:', Object.keys(this.actions)[0])
             }
+            
+            console.log('Enhanced3DCharacter: Available animations:', Object.keys(this.actions))
           }
           
+          console.log(`Enhanced3DCharacter: Loaded ${this.element.id} character model from ${modelPath}`)
           resolve(model)
         },
         (progress) => {
-          console.log('Enhanced3DCharacter: Loading progress:', progress)
+          console.log('Enhanced3DCharacter: Loading progress:', (progress.loaded / progress.total * 100).toFixed(1) + '%')
         },
         (error) => {
           console.warn('Enhanced3DCharacter: Could not load model:', error)
