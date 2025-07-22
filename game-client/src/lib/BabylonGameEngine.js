@@ -6,13 +6,6 @@ import BabylonCharacter from "./BabylonCharacter.js"
 import { CannonJSPlugin } from "/node_modules/.vite/deps/@babylonjs_core_Physics_Plugins_cannonJSPlugin.js?v=5360064b"
 
 // Import camera controls and inputs
-<<<<<<< HEAD
-import "/node_modules/.vite/deps/@babylonjs_core_Cameras_arcRotateCamera.js?v=5360064b"
-import "/node_modules/.vite/deps/@babylonjs_core_Cameras_universalCamera.js?v=5360064b"
-import "/node_modules/.vite/deps/@babylonjs_core_Cameras_Inputs_arcRotateCameraPointersInput.js?v=5360064b"
-import "/node_modules/.vite/deps/@babylonjs_core_Cameras_Inputs_arcRotateCameraKeyboardMoveInput.js?v=5360064b"
-import { get as idbGet } from "/node_modules/.vite/deps/idb-keyval.js?v=5360064b"
-=======
 import '@babylonjs/core/Cameras/arcRotateCamera'
 import '@babylonjs/core/Cameras/universalCamera'
 import '@babylonjs/core/Cameras/Inputs/arcRotateCameraPointersInput'
@@ -20,7 +13,6 @@ import '@babylonjs/core/Cameras/Inputs/arcRotateCameraKeyboardMoveInput'
 import { get as idbGet, set as idbSet } from 'idb-keyval'
 
 const PHYSICS_BOXES_KEY = 'skyward_physics_boxes_'
->>>>>>> 6436b85a743e7d7404707ca194f2670c373c9826
 
 class BabylonGameEngine {
   constructor() {
