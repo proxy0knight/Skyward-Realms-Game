@@ -95,25 +95,16 @@ class BabylonGameEngine {
       
       // Setup input
       this.setupInput()
-      
-      // Create world
+
+      // Load map data before creating world
+      this.mapData = this.loadMapData(this.getStartingMapId())
       await this.createWorld()
-      
+
       // Setup rendering optimizations
       this.setupOptimizations()
       
       // Start render loop
       this.startRenderLoop()
-      
-      // Load starting map
-      this.currentMapId = this.getStartingMapId()
-      this.mapData = this.loadMapData(this.currentMapId)
-      // If no map, create and use a default
-      if (!this.mapData) {
-        this.createAndSaveDefaultMap()
-        this.currentMapId = 'default'
-        this.mapData = this.loadMapData('default')
-      }
       
       console.log('✅ BabylonGameEngine: Initialization complete!')
       return true
