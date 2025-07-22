@@ -102,6 +102,16 @@ class BabylonGameEngine {
       // Start render loop
       this.startRenderLoop()
       
+      // Load starting map
+      this.currentMapId = this.getStartingMapId()
+      this.mapData = this.loadMapData(this.currentMapId)
+      // If no map, create and use a default
+      if (!this.mapData) {
+        this.createAndSaveDefaultMap()
+        this.currentMapId = 'default'
+        this.mapData = this.loadMapData('default')
+      }
+      
       console.log('✅ BabylonGameEngine: Initialization complete!')
       return true
       
@@ -109,6 +119,36 @@ class BabylonGameEngine {
       console.error('❌ BabylonGameEngine: Failed to initialize:', error)
       return false
     }
+  }
+
+  /**
+   * Get starting map ID from localStorage
+   */
+  getStartingMapId() {
+    const idx = JSON.parse(localStorage.getItem('skyward_maps_index') || '[]')
+    let startId = localStorage.getItem('skyward_starting_map')
+    if (!startId && idx.length > 0) startId = idx[0].id
+    return startId || 'default'
+  }
+
+  /**
+   * Load map data by ID
+   */
+  loadMapData(mapId) {
+    const data = localStorage.getItem('skyward_world_map_' + mapId)
+    return data ? JSON.parse(data) : null
+  }
+
+  /**
+   * Create and save a default map if none exists
+   */
+  createAndSaveDefaultMap() {
+    const size = 32
+    const defaultCell = { type: 'ground', asset: null, flags: {} }
+    const def = Array.from({ length: size }, () => Array.from({ length: size }, () => ({ ...defaultCell })))
+    localStorage.setItem('skyward_world_map_default', JSON.stringify(def))
+    localStorage.setItem('skyward_maps_index', JSON.stringify([{ id: 'default', name: 'World', size }]))
+    if (!localStorage.getItem('skyward_starting_map')) localStorage.setItem('skyward_starting_map', 'default')
   }
 
   /**

@@ -42,6 +42,7 @@ const MapEditor = () => {
   const [teleportSource, setTeleportSource] = useState(null)
   const [teleportDestMap, setTeleportDestMap] = useState('')
   const [teleportTwoWay, setTeleportTwoWay] = useState(true)
+  const [startingMapId, setStartingMapId] = useState('')
 
   // Load maps index and current map
   useEffect(() => {
@@ -57,6 +58,9 @@ const MapEditor = () => {
       setMapsIndex([{ id: mapId, name: 'World', size: DEFAULT_SIZE }])
     }
     setCurrentMapId(mapId)
+    // Load starting map
+    const startId = localStorage.getItem('skyward_starting_map') || mapId
+    setStartingMapId(startId)
   }, [])
 
   // Load current map data
@@ -207,6 +211,12 @@ const MapEditor = () => {
     })
   }
 
+  // Set as starting map
+  const handleSetStartingMap = (id) => {
+    setStartingMapId(id)
+    localStorage.setItem('skyward_starting_map', id)
+  }
+
   return (
     <div className="bg-black/30 backdrop-blur-lg rounded-xl border border-purple-500/30 p-6">
       <h2 className="text-xl font-bold text-white mb-4">🗺️ Map Editor</h2>
@@ -219,7 +229,9 @@ const MapEditor = () => {
           className="px-3 py-1 rounded-lg border border-purple-500/50 bg-black/40 text-white"
         >
           {mapsIndex.map(m => (
-            <option key={m.id} value={m.id}>{m.name} ({m.size}x{m.size})</option>
+            <option key={m.id} value={m.id}>
+              {m.name} ({m.size}x{m.size}){startingMapId === m.id ? ' [Start]' : ''}
+            </option>
           ))}
         </select>
         <button
@@ -232,6 +244,10 @@ const MapEditor = () => {
             onClick={() => handleRemoveMap(currentMapId)}
           >Delete Map</button>
         )}
+        <button
+          className={`px-3 py-1 rounded-lg text-white text-sm ${startingMapId === currentMapId ? 'bg-yellow-500' : 'bg-purple-700 hover:bg-purple-800'}`}
+          onClick={() => handleSetStartingMap(currentMapId)}
+        >{startingMapId === currentMapId ? 'Starting Map' : 'Set as Starting Map'}</button>
       </div>
       {/* New Map Modal */}
       {showNewMap && (
