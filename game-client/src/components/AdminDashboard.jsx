@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import AssetUploader from './AssetUploader'
 import AssetBrowser from './AssetBrowser'
+import WorldAssetsManager from './WorldAssetsManager'
+import MapEditor from './MapEditor'
 
 const AdminDashboard = () => {
   const [isAdmin, setIsAdmin] = useState(false)
