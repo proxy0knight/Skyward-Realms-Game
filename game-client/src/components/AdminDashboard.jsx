@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import AssetUploader from './AssetUploader'
 import AssetBrowser from './AssetBrowser'
-import AssetPreview from './AssetPreview'
 
 const AdminDashboard = () => {
   const [isAdmin, setIsAdmin] = useState(false)
@@ -182,13 +181,6 @@ const AdminDashboard = () => {
               <AssetUploader
                 onAssetUpload={handleAssetUpload}
                 onSwitchTab={() => setActiveTab('browse')}
-              />
-            )}
-            
-            {activeTab === 'preview' && (
-              <AssetPreview
-                asset={selectedAsset}
-                onClose={() => setSelectedAsset(null)}
               />
             )}
             
