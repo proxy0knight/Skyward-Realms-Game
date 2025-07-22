@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react'
 import Modal from './ui/modal.jsx'
+import { get, del } from 'idb-keyval'
 
 const AssetBrowser = ({ assets, onSelectAsset, onDeleteAsset, selectedAsset }) => {
   const [searchTerm, setSearchTerm] = useState('')
@@ -47,16 +48,19 @@ const AssetBrowser = ({ assets, onSelectAsset, onDeleteAsset, selectedAsset }) =
   const ModelPreview = ({ asset }) => {
     const canvasRef = useRef(null)
     useEffect(() => {
-      if (!asset || asset.type !== 'model' || !asset.data) return
+      if (!asset || asset.type !== 'model' || !asset.id) return
       let engine, scene
-      import('@babylonjs/core').then(BABYLON => {
-        engine = new BABYLON.Engine(canvasRef.current, true)
-        scene = new BABYLON.Scene(engine)
-        const camera = new BABYLON.ArcRotateCamera('cam', Math.PI/2, Math.PI/2.5, 3, BABYLON.Vector3.Zero(), scene)
-        camera.attachControl(canvasRef.current, true)
-        new BABYLON.HemisphericLight('light', new BABYLON.Vector3(0,1,0), scene)
-        BABYLON.SceneLoader.ImportMesh('', '', asset.data, scene, () => {
-          engine.runRenderLoop(() => scene.render())
+      get(asset.id).then(base64 => {
+        if (!base64) return
+        import('@babylonjs/core').then(BABYLON => {
+          engine = new BABYLON.Engine(canvasRef.current, true)
+          scene = new BABYLON.Scene(engine)
+          const camera = new BABYLON.ArcRotateCamera('cam', Math.PI/2, Math.PI/2.5, 3, BABYLON.Vector3.Zero(), scene)
+          camera.attachControl(canvasRef.current, true)
+          new BABYLON.HemisphericLight('light', new BABYLON.Vector3(0,1,0), scene)
+          BABYLON.SceneLoader.ImportMesh('', '', base64, scene, () => {
+            engine.runRenderLoop(() => scene.render())
+          })
         })
       })
       return () => { engine && engine.dispose() }
@@ -103,9 +107,10 @@ const AssetBrowser = ({ assets, onSelectAsset, onDeleteAsset, selectedAsset }) =
     })
   }, [assets, searchTerm, filterType, sortBy, filterCategory, filterTag])
 
-  const handleDeleteAsset = (asset, e) => {
+  const handleDeleteAsset = async (asset, e) => {
     e.stopPropagation()
     if (confirm(`Are you sure you want to delete "${asset.name}"?`)) {
+      await del(asset.id)
       onDeleteAsset(asset.id)
     }
   }

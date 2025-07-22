@@ -10,6 +10,7 @@ import '@babylonjs/core/Cameras/arcRotateCamera'
 import '@babylonjs/core/Cameras/universalCamera'
 import '@babylonjs/core/Cameras/Inputs/arcRotateCameraPointersInput'
 import '@babylonjs/core/Cameras/Inputs/arcRotateCameraKeyboardMoveInput'
+import { get as idbGet } from 'idb-keyval'
 
 class BabylonGameEngine {
   constructor() {
@@ -563,8 +564,18 @@ class BabylonGameEngine {
         // 1. Terrain mesh
         let terrainAssetId = toolAssets[cell.type] || null
         let terrainAsset = terrainAssetId ? getAssetById(terrainAssetId) : null
-        if (terrainAsset && terrainAsset.data) {
-          await this.loadGLBFromBase64(terrainAsset.data, `terrain_${x}_${z}`)
+        if (terrainAsset && terrainAsset.id) {
+          // Place terrain mesh from asset (GLB) using IndexedDB
+          const base64 = await idbGet(terrainAsset.id)
+          if (base64) {
+            await this.loadGLBFromBase64(base64, `terrain_${x}_${z}`)
+          } else {
+            // fallback to default
+            const box = BABYLON.MeshBuilder.CreateBox(`ground_${x}_${z}`, { width: 1, height: 0.2, depth: 1 }, this.scene)
+            box.position = new BABYLON.Vector3(x, 0, z)
+            box.material = new BABYLON.StandardMaterial('groundMat', this.scene)
+            box.material.diffuseColor = new BABYLON.Color3(0.2, 0.7, 0.3)
+          }
         } else {
           const box = BABYLON.MeshBuilder.CreateBox(`ground_${x}_${z}`, { width: 1, height: 0.2, depth: 1 }, this.scene)
           box.position = new BABYLON.Vector3(x, 0, z)
@@ -574,8 +585,11 @@ class BabylonGameEngine {
         // 2. Asset mesh
         if (cell.asset) {
           const asset = getAssetById(cell.asset)
-          if (asset && asset.data) {
-            await this.loadGLBFromBase64(asset.data, `asset_${x}_${z}`)
+          if (asset && asset.id) {
+            const base64 = await idbGet(asset.id)
+            if (base64) {
+              await this.loadGLBFromBase64(base64, `asset_${x}_${z}`)
+            }
           }
         }
         // 3. Flags

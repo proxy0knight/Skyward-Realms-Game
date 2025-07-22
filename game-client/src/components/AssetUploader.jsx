@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react'
+import { set, get, del, keys } from 'idb-keyval'
 
 const ASSET_CATEGORIES = [
   'Ground', 'Grass', 'Bricks', 'Dirt', 'Rocks', 'Tree', 'Vegetation', 'Building', 'Structure', 'Water', 'Skybox', 'HDR', 'Lighting', 'Animal', 'Monster', 'NPC', 'Player Character', 'Other'
@@ -62,13 +63,13 @@ const AssetUploader = ({ onAssetUpload, onSwitchTab }) => {
         reader.readAsDataURL(file)
       })
 
+      const assetId = Date.now() + '_' + Math.random().toString(36).substr(2, 9)
       const asset = {
-        id: Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+        id: assetId,
         name: file.name.replace(/\.[^/.]+$/, ""), // Remove extension
         fileName: file.name,
         type: getFileType(file.name),
         size: file.size,
-        data: base64,
         uploadDate: new Date().toISOString(),
         loaded: false,
         optimized: false,
@@ -76,8 +77,14 @@ const AssetUploader = ({ onAssetUpload, onSwitchTab }) => {
         tags: tags.split(',').map(t => t.trim()).filter(Boolean)
       }
 
+      // Store asset data in IndexedDB
+      await set(assetId, base64)
+
+      // Store asset metadata in localStorage
+      const prevAssets = JSON.parse(localStorage.getItem('skyward_assets') || '[]')
+      const updatedAssets = [...prevAssets, asset]
+      localStorage.setItem('skyward_assets', JSON.stringify(updatedAssets))
       onAssetUpload(asset)
-      
       setUploadProgress(100)
       setTimeout(() => {
         setIsUploading(false)
