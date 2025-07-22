@@ -16,7 +16,7 @@ const AdminAccess = ({ onAccess, onBack }) => {
 
     // Simple password check (in production, this would be server-side)
     setTimeout(() => {
-      if (password === 'admin123') {
+      if (password === 'skyward_admin_2024') {
         onAccess()
       } else {
         setError('Invalid password. Please try again.')
@@ -79,7 +79,7 @@ const AdminAccess = ({ onAccess, onBack }) => {
 
           <div className="mt-6 p-3 rounded bg-yellow-500/10 border border-yellow-500/20">
             <p className="text-yellow-400 text-xs text-center">
-              <strong>Demo Password:</strong> admin123
+              <strong>Demo Password:</strong> skyward_admin_2024
             </p>
           </div>
         </CardContent>
