@@ -1,21 +1,16 @@
-<<<<<<< HEAD
-
-console.log('!!! THIS IS THE EDITED BabylonGameEngine.js FILE !!!');
-=======
->>>>>>> 50c969d45d2b4db434145efa9ef125eb316e85bd
-import * as BABYLON from '@babylonjs/core'
-import '@babylonjs/loaders/glTF'
-import BabylonCharacter from './BabylonCharacter.js'
+import * as BABYLON from "/node_modules/.vite/deps/@babylonjs_core.js?v=5360064b"
+import "/node_modules/.vite/deps/@babylonjs_loaders_glTF.js?v=5360064b"
+import BabylonCharacter from "./BabylonCharacter.js"
 
 // Import physics plugin
-import { CannonJSPlugin } from '@babylonjs/core/Physics/Plugins/cannonJSPlugin'
+import { CannonJSPlugin } from "/node_modules/.vite/deps/@babylonjs_core_Physics_Plugins_cannonJSPlugin.js?v=5360064b"
 
 // Import camera controls and inputs
-import '@babylonjs/core/Cameras/arcRotateCamera'
-import '@babylonjs/core/Cameras/universalCamera'
-import '@babylonjs/core/Cameras/Inputs/arcRotateCameraPointersInput'
-import '@babylonjs/core/Cameras/Inputs/arcRotateCameraKeyboardMoveInput'
-import { get as idbGet } from 'idb-keyval'
+import "/node_modules/.vite/deps/@babylonjs_core_Cameras_arcRotateCamera.js?v=5360064b"
+import "/node_modules/.vite/deps/@babylonjs_core_Cameras_universalCamera.js?v=5360064b"
+import "/node_modules/.vite/deps/@babylonjs_core_Cameras_Inputs_arcRotateCameraPointersInput.js?v=5360064b"
+import "/node_modules/.vite/deps/@babylonjs_core_Cameras_Inputs_arcRotateCameraKeyboardMoveInput.js?v=5360064b"
+import { get as idbGet } from "/node_modules/.vite/deps/idb-keyval.js?v=5360064b"
 
 class BabylonGameEngine {
   constructor() {
