@@ -697,66 +697,20 @@ class BabylonGameEngine {
       }
     }
     console.log('BabylonGameEngine: Creating terrain...')
-    
-    // Create terrain using Babylon.js DynamicTerrain
-    const terrainSub = 200
-    const terrainOptions = {
-      width: 400,
-      height: 400,
-      subdivisions: terrainSub,
-      minHeight: 0,
-      maxHeight: 20,
-      onReady: (terrain) => {
-        // Add physics
-        terrain.physicsImpostor = new BABYLON.PhysicsImpostor(
-          terrain,
-          BABYLON.PhysicsImpostor.HeightmapImpostor,
-          { mass: 0, restitution: 0.3, friction: 0.8 },
-          this.scene
-        )
-        
-        // Enable collision detection for terrain
-        terrain.checkCollisions = true
-        
-        // Add to shadow casters
-        terrain.receiveShadows = true
-      }
-    }
-    
-    // Create heightmap data
-    const heightmapData = new Float32Array(terrainSub * terrainSub)
-    for (let i = 0; i < heightmapData.length; i++) {
-      const x = (i % terrainSub) / terrainSub * 20 - 10
-      const z = Math.floor(i / terrainSub) / terrainSub * 20 - 10
-      heightmapData[i] = Math.sin(x * 0.5) * 2 + Math.cos(z * 0.3) * 1.5
-    }
-    
     // Create simple terrain (skip heightmap to avoid texture loading issues)
     const simpleTerrain = BABYLON.MeshBuilder.CreateGround('terrain', {
       width: 400,
       height: 400,
       subdivisions: 100
     }, this.scene)
-    
     const terrainMaterial = new BABYLON.PBRMaterial('terrainMaterial', this.scene)
     terrainMaterial.baseColor = new BABYLON.Color3(0.2, 0.6, 0.2)
     terrainMaterial.roughness = 0.8
     terrainMaterial.metallic = 0.1
     simpleTerrain.material = terrainMaterial
     simpleTerrain.receiveShadows = true
-    
-    // Add physics if available
-    if (this.physicsEngine) {
-      simpleTerrain.physicsImpostor = new BABYLON.PhysicsImpostor(
-        simpleTerrain,
-        BABYLON.PhysicsImpostor.BoxImpostor,
-        { mass: 0, restitution: 0.3, friction: 0.8 },
-        this.scene
-      )
-    } else {
-      console.log('✅ Terrain created without physics (fallback mode)')
-    }
-    
+    // Use ensurePhysicsBox for terrain
+    this.ensurePhysicsBox(simpleTerrain, new BABYLON.Vector3(200, 0, 200), {width: 400, height: 0.2, depth: 400})
   }
 
   /**
@@ -772,38 +726,23 @@ class BabylonGameEngine {
       }
     }
     console.log('BabylonGameEngine: Creating water system...')
-    
     // Create water mesh
     const waterMesh = BABYLON.MeshBuilder.CreateGround('water', {
       width: 50,
       height: 50,
       subdivisions: 32
     }, this.scene)
-    
     // Simple water material (avoid texture dependencies)
     const waterMaterial = new BABYLON.PBRMaterial('waterMaterial', this.scene)
     waterMaterial.baseColor = new BABYLON.Color3(0, 0.3, 0.6)
     waterMaterial.roughness = 0.1
     waterMaterial.metallic = 0.0
     waterMaterial.alpha = 0.8
-    
-    // Simple transparent water effect
-    
     waterMesh.material = waterMaterial
     waterMesh.position.y = 2
-    
-    // Water physics (trigger zone) - only if physics available
-    if (this.physicsEngine) {
-      waterMesh.physicsImpostor = new BABYLON.PhysicsImpostor(
-        waterMesh,
-        BABYLON.PhysicsImpostor.BoxImpostor,
-        { mass: 0, restitution: 0, friction: 0 },
-        this.scene
-      )
-    }
-    
+    // Use ensurePhysicsBox for water
+    this.ensurePhysicsBox(waterMesh, waterMesh.position, {width: 50, height: 0.2, depth: 50})
     this.waterMesh = waterMesh
-    
   }
 
   /**
