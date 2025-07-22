@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { get, set } from 'idb-keyval'
 
-const PHYSICS_BOXES_KEY = 'skyward_physics_boxes_' // + asset.id
+const PHYSICS_BOXES_KEY = 'skyward_physics_boxes_'
+
+const snapValue = (val, step) => Math.round(val / step) * step
 
 const PhysicsBoxEditor = ({ asset, onClose }) => {
   const canvasRef = useRef(null)
@@ -10,6 +12,11 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
   const [selectedPart, setSelectedPart] = useState(null)
   const [selectedBox, setSelectedBox] = useState(null)
   const [sceneReady, setSceneReady] = useState(false)
+  const [showBoxes, setShowBoxes] = useState(true)
+  const [wireframe, setWireframe] = useState(true)
+  const [snapping, setSnapping] = useState(false)
+  const [undoStack, setUndoStack] = useState([])
+  const [redoStack, setRedoStack] = useState([])
   const engineRef = useRef(null)
   const sceneRef = useRef(null)
   const assetMeshesRef = useRef([])
@@ -33,10 +40,9 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
       camera = new window.BABYLON.ArcRotateCamera('cam', Math.PI/2, Math.PI/2.5, 3, window.BABYLON.Vector3.Zero(), scene)
       camera.attachControl(canvasRef.current, true)
       light = new window.BABYLON.HemisphericLight('light', new window.BABYLON.Vector3(0,1,0), scene)
-      // Load asset GLB from IndexedDB
       const base64 = await get(asset.id)
       if (!base64) return
-      window.BABYLON.SceneLoader.ImportMesh('', '', base64, scene, (meshes, ps, skels, ags) => {
+      window.BABYLON.SceneLoader.ImportMesh('', '', base64, scene, (meshes) => {
         assetMeshesRef.current = meshes
         const flat = meshes.map(m => ({ name: m.name, id: m.id, type: m.getClassName?.() || 'Node' }))
         setHierarchy(flat)
@@ -71,6 +77,7 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
     if (!sceneReady || !sceneRef.current) return
     Object.values(boxMeshMap.current).forEach(m => m.dispose())
     boxMeshMap.current = {}
+    if (!showBoxes) return
     boxes.forEach((box, i) => {
       const mesh = window.BABYLON.MeshBuilder.CreateBox('physbox_' + box.id, { width: box.size?.x || 1, height: box.size?.y || 1, depth: box.size?.z || 1 }, sceneRef.current)
       mesh.position = new window.BABYLON.Vector3(
@@ -89,14 +96,14 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
       mesh.edgesWidth = 2.0
       mesh.edgesColor = new window.BABYLON.Color4(0, 1, 0, 1)
       mesh.material = new window.BABYLON.StandardMaterial('physboxmat_' + box.id, sceneRef.current)
-      mesh.material.wireframe = true
+      mesh.material.wireframe = wireframe
       boxMeshMap.current[box.id] = mesh
       mesh.actionManager = new window.BABYLON.ActionManager(sceneRef.current)
       mesh.actionManager.registerAction(new window.BABYLON.ExecuteCodeAction(window.BABYLON.ActionManager.OnPickTrigger, () => {
         setSelectedBox(box)
       }))
     })
-  }, [boxes, sceneReady])
+  }, [boxes, sceneReady, showBoxes, wireframe])
 
   // GizmoManager for selected box
   useEffect(() => {
@@ -120,9 +127,21 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
       mesh.onAfterWorldMatrixUpdateObservable.add(() => {
         setBoxes(prev => prev.map(b => b.id === selectedBox.id ? {
           ...b,
-          position: { x: mesh.position.x, y: mesh.position.y, z: mesh.position.z },
-          rotation: { x: mesh.rotation.x, y: mesh.rotation.y, z: mesh.rotation.z },
-          size: { x: mesh.scaling.x, y: mesh.scaling.y, z: mesh.scaling.z }
+          position: {
+            x: snapping ? snapValue(mesh.position.x, 0.25) : mesh.position.x,
+            y: snapping ? snapValue(mesh.position.y, 0.25) : mesh.position.y,
+            z: snapping ? snapValue(mesh.position.z, 0.25) : mesh.position.z
+          },
+          rotation: {
+            x: snapping ? snapValue(mesh.rotation.x, Math.PI/12) : mesh.rotation.x,
+            y: snapping ? snapValue(mesh.rotation.y, Math.PI/12) : mesh.rotation.y,
+            z: snapping ? snapValue(mesh.rotation.z, Math.PI/12) : mesh.rotation.z
+          },
+          size: {
+            x: snapping ? snapValue(mesh.scaling.x, 0.1) : mesh.scaling.x,
+            y: snapping ? snapValue(mesh.scaling.y, 0.1) : mesh.scaling.y,
+            z: snapping ? snapValue(mesh.scaling.z, 0.1) : mesh.scaling.z
+          }
         } : b))
       })
     }
@@ -131,12 +150,13 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
         gizmoManagerRef.current.attachToMesh(null)
       }
     }
-  }, [selectedBox, sceneReady])
+  }, [selectedBox, sceneReady, snapping])
 
   // Add new box
   const handleAddBox = () => {
     const id = Date.now() + '_' + Math.random().toString(36).substr(2, 6)
     const part = selectedPart ? selectedPart.name : null
+    pushUndo()
     setBoxes(prev => ([
       ...prev,
       {
@@ -152,13 +172,35 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
   // Remove selected box
   const handleRemoveBox = () => {
     if (!selectedBox) return
+    pushUndo()
     setBoxes(prev => prev.filter(b => b.id !== selectedBox.id))
     setSelectedBox(null)
   }
 
+  // Duplicate selected box
+  const handleDuplicateBox = () => {
+    if (!selectedBox) return
+    pushUndo()
+    const id = Date.now() + '_' + Math.random().toString(36).substr(2, 6)
+    setBoxes(prev => ([
+      ...prev,
+      { ...selectedBox, id }
+    ]))
+  }
+
   // Change part/mesh attachment for a box
   const handleChangeBoxPart = (boxId, meshName) => {
+    pushUndo()
     setBoxes(prev => prev.map(b => b.id === boxId ? { ...b, meshName } : b))
+  }
+
+  // Numeric input for transforms
+  const handleBoxTransformInput = (boxId, field, axis, value) => {
+    pushUndo()
+    setBoxes(prev => prev.map(b => b.id === boxId ? {
+      ...b,
+      [field]: { ...b[field], [axis]: parseFloat(value) }
+    } : b))
   }
 
   // Save boxes to IndexedDB/localStorage
@@ -173,6 +215,24 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
     if (saved && Array.isArray(saved)) setBoxes(saved)
     else setBoxes([])
     alert('Physics boxes loaded!')
+  }
+
+  // Undo/Redo logic
+  const pushUndo = () => {
+    setUndoStack(prev => [...prev, boxes.map(b => ({ ...b, position: { ...b.position }, size: { ...b.size }, rotation: { ...b.rotation } }))])
+    setRedoStack([])
+  }
+  const handleUndo = () => {
+    if (undoStack.length === 0) return
+    setRedoStack(prev => [boxes, ...prev])
+    setBoxes(undoStack[undoStack.length - 1])
+    setUndoStack(prev => prev.slice(0, -1))
+  }
+  const handleRedo = () => {
+    if (redoStack.length === 0) return
+    setUndoStack(prev => [...prev, boxes])
+    setBoxes(redoStack[0])
+    setRedoStack(prev => prev.slice(1))
   }
 
   return (
@@ -213,16 +273,46 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
                   ))}
                 </select>
               </div>
+              {selectedBox?.id === box.id && (
+                <div className="mt-2 space-y-1">
+                  <div className="flex gap-1 items-center text-xs">
+                    <span>Pos:</span>
+                    {['x','y','z'].map(axis => (
+                      <input key={axis} type="number" step="0.01" value={box.position?.[axis] || 0} onChange={e => handleBoxTransformInput(box.id, 'position', axis, e.target.value)} className="w-12 px-1 rounded bg-black/40 border border-purple-700 text-purple-200" />
+                    ))}
+                  </div>
+                  <div className="flex gap-1 items-center text-xs">
+                    <span>Size:</span>
+                    {['x','y','z'].map(axis => (
+                      <input key={axis} type="number" step="0.01" value={box.size?.[axis] || 1} onChange={e => handleBoxTransformInput(box.id, 'size', axis, e.target.value)} className="w-12 px-1 rounded bg-black/40 border border-purple-700 text-purple-200" />
+                    ))}
+                  </div>
+                  <div className="flex gap-1 items-center text-xs">
+                    <span>Rot:</span>
+                    {['x','y','z'].map(axis => (
+                      <input key={axis} type="number" step="0.01" value={box.rotation?.[axis] || 0} onChange={e => handleBoxTransformInput(box.id, 'rotation', axis, e.target.value)} className="w-12 px-1 rounded bg-black/40 border border-purple-700 text-purple-200" />
+                    ))}
+                  </div>
+                </div>
+              )}
             </li>
           ))}
         </ul>
-        <div className="mt-4 flex gap-2">
+        <div className="mt-4 flex gap-2 flex-wrap">
           <button className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded" onClick={handleAddBox}>+ Add Box</button>
+          <button className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded" onClick={handleDuplicateBox} disabled={!selectedBox}>Duplicate</button>
           <button className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded" onClick={handleRemoveBox} disabled={!selectedBox}>- Remove</button>
         </div>
-        <div className="mt-4 flex gap-2">
+        <div className="mt-4 flex gap-2 flex-wrap">
           <button className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded" onClick={handleSaveBoxes}>Save</button>
           <button className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded" onClick={handleLoadBoxes}>Load</button>
+          <button className="bg-gray-700 hover:bg-gray-800 text-white px-3 py-1 rounded" onClick={handleUndo} disabled={undoStack.length === 0}>Undo</button>
+          <button className="bg-gray-700 hover:bg-gray-800 text-white px-3 py-1 rounded" onClick={handleRedo} disabled={redoStack.length === 0}>Redo</button>
+        </div>
+        <div className="mt-4 flex gap-2 flex-wrap">
+          <button className={`px-3 py-1 rounded ${showBoxes ? 'bg-green-700 text-white' : 'bg-gray-700 text-gray-300'}`} onClick={() => setShowBoxes(v => !v)}>{showBoxes ? 'Hide Boxes' : 'Show Boxes'}</button>
+          <button className={`px-3 py-1 rounded ${wireframe ? 'bg-blue-700 text-white' : 'bg-gray-700 text-gray-300'}`} onClick={() => setWireframe(v => !v)}>{wireframe ? 'Wireframe' : 'Solid'}</button>
+          <button className={`px-3 py-1 rounded ${snapping ? 'bg-purple-700 text-white' : 'bg-gray-700 text-gray-300'}`} onClick={() => setSnapping(v => !v)}>{snapping ? 'Snapping On' : 'Snapping Off'}</button>
         </div>
         <button className="mt-6 bg-purple-800 hover:bg-purple-900 text-white px-3 py-1 rounded" onClick={onClose}>Close</button>
       </div>
