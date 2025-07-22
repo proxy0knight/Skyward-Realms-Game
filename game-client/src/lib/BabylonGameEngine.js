@@ -575,8 +575,23 @@ class BabylonGameEngine {
               try {
                 const meshes = await this.loadGLBFromBase64(base64, `asset_${x}_${z}`)
                 // Set Y position to 0.1 for all loaded meshes
-                if (Array.isArray(meshes)) {
+                if (Array.isArray(meshes) && meshes.length > 0) {
                   meshes.forEach(m => m.position.y = 0.1)
+                } else {
+                  // Fallback: create a simple box mesh
+                  const box = BABYLON.MeshBuilder.CreateBox(`assetbox_${x}_${z}`, { width: 1, height: 1, depth: 1 }, this.scene)
+                  box.position = new BABYLON.Vector3(x, 0.5, z)
+                  box.material = new BABYLON.StandardMaterial('assetBoxMat', this.scene)
+                  box.material.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2)
+                  // Add physics impostor
+                  if (this.physicsEngine) {
+                    box.physicsImpostor = new BABYLON.PhysicsImpostor(
+                      box,
+                      BABYLON.PhysicsImpostor.BoxImpostor,
+                      { mass: 0, restitution: 0.3, friction: 0.8 },
+                      this.scene
+                    )
+                  }
                 }
               } catch (e) {
                 console.error(`[ASSET] Failed to load GLB for asset '${asset.id}' at (${x},${z}):`, e)
