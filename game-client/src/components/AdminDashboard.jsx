@@ -109,6 +109,37 @@ const AdminDashboard = () => {
     )
   }
 
+  // Add ModelThumbnail component for 3D previews
+  const ModelThumbnail = ({ asset }) => {
+    const canvasRef = React.useRef(null)
+    React.useEffect(() => {
+      let engine, scene
+      let disposed = false
+      async function setup() {
+        if (!canvasRef.current || !asset.id) return
+        if (!window.BABYLON) await import('@babylonjs/core')
+        engine = new window.BABYLON.Engine(canvasRef.current, true, { preserveDrawingBuffer: true })
+        scene = new window.BABYLON.Scene(engine)
+        const camera = new window.BABYLON.ArcRotateCamera('cam', Math.PI/2, Math.PI/2.5, 2.5, window.BABYLON.Vector3.Zero(), scene)
+        camera.attachControl(canvasRef.current, false)
+        camera.lowerRadiusLimit = 1
+        camera.upperRadiusLimit = 10
+        camera.wheelPrecision = 100
+        camera.panningSensibility = 0
+        camera.inputs.removeByType('ArcRotateCameraKeyboardMoveInput')
+        new window.BABYLON.HemisphericLight('light', new window.BABYLON.Vector3(0,1,0), scene)
+        const base64 = localStorage.getItem('skyward_assets') ? JSON.parse(localStorage.getItem('skyward_assets')).find(a => a.id === asset.id)?.data : null
+        if (!base64) return
+        window.BABYLON.SceneLoader.ImportMesh('', '', base64, scene, () => {
+          engine.runRenderLoop(() => { if (!disposed) scene.render() })
+        })
+      }
+      setup()
+      return () => { disposed = true; if (engine) engine.dispose() }
+    }, [asset])
+    return <canvas ref={canvasRef} style={{ width: 96, height: 64, background: '#222', borderRadius: 8 }} />
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
       {/* Header */}
@@ -200,11 +231,7 @@ const AdminDashboard = () => {
                         onClick={() => setSelectedAsset(asset)}
                       >
                         <div className="p-2 flex flex-col items-center">
-                          {/* Thumbnail preview (could use ModelPreview or a static image) */}
-                          <div className="w-24 h-16 bg-black/60 rounded mb-2 flex items-center justify-center">
-                            {/* TODO: Replace with ModelPreview if available */}
-                            <span className="text-3xl">🎭</span>
-                          </div>
+                          <ModelThumbnail asset={asset} />
                           <div className="text-white text-sm font-medium truncate w-full text-center">{asset.name}</div>
                           <div className="text-purple-300 text-xs w-full text-center">{asset.fileName}</div>
                           <div className="text-purple-300 text-xs w-full text-center">{asset.category || 'No Category'}</div>
@@ -215,11 +242,16 @@ const AdminDashboard = () => {
                   </div>
                 </div>
                 {/* Main preview/editor area */}
-                <div className="flex-1 bg-black">
+                <div className="flex-1 bg-black flex">
                   {selectedAsset && selectedAsset.type === 'model' ? (
-                    <PhysicsBoxEditor asset={selectedAsset} onClose={() => setSelectedAsset(null)} />
+                    <div className="flex flex-1 h-full">
+                      {/* Babylon.js viewport (left) and tools/sidebar (right) */}
+                      <div className="flex-1 h-full">
+                        <PhysicsBoxEditor asset={selectedAsset} onClose={() => setSelectedAsset(null)} showSidebarOnRight />
+                      </div>
+                    </div>
                   ) : (
-                    <div className="flex items-center justify-center h-full text-purple-300 text-lg">Select a 3D asset to configure physics boxes.</div>
+                    <div className="flex items-center justify-center h-full text-purple-300 text-lg w-full">Select a 3D asset to configure physics boxes.</div>
                   )}
                 </div>
               </div>
