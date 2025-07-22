@@ -850,28 +850,28 @@ class BabylonGameEngine {
       const x = (Math.random() - 0.5) * 300
       const z = (Math.random() - 0.5) * 300
       const y = 1.5
-      
+      // Always create invisible physics box
+      const box = BABYLON.MeshBuilder.CreateBox(`treebox_${i}`, { width: 1, height: 3, depth: 1 }, this.scene)
+      box.position = new BABYLON.Vector3(x, y, z)
+      box.isVisible = false
+      if (this.physicsEngine && box && box instanceof BABYLON.Mesh) {
+        box.physicsImpostor = new BABYLON.PhysicsImpostor(
+          box,
+          BABYLON.PhysicsImpostor.BoxImpostor,
+          { mass: 0, restitution: 0.1, friction: 0.9 },
+          this.scene
+        )
+      }
+      // Create tree instance and parent to box
       const treeInstance = treeMesh.createInstance(`tree_${i}`)
-      treeInstance.position = new BABYLON.Vector3(x, y, z)
+      treeInstance.position = new BABYLON.Vector3(0, 0, 0)
       treeInstance.scaling = new BABYLON.Vector3(
         0.8 + Math.random() * 0.4,
         0.8 + Math.random() * 0.4,
         0.8 + Math.random() * 0.4
       )
-      
-      // Add physics if available
-      if (this.physicsEngine) {
-        treeInstance.physicsImpostor = new BABYLON.PhysicsImpostor(
-          treeInstance,
-          BABYLON.PhysicsImpostor.CylinderImpostor,
-          { mass: 0, restitution: 0.1, friction: 0.9 },
-          this.scene
-        )
-        
-        // Enable collision detection for trees
-        treeInstance.checkCollisions = true
-      }
-      
+      treeInstance.parent = box
+      treeInstance.isVisible = true
       treePositions.push(treeInstance)
     }
     
