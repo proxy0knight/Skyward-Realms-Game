@@ -129,6 +129,7 @@ class BabylonGameEngine {
     const idx = JSON.parse(localStorage.getItem('skyward_maps_index') || '[]')
     let startId = localStorage.getItem('skyward_starting_map')
     if (!startId && idx.length > 0) startId = idx[0].id
+    console.log('BabylonGameEngine: getStartingMapId() ->', startId)
     return startId || 'default'
   }
 
@@ -136,8 +137,20 @@ class BabylonGameEngine {
    * Load map data by ID
    */
   loadMapData(mapId) {
+    console.log('BabylonGameEngine: Loading map data for mapId:', mapId)
     const data = localStorage.getItem('skyward_world_map_' + mapId)
-    return data ? JSON.parse(data) : null
+    if (!data) {
+      console.warn('BabylonGameEngine: No map data found for mapId:', mapId)
+      return null
+    }
+    const parsed = JSON.parse(data)
+    if (!parsed || !Array.isArray(parsed) || parsed.length === 0) {
+      console.warn('BabylonGameEngine: Loaded map data is empty or invalid for mapId:', mapId)
+    } else {
+      console.log('BabylonGameEngine: Loaded map data for mapId', mapId, 'size:', parsed.length, 'x', parsed[0]?.length)
+      console.log('BabylonGameEngine: Sample cell [0][0]:', parsed[0]?.[0])
+    }
+    return parsed
   }
 
   /**
