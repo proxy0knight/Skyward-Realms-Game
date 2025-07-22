@@ -544,21 +544,44 @@ class BabylonGameEngine {
    * Create the game world
    */
   async createWorld() {
-    console.log('BabylonGameEngine: Creating game world...')
-    
-    // Create terrain
-    await this.createTerrain()
-    
-    // Create water
-    await this.createWater()
-    
-    // Create vegetation
-    await this.createVegetation()
-    
-    // Create player will be called from GameScene
-    // await this.createPlayer()
-    
-    console.log('✅ Game world created successfully!')
+    console.log('BabylonGameEngine: Creating game world from map data...')
+    if (!this.mapData) {
+      await this.createTerrain() // fallback
+      return
+    }
+    // Load tool-asset assignments
+    const toolAssets = JSON.parse(localStorage.getItem('skyward_tool_asset_assignments') || '{}')
+    const assets = JSON.parse(localStorage.getItem('skyward_assets') || '[]')
+    const getAssetById = (id) => assets.find(a => a.id === id)
+    // Place terrain and assets
+    for (let z = 0; z < this.mapData.length; z++) {
+      for (let x = 0; x < this.mapData[z].length; x++) {
+        const cell = this.mapData[z][x]
+        // 1. Terrain mesh
+        let terrainAssetId = toolAssets[cell.type] || null
+        let terrainAsset = terrainAssetId ? getAssetById(terrainAssetId) : null
+        if (terrainAsset && terrainAsset.data) {
+          // Place terrain mesh from asset (GLB)
+          await this.loadGLBFromBase64(terrainAsset.data, `terrain_${x}_${z}`)
+        } else {
+          // Place default ground box
+          const box = BABYLON.MeshBuilder.CreateBox(`ground_${x}_${z}`, { width: 1, height: 0.2, depth: 1 }, this.scene)
+          box.position = new BABYLON.Vector3(x, 0, z)
+          box.material = new BABYLON.StandardMaterial('groundMat', this.scene)
+          box.material.diffuseColor = new BABYLON.Color3(0.2, 0.7, 0.3)
+        }
+        // 2. Asset mesh
+        if (cell.asset) {
+          const asset = getAssetById(cell.asset)
+          if (asset && asset.data) {
+            await this.loadGLBFromBase64(asset.data, `asset_${x}_${z}`)
+          }
+        }
+        // 3. Flags (spawn, teleport, etc.) - stub
+        // TODO: Implement spawn/teleport logic
+      }
+    }
+    console.log('✅ 3D world generated from map!')
   }
 
   /**
