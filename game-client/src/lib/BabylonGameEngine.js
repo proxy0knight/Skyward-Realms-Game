@@ -577,6 +577,10 @@ class BabylonGameEngine {
     for (let z = 0; z < this.mapData.length; z++) {
       for (let x = 0; x < this.mapData[z].length; x++) {
         const cell = this.mapData[z][x]
+        // Debug: log any cell with asset or flags
+        if (cell.asset || (cell.flags && Object.keys(cell.flags).length > 0)) {
+          console.log(`[DEBUG] Cell at (${x},${z}):`, cell)
+        }
         // 1. Terrain mesh
         let terrainAssetId = toolAssets[cell.type] || null
         let terrainAsset = terrainAssetId ? getAssetById(terrainAssetId) : null
