@@ -352,7 +352,11 @@ class BabylonGameEngine {
    */
   lockMouse() {
     try {
-      this.canvas.requestPointerLock()
+      // Only call requestPointerLock in response to a user gesture
+      // (This function should be called from a click event handler)
+      if (document.activeElement === this.canvas) {
+        this.canvas.requestPointerLock()
+      }
     } catch (error) {
       console.warn('Pointer lock not supported:', error)
     }
@@ -580,7 +584,7 @@ class BabylonGameEngine {
                   const box = BABYLON.MeshBuilder.CreateBox(`assetbox_${x}_${z}`, { width: 1, height: 1, depth: 1 }, this.scene)
                   box.position = new BABYLON.Vector3(x, 0.5, z)
                   box.isVisible = false
-                  if (this.physicsEngine) {
+                  if (this.physicsEngine && box && box instanceof BABYLON.Mesh) {
                     box.physicsImpostor = new BABYLON.PhysicsImpostor(
                       box,
                       BABYLON.PhysicsImpostor.BoxImpostor,
@@ -599,8 +603,7 @@ class BabylonGameEngine {
                   box.position = new BABYLON.Vector3(x, 0.5, z)
                   box.material = new BABYLON.StandardMaterial('assetBoxMat', this.scene)
                   box.material.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2)
-                  // Add physics impostor
-                  if (this.physicsEngine) {
+                  if (this.physicsEngine && box && box instanceof BABYLON.Mesh) {
                     box.physicsImpostor = new BABYLON.PhysicsImpostor(
                       box,
                       BABYLON.PhysicsImpostor.BoxImpostor,

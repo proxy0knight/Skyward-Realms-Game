@@ -288,18 +288,20 @@ class BabylonCharacter {
     // Add physics impostor only if physics engine is available
     if (this.scene.getPhysicsEngine()) {
       try {
-        this.characterMesh.physicsImpostor = new BABYLON.PhysicsImpostor(
-          this.characterMesh,
-          BABYLON.PhysicsImpostor.CapsuleImpostor,
-          { 
-            mass: 1, 
-            restitution: 0.1, 
-            friction: 0.8,
-            // Enable collision detection
-            ignoreCollisions: false
-          },
-          this.scene
-        )
+        if (this.characterMesh && this.characterMesh instanceof BABYLON.Mesh) {
+          this.characterMesh.physicsImpostor = new BABYLON.PhysicsImpostor(
+            this.characterMesh,
+            BABYLON.PhysicsImpostor.CapsuleImpostor,
+            { 
+              mass: 1, 
+              restitution: 0.1, 
+              friction: 0.8,
+              // Enable collision detection
+              ignoreCollisions: false
+            },
+            this.scene
+          )
+        }
       } catch (error) {
         console.warn('BabylonCharacter: Could not create physics impostor:', error)
         this.characterMesh.physicsImpostor = null
@@ -312,7 +314,7 @@ class BabylonCharacter {
         // Add a small delay to ensure physics impostor is fully initialized
         setTimeout(() => {
           try {
-            if (this.characterMesh.physicsImpostor) {
+            if (this.characterMesh.physicsImpostor && this.characterMesh.physicsImpostor.physicsBody) {
               this.characterMesh.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero())
               this.characterMesh.physicsImpostor.setAngularVelocity(BABYLON.Vector3.Zero())
             }
