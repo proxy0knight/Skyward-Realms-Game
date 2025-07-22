@@ -573,11 +573,14 @@ class BabylonGameEngine {
     // For spawn/teleport
     let playerSpawn = null
     const teleportTriggers = []
-    // Place terrain and assets
+    let debugCellCount = 0;
     for (let z = 0; z < this.mapData.length; z++) {
       for (let x = 0; x < this.mapData[z].length; x++) {
         const cell = this.mapData[z][x]
-        // Debug: log any cell with asset or flags
+        if (debugCellCount < 5) {
+          console.log(`[DEBUG-ALL] Cell at (${x},${z}):`, cell)
+          debugCellCount++
+        }
         if (cell.asset || (cell.flags && Object.keys(cell.flags).length > 0)) {
           console.log(`[DEBUG] Cell at (${x},${z}):`, cell)
         }
