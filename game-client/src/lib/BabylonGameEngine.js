@@ -610,7 +610,11 @@ class BabylonGameEngine {
             if (base64) {
               console.log(`[ASSET] Loading placed asset at (${x},${z}):`, asset)
               try {
-                await this.loadGLBFromBase64(base64, `asset_${x}_${z}`)
+                const meshes = await this.loadGLBFromBase64(base64, `asset_${x}_${z}`)
+                // Set Y position to 0.1 for all loaded meshes
+                if (Array.isArray(meshes)) {
+                  meshes.forEach(m => m.position.y = 0.1)
+                }
               } catch (e) {
                 console.error(`[ASSET] Failed to load GLB for asset '${asset.id}' at (${x},${z}):`, e)
               }
@@ -630,6 +634,11 @@ class BabylonGameEngine {
               playerSpawn = { x, z }
             }
           }
+          // Tree spawn
+          if (cell.flags.tree_spawn) {
+            console.log(`[TREE] Found tree spawn at (${x},${z})`)
+            // If you have a tree asset, try to load it here (add your logic)
+          }
           // Teleport
           if (cell.flags.teleport) {
             const trigger = BABYLON.MeshBuilder.CreateBox(`teleport_${x}_${z}`, { width: 1, height: 1, depth: 1 }, this.scene)
@@ -644,7 +653,7 @@ class BabylonGameEngine {
     }
     // Place player at spawn
     if (playerSpawn && this.babylonCharacter) {
-      this.babylonCharacter.setPosition(new BABYLON.Vector3(playerSpawn.x, 2, playerSpawn.z))
+      this.babylonCharacter.setPosition(new BABYLON.Vector3(playerSpawn.x, 1, playerSpawn.z))
       this.camera.setTarget(this.babylonCharacter.getPosition())
       console.log('Player spawned at:', playerSpawn)
     } else {
