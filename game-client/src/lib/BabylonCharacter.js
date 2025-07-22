@@ -1,5 +1,6 @@
 import * as BABYLON from '@babylonjs/core'
 import '@babylonjs/loaders/glTF'
+import { get as idbGet } from 'idb-keyval'
 
 class BabylonCharacter {
   constructor(scene, playerData) {
@@ -83,6 +84,18 @@ class BabylonCharacter {
    * Load GLB character model based on element
    */
   async loadCharacterModel() {
+    // If playerData.modelId is set, try to load from IndexedDB
+    if (this.playerData.modelId) {
+      const base64 = await idbGet(this.playerData.modelId)
+      if (base64) {
+        try {
+          const result = await BABYLON.SceneLoader.ImportMeshAsync('', '', base64, this.scene)
+          return result.meshes[0]
+        } catch (e) {
+          console.warn('BabylonCharacter: Failed to load custom model from IndexedDB, falling back to element model.', e)
+        }
+      }
+    }
     // List of possible model paths for each element (in order of preference)
     const modelPaths = {
       fire: [

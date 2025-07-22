@@ -272,7 +272,7 @@ const MapEditor = () => {
       {/* Toolbar and Map Grid (unchanged) */}
       {/* ... rest of the previous MapEditor code ... */}
       {/* (Paste the previous toolbar, grid, and painting logic here, using 'map' and 'setMap' as before) */}
-      <div className="flex items-center gap-4 mb-4 flex-wrap">
+      <div className="flex gap-2 items-center mb-2">
         <button
           className={`px-3 py-1 rounded-lg font-semibold text-sm border-2 transition-colors ${mode === 'terrain' ? 'border-yellow-400 bg-yellow-400/20 text-yellow-200' : 'border-gray-700 bg-black/40 text-white hover:border-yellow-400'}`}
           onClick={() => setMode('terrain')}
@@ -427,6 +427,14 @@ const MapEditor = () => {
         </div>
       )}
       <div className="text-purple-300 text-xs mt-4">(Painting, asset placement, region/flag drawing, tool asset assignment, multi-map management, and teleport gates work! 3D integration coming soon.)</div>
+      <div className="flex gap-2 items-center mb-2">
+        <button
+          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-bold shadow"
+          onClick={() => { saveMap(); alert('✅ Map saved!') }}
+        >
+          Save Map
+        </button>
+      </div>
     </div>
   )
 }
