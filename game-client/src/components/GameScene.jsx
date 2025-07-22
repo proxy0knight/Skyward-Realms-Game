@@ -6,6 +6,7 @@ import PlayerManager from '../lib/PlayerManager'
 const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGameEngineReady }) => {
   const mountRef = useRef(null)
   const gameEngineRef = useRef(null)
+  const playerManagerRef = useRef(null)
   const [gameStats, setGameStats] = useState({ 
     fps: 0, 
     playerPosition: { x: 0, y: 0, z: 0 },
