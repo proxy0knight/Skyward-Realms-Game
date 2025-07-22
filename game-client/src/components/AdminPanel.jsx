@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.jsx'
-import { ArrowLeft, Settings, Database, Users, BarChart3 } from 'lucide-react'
+import { ArrowLeft, Settings, Database, Users, BarChart3, Shield } from 'lucide-react'
 
 const AdminPanel = ({ onClose, gameEngine }) => {
   const [activeTab, setActiveTab] = useState('overview')
