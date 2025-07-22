@@ -8,7 +8,6 @@ import SkillsPanel from './components/SkillsPanel'
 import MapPanel from './components/MapPanel'
 import DialoguePanel from './components/DialoguePanel'
 import QuestPanel from './components/QuestPanel'
-import AdminPanel from './components/AdminPanel'
 import AdminAccess from './components/AdminAccess'
 import AdminDashboard from './components/AdminDashboard'
 import CombatTestPanel from './components/CombatTestPanel'
@@ -208,7 +207,7 @@ function App() {
       )}
       
       {gameState === 'admin' && (
-        <AdminPanel onBack={handleBackFromAdmin} />
+        <AdminDashboard />
       )}
       
       {gameState === 'asset-manager' && (
