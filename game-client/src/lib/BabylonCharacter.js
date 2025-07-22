@@ -92,8 +92,15 @@ class BabylonCharacter {
       if (base64) {
         try {
           const result = await BABYLON.SceneLoader.ImportMeshAsync('', '', base64, this.scene)
-          console.log('BabylonCharacter: Successfully loaded custom model from IndexedDB:', modelId)
-          return result.meshes[0]
+          // Find first valid mesh
+          const validMesh = result.meshes.find(m => m && m instanceof BABYLON.Mesh && m.getTotalVertices && m.getTotalVertices() > 0)
+          if (validMesh) {
+            console.log('BabylonCharacter: Successfully loaded custom model from IndexedDB:', modelId, 'Mesh:', validMesh.name)
+            return validMesh
+          } else {
+            console.warn('BabylonCharacter: No valid mesh found in imported GLB for modelId:', modelId, 'Meshes:', result.meshes)
+            return null
+          }
         } catch (e) {
           console.warn('BabylonCharacter: Failed to load custom model from IndexedDB, falling back to element model.', e)
         }
@@ -283,12 +290,18 @@ class BabylonCharacter {
    * Setup physics for character
    */
   setupPhysics() {
-    if (!this.characterMesh) return
-    
+    if (!this.characterMesh) {
+      console.warn('BabylonCharacter: No valid character mesh for physics. Attempting to use ensurePhysicsBox as fallback.')
+      if (this.scene && this.scene.gameEngine && typeof this.scene.gameEngine.ensurePhysicsBox === 'function') {
+        // Use a default position for the player (e.g., 0,1,0)
+        this.scene.gameEngine.ensurePhysicsBox([], new BABYLON.Vector3(0, 1, 0), {width: 1, height: 2, depth: 1})
+      }
+      return
+    }
     // Add physics impostor only if physics engine is available
     if (this.scene.getPhysicsEngine()) {
       try {
-        if (this.characterMesh && this.characterMesh instanceof BABYLON.Mesh) {
+        if (this.characterMesh && this.characterMesh instanceof BABYLON.Mesh && this.characterMesh.getTotalVertices && this.characterMesh.getTotalVertices() > 0) {
           this.characterMesh.physicsImpostor = new BABYLON.PhysicsImpostor(
             this.characterMesh,
             BABYLON.PhysicsImpostor.CapsuleImpostor,
@@ -301,6 +314,12 @@ class BabylonCharacter {
             },
             this.scene
           )
+        } else {
+          console.warn('BabylonCharacter: characterMesh is not a valid mesh for physics impostor. Using ensurePhysicsBox as fallback.')
+          if (this.scene && this.scene.gameEngine && typeof this.scene.gameEngine.ensurePhysicsBox === 'function') {
+            this.scene.gameEngine.ensurePhysicsBox([this.characterMesh], this.characterMesh.position || new BABYLON.Vector3(0, 1, 0), {width: 1, height: 2, depth: 1})
+          }
+          return
         }
       } catch (error) {
         console.warn('BabylonCharacter: Could not create physics impostor:', error)
@@ -308,7 +327,6 @@ class BabylonCharacter {
         console.log('BabylonCharacter: Physics disabled for this character')
         return
       }
-      
       // Prevent character from falling through terrain
       if (this.characterMesh.physicsImpostor) {
         // Add a small delay to ensure physics impostor is fully initialized
@@ -322,11 +340,9 @@ class BabylonCharacter {
             console.warn('BabylonCharacter: Could not set initial velocity:', error)
           }
         }, 100)
-        
         // Add ground detection
         this.setupGroundDetection()
       }
-      
       console.log('BabylonCharacter: Physics setup complete')
     } else {
       console.log('BabylonCharacter: Physics not available, using visual-only character')
