@@ -86,14 +86,18 @@ class BabylonCharacter {
   async loadCharacterModel() {
     // If playerData.modelId is set, try to load from IndexedDB
     if (this.playerData.modelId) {
+      console.log('BabylonCharacter: Attempting to load custom model from IndexedDB with modelId:', this.playerData.modelId)
       const base64 = await idbGet(this.playerData.modelId)
       if (base64) {
         try {
           const result = await BABYLON.SceneLoader.ImportMeshAsync('', '', base64, this.scene)
+          console.log('BabylonCharacter: Successfully loaded custom model from IndexedDB:', this.playerData.modelId)
           return result.meshes[0]
         } catch (e) {
           console.warn('BabylonCharacter: Failed to load custom model from IndexedDB, falling back to element model.', e)
         }
+      } else {
+        console.warn('BabylonCharacter: No base64 data found in IndexedDB for modelId:', this.playerData.modelId)
       }
     }
     // List of possible model paths for each element (in order of preference)
