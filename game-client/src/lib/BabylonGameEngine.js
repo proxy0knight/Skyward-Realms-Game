@@ -1,3 +1,5 @@
+SYNTAX_ERROR_TEST
+console.log('!!! THIS IS THE EDITED BabylonGameEngine.js FILE !!!');
 import * as BABYLON from '@babylonjs/core'
 import '@babylonjs/loaders/glTF'
 import BabylonCharacter from './BabylonCharacter.js'
@@ -558,6 +560,7 @@ class BabylonGameEngine {
    * Create the game world
    */
   async createWorld() {
+    console.log('>>> ENTERED createWorld, mapData:', this.mapData)
     console.log('BabylonGameEngine: Creating game world from map data...')
     if (!this.mapData) {
       console.warn('No map data found! Falling back to default terrain.')
