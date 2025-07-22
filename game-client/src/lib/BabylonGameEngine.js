@@ -1,3 +1,4 @@
+console.log('!!! THIS IS THE EDITED BabylonGameEngine.js FILE !!!');
 import * as BABYLON from '@babylonjs/core'
 import '@babylonjs/loaders/glTF'
 import BabylonCharacter from './BabylonCharacter.js'
