@@ -1,5 +1,8 @@
+<<<<<<< HEAD
 
 console.log('!!! THIS IS THE EDITED BabylonGameEngine.js FILE !!!');
+=======
+>>>>>>> 50c969d45d2b4db434145efa9ef125eb316e85bd
 import * as BABYLON from '@babylonjs/core'
 import '@babylonjs/loaders/glTF'
 import BabylonCharacter from './BabylonCharacter.js'
@@ -44,7 +47,6 @@ class BabylonGameEngine {
     // Event system for compatibility with CombatSystem
     this.eventListeners = new Map()
     
-    console.log('BabylonGameEngine: Initialized')
   }
 
   /**
@@ -122,7 +124,6 @@ class BabylonGameEngine {
     const idx = JSON.parse(localStorage.getItem('skyward_maps_index') || '[]')
     let startId = localStorage.getItem('skyward_starting_map')
     if (!startId && idx.length > 0) startId = idx[0].id
-    console.log('BabylonGameEngine: getStartingMapId() ->', startId)
     return startId || 'default'
   }
 
@@ -130,7 +131,6 @@ class BabylonGameEngine {
    * Load map data by ID
    */
   loadMapData(mapId) {
-    console.log('BabylonGameEngine: Loading map data for mapId:', mapId)
     const data = localStorage.getItem('skyward_world_map_' + mapId)
     if (!data) {
       console.warn('BabylonGameEngine: No map data found for mapId:', mapId)
@@ -139,9 +139,6 @@ class BabylonGameEngine {
     const parsed = JSON.parse(data)
     if (!parsed || !Array.isArray(parsed) || parsed.length === 0) {
       console.warn('BabylonGameEngine: Loaded map data is empty or invalid for mapId:', mapId)
-    } else {
-      console.log('BabylonGameEngine: Loaded map data for mapId', mapId, 'size:', parsed.length, 'x', parsed[0]?.length)
-      console.log('BabylonGameEngine: Sample cell [0][0]:', parsed[0]?.[0])
     }
     return parsed
   }
@@ -193,8 +190,6 @@ class BabylonGameEngine {
    * Setup physics engine with Cannon.js
    */
   async setupPhysics() {
-    console.log('BabylonGameEngine: Setting up physics...')
-    
     try {
       // Import cannon dynamically
       const cannonModule = await import('cannon')
@@ -204,7 +199,6 @@ class BabylonGameEngine {
       this.scene.enablePhysics(new BABYLON.Vector3(0, -9.81, 0), new CannonJSPlugin(true, 10, CANNON))
       this.physicsEngine = this.scene.getPhysicsEngine()
       
-      console.log('✅ Physics engine enabled with gravity')
     } catch (error) {
       console.warn('⚠️ Physics engine failed to initialize, using fallback:', error)
       // Fallback: disable physics features
@@ -216,8 +210,6 @@ class BabylonGameEngine {
    * Setup camera with advanced controls
    */
   setupCamera() {
-    console.log('BabylonGameEngine: Setting up camera...')
-    
     try {
       // Create arc rotate camera (third person)
       this.camera = new BABYLON.ArcRotateCamera(
@@ -246,7 +238,6 @@ class BabylonGameEngine {
       // Try to attach controls with multiple fallback methods
       this.attachCameraControls()
       
-      console.log('✅ Camera setup complete')
     } catch (error) {
       console.error('❌ Camera setup failed:', error)
       // Fallback: create simple free camera
@@ -262,17 +253,14 @@ class BabylonGameEngine {
       // Method 1: Try attachControls if available
       if (this.camera.attachControls && typeof this.camera.attachControls === 'function') {
         this.camera.attachControls(this.canvas, true)
-        console.log('✅ Camera controls attached via attachControls')
         return
       }
       
       // Method 2: Manual control setup
       this.setupManualCameraControls()
-      console.log('✅ Manual camera controls setup')
       
     } catch (error) {
       console.warn('⚠️ Camera controls setup failed:', error)
-      console.log('Camera will work but without mouse/keyboard controls')
     }
   }
 
@@ -307,7 +295,6 @@ class BabylonGameEngine {
     // Pointer lock change events
     document.addEventListener('pointerlockchange', () => {
       this.isMouseLocked = document.pointerLockElement === this.canvas
-      console.log('Mouse lock status:', this.isMouseLocked ? 'LOCKED' : 'UNLOCKED')
     })
     
     // Mouse controls for locked mode
@@ -391,8 +378,6 @@ class BabylonGameEngine {
    * Create fallback camera if ArcRotateCamera fails
    */
   createFallbackCamera() {
-    console.log('BabylonGameEngine: Creating fallback camera...')
-    
     try {
       // Create simple universal camera
       this.camera = new BABYLON.UniversalCamera(
@@ -402,7 +387,6 @@ class BabylonGameEngine {
       )
       
       this.camera.lookAt(BABYLON.Vector3.Zero())
-      console.log('✅ Fallback camera created')
     } catch (error) {
       console.error('❌ Even fallback camera failed:', error)
       // Create most basic camera
@@ -485,7 +469,6 @@ class BabylonGameEngine {
     
     // Add gradient effect
     skyboxMaterial.disableLighting = true
-    console.log('✅ Procedural skybox created')
   }
 
   /**
@@ -515,7 +498,6 @@ class BabylonGameEngine {
     hemiLight.diffuse = new BABYLON.Color3(0.8, 0.8, 1)
     hemiLight.groundColor = new BABYLON.Color3(0.4, 0.3, 0.2)
     
-    console.log('✅ Advanced lighting setup complete')
   }
 
   /**
@@ -544,14 +526,12 @@ class BabylonGameEngine {
       }
     })
     
-    console.log('✅ Input system ready')
   }
 
   /**
    * Create the game world
    */
   async createWorld() {
-    console.log('>>> ENTERED createWorld, mapData:', this.mapData)
     console.log('BabylonGameEngine: Creating game world from map data...')
     if (!this.mapData) {
       console.warn('No map data found! Falling back to default terrain.')
@@ -562,29 +542,18 @@ class BabylonGameEngine {
     const toolAssets = JSON.parse(localStorage.getItem('skyward_tool_asset_assignments') || '{}')
     const assets = JSON.parse(localStorage.getItem('skyward_assets') || '[]')
     const getAssetById = (id) => assets.find(a => a.id === id)
-    console.log('Loaded tool-asset assignments:', toolAssets)
-    console.log('Loaded assets:', assets.map(a => ({ id: a.id, name: a.name, type: a.type })))
     // For spawn/teleport
     let playerSpawn = null
     const teleportTriggers = []
-    let debugCellCount = 0;
     for (let z = 0; z < this.mapData.length; z++) {
       for (let x = 0; x < this.mapData[z].length; x++) {
         const cell = this.mapData[z][x]
-        if (debugCellCount < 5) {
-          console.log(`[DEBUG-ALL] Cell at (${x},${z}):`, cell)
-          debugCellCount++
-        }
-        if (cell.asset || (cell.flags && Object.keys(cell.flags).length > 0)) {
-          console.log(`[DEBUG] Cell at (${x},${z}):`, cell)
-        }
         // 1. Terrain mesh
         let terrainAssetId = toolAssets[cell.type] || null
         let terrainAsset = terrainAssetId ? getAssetById(terrainAssetId) : null
         if (terrainAsset && terrainAsset.id) {
           const base64 = await idbGet(terrainAsset.id)
           if (base64) {
-            console.log(`[TERRAIN] Loading terrain asset for type '${cell.type}' at (${x},${z}):`, terrainAsset)
             await this.loadGLBFromBase64(base64, `terrain_${x}_${z}`)
           } else {
             console.warn(`[TERRAIN] No GLB data found in IndexedDB for terrain asset '${terrainAsset.id}' at (${x},${z}), using default box.`)
@@ -608,7 +577,6 @@ class BabylonGameEngine {
           if (asset && asset.id) {
             const base64 = await idbGet(asset.id)
             if (base64) {
-              console.log(`[ASSET] Loading placed asset at (${x},${z}):`, asset)
               try {
                 const meshes = await this.loadGLBFromBase64(base64, `asset_${x}_${z}`)
                 // Set Y position to 0.1 for all loaded meshes
@@ -629,14 +597,12 @@ class BabylonGameEngine {
         if (cell.flags) {
           // Spawn
           if (cell.flags.spawn) {
-            console.log(`[SPAWN] Found player spawn at (${x},${z})`)
             if (!playerSpawn) {
               playerSpawn = { x, z }
             }
           }
           // Tree spawn
           if (cell.flags.tree_spawn) {
-            console.log(`[TREE] Found tree spawn at (${x},${z})`)
             // If you have a tree asset, try to load it here (add your logic)
           }
           // Teleport
@@ -655,7 +621,6 @@ class BabylonGameEngine {
     if (playerSpawn && this.babylonCharacter) {
       this.babylonCharacter.setPosition(new BABYLON.Vector3(playerSpawn.x, 1, playerSpawn.z))
       this.camera.setTarget(this.babylonCharacter.getPosition())
-      console.log('Player spawned at:', playerSpawn)
     } else {
       console.warn('No player spawn point found in map!')
     }
@@ -674,7 +639,6 @@ class BabylonGameEngine {
         }
       }
     })
-    console.log('✅ 3D world generated from map!')
   }
 
   /**
@@ -775,12 +739,10 @@ class BabylonGameEngine {
         { mass: 0, restitution: 0.3, friction: 0.8 },
         this.scene
       )
-      console.log('✅ Terrain physics enabled')
     } else {
       console.log('✅ Terrain created without physics (fallback mode)')
     }
     
-    console.log('✅ Terrain created with procedural materials and physics')
   }
 
   /**
@@ -828,7 +790,6 @@ class BabylonGameEngine {
     
     this.waterMesh = waterMesh
     
-    console.log('✅ Advanced water system created with reflections')
   }
 
   /**
@@ -904,7 +865,6 @@ class BabylonGameEngine {
     // Hide original
     treeMesh.setEnabled(false)
     
-    console.log(`✅ Created ${treePositions.length} instanced trees with physics`)
   }
 
   /**
@@ -952,8 +912,6 @@ class BabylonGameEngine {
     // Update camera target
     this.camera.setTarget(this.babylonCharacter.getPosition())
     
-    console.log('✅ Enhanced player character created with GLB model and elemental effects')
-    return characterGroup
   }
 
   /**
@@ -978,7 +936,6 @@ class BabylonGameEngine {
     // Optimize materials
     this.scene.cleanCachedTextureBuffer()
     
-    console.log('✅ Optimizations enabled')
   }
 
   /**
@@ -1101,7 +1058,6 @@ class BabylonGameEngine {
       this.engine.resize()
     })
     
-    console.log('✅ Render loop started')
   }
 
   /**
@@ -1133,7 +1089,6 @@ class BabylonGameEngine {
     }
     this.gameObjects.set(id, object)
     
-    console.log(`BabylonGameEngine: Added game object ${id}`)
   }
 
   /**
@@ -1148,7 +1103,6 @@ class BabylonGameEngine {
     }
     
     this.gameObjects.delete(id)
-    console.log(`BabylonGameEngine: Removed game object ${id}`)
   }
 
   /**
