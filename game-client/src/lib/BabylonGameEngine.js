@@ -558,6 +558,7 @@ class BabylonGameEngine {
    * Create the game world
    */
   async createWorld() {
+    console.log('>>> ENTERED createWorld, mapData:', this.mapData)
     console.log('BabylonGameEngine: Creating game world from map data...')
     if (!this.mapData) {
       console.warn('No map data found! Falling back to default terrain.')
