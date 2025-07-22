@@ -553,6 +553,9 @@ class BabylonGameEngine {
     const toolAssets = JSON.parse(localStorage.getItem('skyward_tool_asset_assignments') || '{}')
     const assets = JSON.parse(localStorage.getItem('skyward_assets') || '[]')
     const getAssetById = (id) => assets.find(a => a.id === id)
+    // For spawn/teleport
+    let playerSpawn = null
+    const teleportTriggers = []
     // Place terrain and assets
     for (let z = 0; z < this.mapData.length; z++) {
       for (let x = 0; x < this.mapData[z].length; x++) {
@@ -561,10 +564,8 @@ class BabylonGameEngine {
         let terrainAssetId = toolAssets[cell.type] || null
         let terrainAsset = terrainAssetId ? getAssetById(terrainAssetId) : null
         if (terrainAsset && terrainAsset.data) {
-          // Place terrain mesh from asset (GLB)
           await this.loadGLBFromBase64(terrainAsset.data, `terrain_${x}_${z}`)
         } else {
-          // Place default ground box
           const box = BABYLON.MeshBuilder.CreateBox(`ground_${x}_${z}`, { width: 1, height: 0.2, depth: 1 }, this.scene)
           box.position = new BABYLON.Vector3(x, 0, z)
           box.material = new BABYLON.StandardMaterial('groundMat', this.scene)
@@ -577,11 +578,74 @@ class BabylonGameEngine {
             await this.loadGLBFromBase64(asset.data, `asset_${x}_${z}`)
           }
         }
-        // 3. Flags (spawn, teleport, etc.) - stub
-        // TODO: Implement spawn/teleport logic
+        // 3. Flags
+        if (cell.flags) {
+          // Spawn
+          if (cell.flags.spawn && !playerSpawn) {
+            playerSpawn = { x, z }
+          }
+          // Teleport
+          if (cell.flags.teleport) {
+            // Create invisible trigger box
+            const trigger = BABYLON.MeshBuilder.CreateBox(`teleport_${x}_${z}`, { width: 1, height: 1, depth: 1 }, this.scene)
+            trigger.position = new BABYLON.Vector3(x, 0.5, z)
+            trigger.isVisible = false
+            trigger.isPickable = false
+            trigger.metadata = { teleport: cell.flags.teleport }
+            teleportTriggers.push(trigger)
+          }
+        }
       }
     }
+    // Place player at spawn
+    if (playerSpawn && this.babylonCharacter) {
+      this.babylonCharacter.setPosition(new BABYLON.Vector3(playerSpawn.x, 2, playerSpawn.z))
+      this.camera.setTarget(this.babylonCharacter.getPosition())
+    }
+    // Teleport logic: check player collision with triggers
+    this.scene.registerBeforeRender(() => {
+      if (!this.babylonCharacter) return
+      const pos = this.babylonCharacter.getPosition()
+      for (const trigger of teleportTriggers) {
+        if (BABYLON.Vector3.Distance(trigger.position, pos) < 0.7) {
+          const tp = trigger.metadata.teleport
+          if (tp && tp.toMapId) {
+            // Load destination map and move player
+            this.loadMapAndTeleport(tp.toMapId)
+            break
+          }
+        }
+      }
+    })
     console.log('✅ 3D world generated from map!')
+  }
+
+  /**
+   * Load a map by ID and teleport player to first spawn or first cell
+   */
+  async loadMapAndTeleport(mapId) {
+    this.mapData = this.loadMapData(mapId)
+    if (!this.mapData) return
+    // Remove all meshes from scene
+    this.scene.meshes.slice().forEach(m => m.dispose())
+    // Rebuild world
+    await this.createWorld()
+    // Place player at spawn or (0,0)
+    let spawn = null
+    for (let z = 0; z < this.mapData.length; z++) {
+      for (let x = 0; x < this.mapData[z].length; x++) {
+        if (this.mapData[z][x].flags && this.mapData[z][x].flags.spawn) {
+          spawn = { x, z }
+          break
+        }
+      }
+      if (spawn) break
+    }
+    if (!spawn) spawn = { x: 0, z: 0 }
+    if (this.babylonCharacter) {
+      this.babylonCharacter.setPosition(new BABYLON.Vector3(spawn.x, 2, spawn.z))
+      this.camera.setTarget(this.babylonCharacter.getPosition())
+    }
   }
 
   /**
