@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import BabylonGameEngine from '../lib/BabylonGameEngine'
 import PerformanceMonitor from './PerformanceMonitor'
+import PlayerManager from '../lib/PlayerManager'
 
 const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGameEngineReady }) => {
   const mountRef = useRef(null)
