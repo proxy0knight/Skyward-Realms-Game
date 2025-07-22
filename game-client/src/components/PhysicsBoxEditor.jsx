@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { get } from 'idb-keyval'
+import { get, set } from 'idb-keyval'
+
+const PHYSICS_BOXES_KEY = 'skyward_physics_boxes_' // + asset.id
 
 const PhysicsBoxEditor = ({ asset, onClose }) => {
   const canvasRef = useRef(null)
@@ -54,13 +56,21 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
     }
   }, [asset])
 
+  // Load saved boxes from IndexedDB/localStorage
+  useEffect(() => {
+    async function loadBoxes() {
+      const saved = await get(PHYSICS_BOXES_KEY + asset.id)
+      if (saved && Array.isArray(saved)) setBoxes(saved)
+      else setBoxes([])
+    }
+    loadBoxes()
+  }, [asset])
+
   // Render and update physics boxes
   useEffect(() => {
     if (!sceneReady || !sceneRef.current) return
-    // Remove old box meshes
     Object.values(boxMeshMap.current).forEach(m => m.dispose())
     boxMeshMap.current = {}
-    // Render each box
     boxes.forEach((box, i) => {
       const mesh = window.BABYLON.MeshBuilder.CreateBox('physbox_' + box.id, { width: box.size?.x || 1, height: box.size?.y || 1, depth: box.size?.z || 1 }, sceneRef.current)
       mesh.position = new window.BABYLON.Vector3(
@@ -81,7 +91,6 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
       mesh.material = new window.BABYLON.StandardMaterial('physboxmat_' + box.id, sceneRef.current)
       mesh.material.wireframe = true
       boxMeshMap.current[box.id] = mesh
-      // Click to select
       mesh.actionManager = new window.BABYLON.ActionManager(sceneRef.current)
       mesh.actionManager.registerAction(new window.BABYLON.ExecuteCodeAction(window.BABYLON.ActionManager.OnPickTrigger, () => {
         setSelectedBox(box)
@@ -108,7 +117,6 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
     const mesh = boxMeshMap.current[selectedBox.id]
     if (mesh) {
       gizmoManagerRef.current.attachToMesh(mesh)
-      // Update box state on transform
       mesh.onAfterWorldMatrixUpdateObservable.add(() => {
         setBoxes(prev => prev.map(b => b.id === selectedBox.id ? {
           ...b,
@@ -148,6 +156,25 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
     setSelectedBox(null)
   }
 
+  // Change part/mesh attachment for a box
+  const handleChangeBoxPart = (boxId, meshName) => {
+    setBoxes(prev => prev.map(b => b.id === boxId ? { ...b, meshName } : b))
+  }
+
+  // Save boxes to IndexedDB/localStorage
+  const handleSaveBoxes = async () => {
+    await set(PHYSICS_BOXES_KEY + asset.id, boxes)
+    alert('Physics boxes saved!')
+  }
+
+  // Load boxes (manual reload)
+  const handleLoadBoxes = async () => {
+    const saved = await get(PHYSICS_BOXES_KEY + asset.id)
+    if (saved && Array.isArray(saved)) setBoxes(saved)
+    else setBoxes([])
+    alert('Physics boxes loaded!')
+  }
+
   return (
     <div className="flex w-[900px] h-[600px] bg-black rounded-xl overflow-hidden">
       {/* Sidebar */}
@@ -172,7 +199,20 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
               className={`px-2 py-1 rounded cursor-pointer ${selectedBox?.id === box.id ? 'bg-green-700 text-white' : 'text-green-300 hover:bg-green-600'}`}
               onClick={() => setSelectedBox(box)}
             >
-              Box {box.id}
+              Box {box.id.slice(-6)}
+              <div className="text-xs text-purple-400 mt-1">
+                <span>Part: </span>
+                <select
+                  value={box.meshName || ''}
+                  onChange={e => handleChangeBoxPart(box.id, e.target.value)}
+                  className="bg-black/40 border border-purple-700 rounded px-1 py-0.5 text-xs text-purple-200"
+                >
+                  <option value="">(root/origin)</option>
+                  {hierarchy.map(part => (
+                    <option key={part.id} value={part.name}>{part.name}</option>
+                  ))}
+                </select>
+              </div>
             </li>
           ))}
         </ul>
@@ -180,12 +220,15 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
           <button className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded" onClick={handleAddBox}>+ Add Box</button>
           <button className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded" onClick={handleRemoveBox} disabled={!selectedBox}>- Remove</button>
         </div>
+        <div className="mt-4 flex gap-2">
+          <button className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded" onClick={handleSaveBoxes}>Save</button>
+          <button className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded" onClick={handleLoadBoxes}>Load</button>
+        </div>
         <button className="mt-6 bg-purple-800 hover:bg-purple-900 text-white px-3 py-1 rounded" onClick={onClose}>Close</button>
       </div>
       {/* 3D Preview */}
       <div className="flex-1 relative bg-black">
         <canvas ref={canvasRef} className="w-full h-full block" />
-        {/* TODO: Add transform controls, overlays, etc. */}
       </div>
     </div>
   )
