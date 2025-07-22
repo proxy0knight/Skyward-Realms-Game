@@ -553,13 +553,25 @@ class BabylonGameEngine {
         if (terrainAsset && terrainAsset.id) {
           const base64 = await idbGet(terrainAsset.id)
           if (base64) {
-            await this.loadGLBFromBase64(base64, `terrain_${x}_${z}`)
+            try {
+              const meshes = await this.loadGLBFromBase64(base64, `terrain_${x}_${z}`)
+              console.log(`[createWorld] Loaded terrain GLB for (${x},${z}):`, meshes)
+              this.ensurePhysicsBox(meshes, new BABYLON.Vector3(x, 0, z), {width: 1, height: 0.2, depth: 1})
+            } catch (e) {
+              console.warn(`[createWorld] Failed to load terrain GLB for (${x},${z}):`, e)
+              const box = BABYLON.MeshBuilder.CreateBox(`ground_${x}_${z}`, { width: 1, height: 0.2, depth: 1 }, this.scene)
+              box.position = new BABYLON.Vector3(x, 0, z)
+              box.material = new BABYLON.StandardMaterial('groundMat', this.scene)
+              box.material.diffuseColor = new BABYLON.Color3(0.2, 0.7, 0.3)
+              this.ensurePhysicsBox(box, new BABYLON.Vector3(x, 0, z), {width: 1, height: 0.2, depth: 1})
+            }
           } else {
             console.warn(`[TERRAIN] No GLB data found in IndexedDB for terrain asset '${terrainAsset.id}' at (${x},${z}), using default box.`)
             const box = BABYLON.MeshBuilder.CreateBox(`ground_${x}_${z}`, { width: 1, height: 0.2, depth: 1 }, this.scene)
             box.position = new BABYLON.Vector3(x, 0, z)
             box.material = new BABYLON.StandardMaterial('groundMat', this.scene)
             box.material.diffuseColor = new BABYLON.Color3(0.2, 0.7, 0.3)
+            this.ensurePhysicsBox(box, new BABYLON.Vector3(x, 0, z), {width: 1, height: 0.2, depth: 1})
           }
         } else {
           if (terrainAssetId) {
@@ -569,6 +581,7 @@ class BabylonGameEngine {
           box.position = new BABYLON.Vector3(x, 0, z)
           box.material = new BABYLON.StandardMaterial('groundMat', this.scene)
           box.material.diffuseColor = new BABYLON.Color3(0.2, 0.7, 0.3)
+          this.ensurePhysicsBox(box, new BABYLON.Vector3(x, 0, z), {width: 1, height: 0.2, depth: 1})
         }
         // 2. Asset mesh
         if (cell.asset) {
@@ -578,18 +591,14 @@ class BabylonGameEngine {
             if (base64) {
               try {
                 const meshes = await this.loadGLBFromBase64(base64, `asset_${x}_${z}`)
-                // In asset placement (GLB or fallback):
-                if (Array.isArray(meshes) && meshes.length > 0) {
-                  this.ensurePhysicsBox(meshes, new BABYLON.Vector3(x, 0.5, z), {width: 1, height: 1, depth: 1})
-                } else {
-                  // Fallback: create a visible placeholder mesh
-                  const placeholder = BABYLON.MeshBuilder.CreateBox(`assetplaceholder_${x}_${z}`, { width: 1, height: 1, depth: 1 }, this.scene)
-                  placeholder.material = new BABYLON.StandardMaterial('assetBoxMat', this.scene)
-                  placeholder.material.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2)
-                  this.ensurePhysicsBox(placeholder, new BABYLON.Vector3(x, 0.5, z), {width: 1, height: 1, depth: 1})
-                }
+                console.log(`[createWorld] Loaded asset GLB for (${x},${z}):`, meshes)
+                this.ensurePhysicsBox(meshes, new BABYLON.Vector3(x, 0.5, z), {width: 1, height: 1, depth: 1})
               } catch (e) {
                 console.error(`[ASSET] Failed to load GLB for asset '${asset.id}' at (${x},${z}):`, e)
+                const placeholder = BABYLON.MeshBuilder.CreateBox(`assetplaceholder_${x}_${z}`, { width: 1, height: 1, depth: 1 }, this.scene)
+                placeholder.material = new BABYLON.StandardMaterial('assetBoxMat', this.scene)
+                placeholder.material.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2)
+                this.ensurePhysicsBox(placeholder, new BABYLON.Vector3(x, 0.5, z), {width: 1, height: 1, depth: 1})
               }
             } else {
               console.warn(`[ASSET] No GLB data found in IndexedDB for asset '${asset.id}' at (${x},${z})`)
@@ -1197,42 +1206,89 @@ class BabylonGameEngine {
   }
 
   /**
-   * Universal helper: ensure an invisible physics box for any object
+   * Universal helper: ensure an invisible physics box for any object (mesh, group, or node)
+   * - If mesh: assign impostor if not present
+   * - If not mesh: create box at object's world position (if available), parent all children
+   * - Always logs what is being processed
    */
   ensurePhysicsBox(meshOrMeshes, position, size = {width:1, height:1, depth:1}) {
     const meshes = Array.isArray(meshOrMeshes) ? meshOrMeshes : [meshOrMeshes]
+    // Log all objects passed
+    meshes.forEach((m, i) => {
+      if (!m) {
+        console.warn(`[PhysicsBox] [${i}] is null/undefined`)
+      } else if (m instanceof BABYLON.Mesh) {
+        console.log(`[PhysicsBox] [${i}] Mesh:`, m.name, 'Vertices:', m.getTotalVertices())
+      } else if (m instanceof BABYLON.TransformNode) {
+        console.log(`[PhysicsBox] [${i}] TransformNode:`, m.name)
+      } else {
+        console.log(`[PhysicsBox] [${i}] Unknown type:`, m)
+      }
+    })
     // Find a mesh suitable for physics
     const validMesh = meshes.find(m => m && m instanceof BABYLON.Mesh && m.getTotalVertices() > 0)
     if (validMesh && this.physicsEngine) {
       // Already suitable, assign impostor if not present
       if (!validMesh.physicsImpostor) {
-        validMesh.physicsImpostor = new BABYLON.PhysicsImpostor(
-          validMesh,
-          BABYLON.PhysicsImpostor.BoxImpostor,
-          { mass: 0, restitution: 0.3, friction: 0.8 },
-          this.scene
-        )
+        try {
+          validMesh.physicsImpostor = new BABYLON.PhysicsImpostor(
+            validMesh,
+            BABYLON.PhysicsImpostor.BoxImpostor,
+            { mass: 0, restitution: 0.3, friction: 0.8 },
+            this.scene
+          )
+          console.log(`[PhysicsBox] Assigned impostor to mesh:`, validMesh.name)
+        } catch (e) {
+          console.warn(`[PhysicsBox] Failed to assign impostor to mesh:`, validMesh.name, e)
+        }
       }
       return validMesh
     } else {
-      // Create invisible physics box
+      // Not a mesh, or no valid mesh found: create invisible physics box
+      // Try to use world position of first node if available
+      let boxPos = position ? position.clone() : new BABYLON.Vector3(0,0,0)
+      const firstNode = meshes.find(m => m && typeof m.getAbsolutePosition === 'function')
+      if (firstNode) {
+        try {
+          const absPos = firstNode.getAbsolutePosition()
+          if (absPos && absPos.x !== undefined) {
+            boxPos = absPos.clone()
+            console.log(`[PhysicsBox] Using absolute position of node for box:`, boxPos)
+          }
+        } catch (e) {
+          console.warn(`[PhysicsBox] Could not get absolute position of node:`, e)
+        }
+      }
       const box = BABYLON.MeshBuilder.CreateBox('univ_physbox_' + Math.random().toString(36).substr(2,6), size, this.scene)
-      box.position = position.clone()
+      box.position = boxPos
       box.isVisible = false
       if (this.physicsEngine && box && box instanceof BABYLON.Mesh) {
-        box.physicsImpostor = new BABYLON.PhysicsImpostor(
-          box,
-          BABYLON.PhysicsImpostor.BoxImpostor,
-          { mass: 0, restitution: 0.3, friction: 0.8 },
-          this.scene
-        )
+        try {
+          box.physicsImpostor = new BABYLON.PhysicsImpostor(
+            box,
+            BABYLON.PhysicsImpostor.BoxImpostor,
+            { mass: 0, restitution: 0.3, friction: 0.8 },
+            this.scene
+          )
+          console.log(`[PhysicsBox] Assigned impostor to box at:`, box.position)
+        } catch (e) {
+          console.warn(`[PhysicsBox] Failed to assign impostor to box:`, e)
+        }
       }
-      // Parent all visible meshes to the box
+      // Parent all visible meshes/nodes to the box
       meshes.forEach(m => {
         if (m) {
-          m.position = new BABYLON.Vector3(0, 0, 0)
-          m.parent = box
-          m.isVisible = true
+          if (typeof m.setParent === 'function') {
+            m.setParent(box)
+            if (m.position) m.position = new BABYLON.Vector3(0, 0, 0)
+            m.isVisible = true
+            console.log(`[PhysicsBox] Parented node/mesh to box:`, m.name)
+          } else if ('parent' in m) {
+            m.parent = box
+            if (m.position) m.position = new BABYLON.Vector3(0, 0, 0)
+            m.isVisible = true
+            console.log(`[PhysicsBox] Parented node/mesh to box (fallback):`, m.name)
+          }
         }
       })
       return box
