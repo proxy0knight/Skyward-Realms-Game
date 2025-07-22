@@ -547,6 +547,7 @@ class BabylonGameEngine {
   async createWorld() {
     console.log('BabylonGameEngine: Creating game world from map data...')
     if (!this.mapData) {
+      console.warn('No map data found! Falling back to default terrain.')
       await this.createTerrain() // fallback
       return
     }
@@ -554,6 +555,8 @@ class BabylonGameEngine {
     const toolAssets = JSON.parse(localStorage.getItem('skyward_tool_asset_assignments') || '{}')
     const assets = JSON.parse(localStorage.getItem('skyward_assets') || '[]')
     const getAssetById = (id) => assets.find(a => a.id === id)
+    console.log('Loaded tool-asset assignments:', toolAssets)
+    console.log('Loaded assets:', assets.map(a => ({ id: a.id, name: a.name, type: a.type })))
     // For spawn/teleport
     let playerSpawn = null
     const teleportTriggers = []
@@ -565,18 +568,21 @@ class BabylonGameEngine {
         let terrainAssetId = toolAssets[cell.type] || null
         let terrainAsset = terrainAssetId ? getAssetById(terrainAssetId) : null
         if (terrainAsset && terrainAsset.id) {
-          // Place terrain mesh from asset (GLB) using IndexedDB
           const base64 = await idbGet(terrainAsset.id)
           if (base64) {
+            console.log(`Loading terrain asset for type '${cell.type}' at (${x},${z}):`, terrainAsset)
             await this.loadGLBFromBase64(base64, `terrain_${x}_${z}`)
           } else {
-            // fallback to default
+            console.warn(`No GLB data found in IndexedDB for terrain asset '${terrainAsset.id}' at (${x},${z}), using default box.`)
             const box = BABYLON.MeshBuilder.CreateBox(`ground_${x}_${z}`, { width: 1, height: 0.2, depth: 1 }, this.scene)
             box.position = new BABYLON.Vector3(x, 0, z)
             box.material = new BABYLON.StandardMaterial('groundMat', this.scene)
             box.material.diffuseColor = new BABYLON.Color3(0.2, 0.7, 0.3)
           }
         } else {
+          if (terrainAssetId) {
+            console.warn(`No asset found for terrain type '${cell.type}' with id '${terrainAssetId}' at (${x},${z}), using default box.`)
+          }
           const box = BABYLON.MeshBuilder.CreateBox(`ground_${x}_${z}`, { width: 1, height: 0.2, depth: 1 }, this.scene)
           box.position = new BABYLON.Vector3(x, 0, z)
           box.material = new BABYLON.StandardMaterial('groundMat', this.scene)
@@ -588,8 +594,13 @@ class BabylonGameEngine {
           if (asset && asset.id) {
             const base64 = await idbGet(asset.id)
             if (base64) {
+              console.log(`Loading placed asset at (${x},${z}):`, asset)
               await this.loadGLBFromBase64(base64, `asset_${x}_${z}`)
+            } else {
+              console.warn(`No GLB data found in IndexedDB for asset '${asset.id}' at (${x},${z})`)
             }
+          } else {
+            console.warn(`No asset found for placed asset id '${cell.asset}' at (${x},${z})`)
           }
         }
         // 3. Flags
@@ -600,7 +611,6 @@ class BabylonGameEngine {
           }
           // Teleport
           if (cell.flags.teleport) {
-            // Create invisible trigger box
             const trigger = BABYLON.MeshBuilder.CreateBox(`teleport_${x}_${z}`, { width: 1, height: 1, depth: 1 }, this.scene)
             trigger.position = new BABYLON.Vector3(x, 0.5, z)
             trigger.isVisible = false
@@ -615,6 +625,9 @@ class BabylonGameEngine {
     if (playerSpawn && this.babylonCharacter) {
       this.babylonCharacter.setPosition(new BABYLON.Vector3(playerSpawn.x, 2, playerSpawn.z))
       this.camera.setTarget(this.babylonCharacter.getPosition())
+      console.log('Player spawned at:', playerSpawn)
+    } else {
+      console.warn('No player spawn point found in map!')
     }
     // Teleport logic: check player collision with triggers
     this.scene.registerBeforeRender(() => {
@@ -624,7 +637,7 @@ class BabylonGameEngine {
         if (BABYLON.Vector3.Distance(trigger.position, pos) < 0.7) {
           const tp = trigger.metadata.teleport
           if (tp && tp.toMapId) {
-            // Load destination map and move player
+            console.log('Teleporting to map:', tp.toMapId)
             this.loadMapAndTeleport(tp.toMapId)
             break
           }
