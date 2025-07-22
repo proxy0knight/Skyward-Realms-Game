@@ -6,11 +6,21 @@ import BabylonCharacter from "./BabylonCharacter.js"
 import { CannonJSPlugin } from "/node_modules/.vite/deps/@babylonjs_core_Physics_Plugins_cannonJSPlugin.js?v=5360064b"
 
 // Import camera controls and inputs
+<<<<<<< HEAD
 import "/node_modules/.vite/deps/@babylonjs_core_Cameras_arcRotateCamera.js?v=5360064b"
 import "/node_modules/.vite/deps/@babylonjs_core_Cameras_universalCamera.js?v=5360064b"
 import "/node_modules/.vite/deps/@babylonjs_core_Cameras_Inputs_arcRotateCameraPointersInput.js?v=5360064b"
 import "/node_modules/.vite/deps/@babylonjs_core_Cameras_Inputs_arcRotateCameraKeyboardMoveInput.js?v=5360064b"
 import { get as idbGet } from "/node_modules/.vite/deps/idb-keyval.js?v=5360064b"
+=======
+import '@babylonjs/core/Cameras/arcRotateCamera'
+import '@babylonjs/core/Cameras/universalCamera'
+import '@babylonjs/core/Cameras/Inputs/arcRotateCameraPointersInput'
+import '@babylonjs/core/Cameras/Inputs/arcRotateCameraKeyboardMoveInput'
+import { get as idbGet, set as idbSet } from 'idb-keyval'
+
+const PHYSICS_BOXES_KEY = 'skyward_physics_boxes_'
+>>>>>>> 6436b85a743e7d7404707ca194f2670c373c9826
 
 class BabylonGameEngine {
   constructor() {
@@ -555,8 +565,44 @@ class BabylonGameEngine {
           if (base64) {
             try {
               const meshes = await this.loadGLBFromBase64(base64, `terrain_${x}_${z}`)
-              console.log(`[createWorld] Loaded terrain GLB for (${x},${z}):`, meshes)
-              this.ensurePhysicsBox(meshes, new BABYLON.Vector3(x, 0, z), {width: 1, height: 0.2, depth: 1})
+              const boxConfig = await idbGet(PHYSICS_BOXES_KEY + terrainAsset.id)
+              if (boxConfig && Array.isArray(boxConfig) && boxConfig.length > 0) {
+                boxConfig.forEach(box => {
+                  let targetNode = null
+                  if (box.meshName) {
+                    targetNode = meshes.find(m => m.name === box.meshName)
+                  }
+                  if (!targetNode) targetNode = meshes[0]
+                  if (targetNode) {
+                    const impostorBox = BABYLON.MeshBuilder.CreateBox('admin_physbox_' + Math.random().toString(36).substr(2,6), box.size, this.scene)
+                    impostorBox.position = new BABYLON.Vector3(box.position.x, box.position.y, box.position.z)
+                    impostorBox.rotation = new BABYLON.Vector3(box.rotation.x, box.rotation.y, box.rotation.z)
+                    impostorBox.isVisible = false
+                    impostorBox.metadata = { _adminPhysicsBox: true, _targetNodeName: targetNode.name }
+                    impostorBox.parent = targetNode
+                    if (this.physicsEngine) {
+                      impostorBox.physicsImpostor = new BABYLON.PhysicsImpostor(
+                        impostorBox,
+                        BABYLON.PhysicsImpostor.BoxImpostor,
+                        { mass: 0, restitution: 0.3, friction: 0.8 },
+                        this.scene
+                      )
+                    }
+                    // Animation sync: update impostor transform to follow node
+                    this.scene.onBeforeRenderObservable.add(() => {
+                      if (!targetNode || !impostorBox) return
+                      const world = targetNode.getWorldMatrix()
+                      impostorBox.position = BABYLON.Vector3.TransformCoordinates(new BABYLON.Vector3(box.position.x, box.position.y, box.position.z), world)
+                      impostorBox.rotation = targetNode.rotation ? targetNode.rotation.clone() : impostorBox.rotation
+                    })
+                  } else {
+                    console.warn('[PhysicsBox] Target node not found for box:', box.meshName, 'Falling back to root.')
+                    this.ensurePhysicsBox(meshes, new BABYLON.Vector3(x, 0, z), {width: 1, height: 0.2, depth: 1})
+                  }
+                })
+              } else {
+                this.ensurePhysicsBox(meshes, new BABYLON.Vector3(x, 0, z), {width: 1, height: 0.2, depth: 1})
+              }
             } catch (e) {
               console.warn(`[createWorld] Failed to load terrain GLB for (${x},${z}):`, e)
               const box = BABYLON.MeshBuilder.CreateBox(`ground_${x}_${z}`, { width: 1, height: 0.2, depth: 1 }, this.scene)
@@ -591,8 +637,44 @@ class BabylonGameEngine {
             if (base64) {
               try {
                 const meshes = await this.loadGLBFromBase64(base64, `asset_${x}_${z}`)
-                console.log(`[createWorld] Loaded asset GLB for (${x},${z}):`, meshes)
-                this.ensurePhysicsBox(meshes, new BABYLON.Vector3(x, 0.5, z), {width: 1, height: 1, depth: 1})
+                const boxConfig = await idbGet(PHYSICS_BOXES_KEY + asset.id)
+                if (boxConfig && Array.isArray(boxConfig) && boxConfig.length > 0) {
+                  boxConfig.forEach(box => {
+                    let targetNode = null
+                    if (box.meshName) {
+                      targetNode = meshes.find(m => m.name === box.meshName)
+                    }
+                    if (!targetNode) targetNode = meshes[0]
+                    if (targetNode) {
+                      const impostorBox = BABYLON.MeshBuilder.CreateBox('admin_physbox_' + Math.random().toString(36).substr(2,6), box.size, this.scene)
+                      impostorBox.position = new BABYLON.Vector3(box.position.x, box.position.y, box.position.z)
+                      impostorBox.rotation = new BABYLON.Vector3(box.rotation.x, box.rotation.y, box.rotation.z)
+                      impostorBox.isVisible = false
+                      impostorBox.metadata = { _adminPhysicsBox: true, _targetNodeName: targetNode.name }
+                      impostorBox.parent = targetNode
+                      if (this.physicsEngine) {
+                        impostorBox.physicsImpostor = new BABYLON.PhysicsImpostor(
+                          impostorBox,
+                          BABYLON.PhysicsImpostor.BoxImpostor,
+                          { mass: 0, restitution: 0.3, friction: 0.8 },
+                          this.scene
+                        )
+                      }
+                      // Animation sync: update impostor transform to follow node
+                      this.scene.onBeforeRenderObservable.add(() => {
+                        if (!targetNode || !impostorBox) return
+                        const world = targetNode.getWorldMatrix()
+                        impostorBox.position = BABYLON.Vector3.TransformCoordinates(new BABYLON.Vector3(box.position.x, box.position.y, box.position.z), world)
+                        impostorBox.rotation = targetNode.rotation ? targetNode.rotation.clone() : impostorBox.rotation
+                      })
+                    } else {
+                      console.warn('[PhysicsBox] Target node not found for box:', box.meshName, 'Falling back to root.')
+                      this.ensurePhysicsBox(meshes, new BABYLON.Vector3(x, 0.5, z), {width: 1, height: 1, depth: 1})
+                    }
+                  })
+                } else {
+                  this.ensurePhysicsBox(meshes, new BABYLON.Vector3(x, 0.5, z), {width: 1, height: 1, depth: 1})
+                }
               } catch (e) {
                 console.error(`[ASSET] Failed to load GLB for asset '${asset.id}' at (${x},${z}):`, e)
                 const placeholder = BABYLON.MeshBuilder.CreateBox(`assetplaceholder_${x}_${z}`, { width: 1, height: 1, depth: 1 }, this.scene)

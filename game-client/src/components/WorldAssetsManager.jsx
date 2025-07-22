@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import PhysicsBoxEditor from './PhysicsBoxEditor'
 
 const defaultRoles = [
   { key: 'terrain', label: 'Terrain Model', type: 'model' },
@@ -13,6 +14,7 @@ const WorldAssetsManager = ({ assets }) => {
   const [assignments, setAssignments] = useState({})
   const [characters, setCharacters] = useState([])
   const [newChar, setNewChar] = useState({ name: '', description: '', modelId: '' })
+  const [selectedAsset, setSelectedAsset] = useState(null)
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -120,6 +122,41 @@ const WorldAssetsManager = ({ assets }) => {
               </div>
             ))}
           </div>
+        </div>
+      </div>
+      <div className="flex w-full h-[600px] bg-black rounded-xl overflow-hidden mt-8">
+        {/* Vertical asset list */}
+        <div className="w-64 bg-black/80 border-r border-purple-700 p-4 flex flex-col overflow-y-auto">
+          <h3 className="text-lg font-bold text-white mb-4">3D Assets</h3>
+          <div className="space-y-4">
+            {assets.filter(a => a.type === 'model').map(asset => (
+              <div
+                key={asset.id}
+                className={`rounded-lg border cursor-pointer transition-all duration-200 ${selectedAsset?.id === asset.id ? 'border-purple-400 bg-purple-500/20' : 'border-purple-500/30 hover:border-purple-400 hover:bg-purple-500/10'}`}
+                onClick={() => setSelectedAsset(asset)}
+              >
+                <div className="p-2 flex flex-col items-center">
+                  {/* Thumbnail preview (could use ModelPreview or a static image) */}
+                  <div className="w-24 h-16 bg-black/60 rounded mb-2 flex items-center justify-center">
+                    {/* TODO: Replace with ModelPreview if available */}
+                    <span className="text-3xl">🎭</span>
+                  </div>
+                  <div className="text-white text-sm font-medium truncate w-full text-center">{asset.name}</div>
+                  <div className="text-purple-300 text-xs w-full text-center">{asset.fileName}</div>
+                  <div className="text-purple-300 text-xs w-full text-center">{asset.category || 'No Category'}</div>
+                  <div className="text-purple-300 text-xs w-full text-center">{asset.size ? `${(asset.size/1024/1024).toFixed(2)} MB` : ''}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Main preview/editor area */}
+        <div className="flex-1 bg-black">
+          {selectedAsset && selectedAsset.type === 'model' ? (
+            <PhysicsBoxEditor asset={selectedAsset} onClose={() => setSelectedAsset(null)} />
+          ) : (
+            <div className="flex items-center justify-center h-full text-purple-300 text-lg">Select a 3D asset to configure physics boxes.</div>
+          )}
         </div>
       </div>
     </div>

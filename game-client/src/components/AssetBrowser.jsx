@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react'
 import Modal from './ui/modal.jsx'
 import { get, del } from 'idb-keyval'
+import PhysicsBoxEditor from './PhysicsBoxEditor'
 
 const AssetBrowser = ({ assets, onSelectAsset, onDeleteAsset, selectedAsset }) => {
   const [searchTerm, setSearchTerm] = useState('')
@@ -12,6 +13,7 @@ const AssetBrowser = ({ assets, onSelectAsset, onDeleteAsset, selectedAsset }) =
   const [editAsset, setEditAsset] = useState(null)
   const [editCategory, setEditCategory] = useState('')
   const [editTags, setEditTags] = useState('')
+  const [physicsEditorAsset, setPhysicsEditorAsset] = useState(null)
 
   const allCategories = Array.from(new Set(assets.map(a => a.category).filter(Boolean)))
   const allTags = Array.from(new Set(assets.flatMap(a => a.tags || [])))
@@ -148,6 +150,15 @@ const AssetBrowser = ({ assets, onSelectAsset, onDeleteAsset, selectedAsset }) =
             >
               🗑️
             </button>
+            {asset.type === 'model' && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setPhysicsEditorAsset(asset) }}
+                className="text-green-400 hover:text-green-300 transition-colors"
+                title="Configure Physics Boxes"
+              >
+                🧊 Configure Physics
+              </button>
+            )}
           </div>
         </div>
         {/* Category and Tags */}
@@ -479,6 +490,13 @@ const AssetBrowser = ({ assets, onSelectAsset, onDeleteAsset, selectedAsset }) =
               >Save</button>
             </div>
           </div>
+        </Modal>
+      )}
+
+      {/* Physics Box Editor Modal */}
+      {physicsEditorAsset && (
+        <Modal onClose={() => setPhysicsEditorAsset(null)}>
+          <PhysicsBoxEditor asset={physicsEditorAsset} onClose={() => setPhysicsEditorAsset(null)} />
         </Modal>
       )}
     </div>
