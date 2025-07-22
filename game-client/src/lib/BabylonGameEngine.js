@@ -1207,16 +1207,13 @@ class BabylonGameEngine {
 
   /**
    * Universal helper: ensure an invisible physics box for any object (mesh, group, or node)
-   * - If mesh: assign impostor if not present
-   * - If not mesh: create box at object's world position (if available), parent all children
-   * - Always logs what is being processed
+   * - If mesh: assign impostor if not present, do not parent or move
+   * - If not mesh: create box at object's world position (if available), parent object to box
+   * - For terrain/ground, use a thin box (height: 0.1 or 0.2)
+   * - No merging or moving to origin
    */
   ensurePhysicsBox(meshOrMeshes, position, size = {width:1, height:1, depth:1}) {
-<<<<<<< HEAD
-    const meshes = Array.isArray(meshOrMeshes) ? meshOrMeshes : [meshOrMeshes];
-=======
     const meshes = Array.isArray(meshOrMeshes) ? meshOrMeshes : [meshOrMeshes]
-    // Log all objects passed
     meshes.forEach((m, i) => {
       if (!m) {
         console.warn(`[PhysicsBox] [${i}] is null/undefined`)
@@ -1228,45 +1225,34 @@ class BabylonGameEngine {
         console.log(`[PhysicsBox] [${i}] Unknown type:`, m)
       }
     })
->>>>>>> b3e06c084cbf492c07b5ef18d5855bed6ea12c26
-    // Find a mesh suitable for physics
-    const validMesh = meshes.find(m => m && m instanceof BABYLON.Mesh && m.getTotalVertices() > 0 && !m.isDisposed && (!m.isDisposed() || m.isDisposed === undefined) && m.isReady && m.isReady());
-    if (validMesh && this.physicsEngine) {
-      if (!validMesh.physicsImpostor) {
-        try {
-          validMesh.physicsImpostor = new BABYLON.PhysicsImpostor(
-            validMesh,
-            BABYLON.PhysicsImpostor.BoxImpostor,
-            { mass: 0, restitution: 0.3, friction: 0.8 },
-            this.scene
-<<<<<<< HEAD
-          );
-        } catch (e) {
-          console.warn('Failed to assign physics impostor to mesh:', validMesh, e);
-=======
-          )
-          console.log(`[PhysicsBox] Assigned impostor to mesh:`, validMesh.name)
-        } catch (e) {
-          console.warn(`[PhysicsBox] Failed to assign impostor to mesh:`, validMesh.name, e)
->>>>>>> b3e06c084cbf492c07b5ef18d5855bed6ea12c26
+    // Assign impostor to each mesh
+    let anyPhysics = false
+    meshes.forEach((m) => {
+      if (m && m instanceof BABYLON.Mesh && m.getTotalVertices() > 0) {
+        if (!m.physicsImpostor && this.physicsEngine) {
+          // Use thin box for ground/terrain
+          let impostorSize = size
+          if (m.name && m.name.startsWith('ground')) {
+            impostorSize = { width: size.width, height: 0.1, depth: size.depth }
+          }
+          try {
+            m.physicsImpostor = new BABYLON.PhysicsImpostor(
+              m,
+              BABYLON.PhysicsImpostor.BoxImpostor,
+              { mass: 0, restitution: 0.3, friction: 0.8 },
+              this.scene
+            )
+            console.log(`[PhysicsBox] Assigned impostor to mesh:`, m.name)
+            anyPhysics = true
+          } catch (e) {
+            console.warn(`[PhysicsBox] Failed to assign impostor to mesh:`, m.name, e)
+          }
         }
-      }
-      return validMesh;
-    } else {
-<<<<<<< HEAD
-      // Create invisible physics box
-      const box = BABYLON.MeshBuilder.CreateBox('univ_physbox_' + Math.random().toString(36).substr(2,6), size, this.scene);
-      box.position = position.clone();
-      box.isVisible = false;
-      if (this.physicsEngine && box && box instanceof BABYLON.Mesh && !box.isDisposed && (!box.isDisposed() || box.isDisposed === undefined) && box.isReady && box.isReady()) {
-=======
-      // Not a mesh, or no valid mesh found: create invisible physics box
-      // Try to use world position of first node if available
-      let boxPos = position ? position.clone() : new BABYLON.Vector3(0,0,0)
-      const firstNode = meshes.find(m => m && typeof m.getAbsolutePosition === 'function')
-      if (firstNode) {
+      } else if (m && typeof m.getAbsolutePosition === 'function') {
+        // Not a mesh: create invisible box at world position, parent node to box
+        let boxPos = position ? position.clone() : new BABYLON.Vector3(0,0,0)
         try {
-          const absPos = firstNode.getAbsolutePosition()
+          const absPos = m.getAbsolutePosition()
           if (absPos && absPos.x !== undefined) {
             boxPos = absPos.clone()
             console.log(`[PhysicsBox] Using absolute position of node for box:`, boxPos)
@@ -1274,56 +1260,40 @@ class BabylonGameEngine {
         } catch (e) {
           console.warn(`[PhysicsBox] Could not get absolute position of node:`, e)
         }
-      }
-      const box = BABYLON.MeshBuilder.CreateBox('univ_physbox_' + Math.random().toString(36).substr(2,6), size, this.scene)
-      box.position = boxPos
-      box.isVisible = false
-      if (this.physicsEngine && box && box instanceof BABYLON.Mesh) {
->>>>>>> b3e06c084cbf492c07b5ef18d5855bed6ea12c26
-        try {
-          box.physicsImpostor = new BABYLON.PhysicsImpostor(
-            box,
-            BABYLON.PhysicsImpostor.BoxImpostor,
-            { mass: 0, restitution: 0.3, friction: 0.8 },
-            this.scene
-<<<<<<< HEAD
-          );
-        } catch (e) {
-          console.warn('Failed to assign physics impostor to box:', box, e);
+        // Use thin box for ground/terrain
+        let impostorSize = size
+        if (m.name && m.name.startsWith('ground')) {
+          impostorSize = { width: size.width, height: 0.1, depth: size.depth }
         }
-      } else {
-        console.warn('Physics box not suitable for impostor:', box);
-      }
-      meshes.forEach(m => {
-        if (m) {
-          m.position = new BABYLON.Vector3(0, 0, 0);
-          m.parent = box;
-          m.isVisible = true;
-=======
-          )
-          console.log(`[PhysicsBox] Assigned impostor to box at:`, box.position)
-        } catch (e) {
-          console.warn(`[PhysicsBox] Failed to assign impostor to box:`, e)
-        }
-      }
-      // Parent all visible meshes/nodes to the box
-      meshes.forEach(m => {
-        if (m) {
-          if (typeof m.setParent === 'function') {
-            m.setParent(box)
-            if (m.position) m.position = new BABYLON.Vector3(0, 0, 0)
-            m.isVisible = true
-            console.log(`[PhysicsBox] Parented node/mesh to box:`, m.name)
-          } else if ('parent' in m) {
-            m.parent = box
-            if (m.position) m.position = new BABYLON.Vector3(0, 0, 0)
-            m.isVisible = true
-            console.log(`[PhysicsBox] Parented node/mesh to box (fallback):`, m.name)
+        const box = BABYLON.MeshBuilder.CreateBox('univ_physbox_' + Math.random().toString(36).substr(2,6), impostorSize, this.scene)
+        box.position = boxPos
+        box.isVisible = false
+        if (this.physicsEngine && box && box instanceof BABYLON.Mesh) {
+          try {
+            box.physicsImpostor = new BABYLON.PhysicsImpostor(
+              box,
+              BABYLON.PhysicsImpostor.BoxImpostor,
+              { mass: 0, restitution: 0.3, friction: 0.8 },
+              this.scene
+            )
+            console.log(`[PhysicsBox] Assigned impostor to box at:`, box.position)
+            anyPhysics = true
+          } catch (e) {
+            console.warn(`[PhysicsBox] Failed to assign impostor to box:`, e)
           }
->>>>>>> b3e06c084cbf492c07b5ef18d5855bed6ea12c26
         }
-      });
-      return box;
+        // Parent node to box so it moves with physics
+        if (typeof m.setParent === 'function') {
+          m.setParent(box)
+          console.log(`[PhysicsBox] Parented node to box:`, m.name)
+        } else if ('parent' in m) {
+          m.parent = box
+          console.log(`[PhysicsBox] Parented node to box (fallback):`, m.name)
+        }
+      }
+    })
+    if (!anyPhysics) {
+      console.warn('[PhysicsBox] No physics impostor assigned for provided object(s).')
     }
   }
 }
