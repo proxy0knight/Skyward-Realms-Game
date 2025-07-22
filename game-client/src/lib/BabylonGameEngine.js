@@ -578,40 +578,24 @@ class BabylonGameEngine {
             if (base64) {
               try {
                 const meshes = await this.loadGLBFromBase64(base64, `asset_${x}_${z}`)
-                // Set Y position to 0.1 for all loaded meshes
-                if (Array.isArray(meshes) && meshes.length > 0) {
-                  // Create invisible physics box
-                  const box = BABYLON.MeshBuilder.CreateBox(`assetbox_${x}_${z}`, { width: 1, height: 1, depth: 1 }, this.scene)
-                  box.position = new BABYLON.Vector3(x, 0.5, z)
-                  box.isVisible = false
-                  if (this.physicsEngine && box && box instanceof BABYLON.Mesh) {
-                    box.physicsImpostor = new BABYLON.PhysicsImpostor(
-                      box,
-                      BABYLON.PhysicsImpostor.BoxImpostor,
-                      { mass: 0, restitution: 0.3, friction: 0.8 },
-                      this.scene
-                    )
-                  }
-                  // Parent all GLB meshes to the box
-                  meshes.forEach(m => {
-                    m.position = new BABYLON.Vector3(0, 0, 0) // Local to box
-                    m.parent = box
-                  })
-                } else {
-                  // Fallback: create a visible red box mesh
-                  const box = BABYLON.MeshBuilder.CreateBox(`assetbox_${x}_${z}`, { width: 1, height: 1, depth: 1 }, this.scene)
-                  box.position = new BABYLON.Vector3(x, 0.5, z)
-                  box.material = new BABYLON.StandardMaterial('assetBoxMat', this.scene)
-                  box.material.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2)
-                  if (this.physicsEngine && box && box instanceof BABYLON.Mesh) {
-                    box.physicsImpostor = new BABYLON.PhysicsImpostor(
-                      box,
-                      BABYLON.PhysicsImpostor.BoxImpostor,
-                      { mass: 0, restitution: 0.3, friction: 0.8 },
-                      this.scene
-                    )
-                  }
+                // Always create invisible physics box
+                const box = BABYLON.MeshBuilder.CreateBox(`assetbox_${x}_${z}`, { width: 1, height: 1, depth: 1 }, this.scene)
+                box.position = new BABYLON.Vector3(x, 0.5, z)
+                box.isVisible = false
+                if (this.physicsEngine && box && box instanceof BABYLON.Mesh) {
+                  box.physicsImpostor = new BABYLON.PhysicsImpostor(
+                    box,
+                    BABYLON.PhysicsImpostor.BoxImpostor,
+                    { mass: 0, restitution: 0.3, friction: 0.8 },
+                    this.scene
+                  )
                 }
+                // Parent all GLB meshes to the box
+                meshes.forEach(m => {
+                  m.position = new BABYLON.Vector3(0, 0, 0) // Local to box
+                  m.parent = box
+                  m.isVisible = true // Always visible
+                })
               } catch (e) {
                 console.error(`[ASSET] Failed to load GLB for asset '${asset.id}' at (${x},${z}):`, e)
               }
