@@ -2,8 +2,12 @@ import React, { useEffect, useRef, useState } from 'react'
 import { get, set } from 'idb-keyval'
 
 const PHYSICS_BOXES_KEY = 'skyward_physics_boxes_'
-
 const snapValue = (val, step) => Math.round(val / step) * step
+
+function randomColor() {
+  const colors = ['#e57373','#f06292','#ba68c8','#64b5f6','#4db6ac','#81c784','#ffd54f','#ffb74d','#a1887f','#90a4ae']
+  return colors[Math.floor(Math.random()*colors.length)]
+}
 
 const PhysicsBoxEditor = ({ asset, onClose }) => {
   const canvasRef = useRef(null)
@@ -91,12 +95,13 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
         box.rotation?.z || 0
       )
       mesh.isPickable = true
-      mesh.visibility = 0.4
+      mesh.visibility = box.visible === false ? 0 : 0.4
       mesh.enableEdgesRendering()
       mesh.edgesWidth = 2.0
-      mesh.edgesColor = new window.BABYLON.Color4(0, 1, 0, 1)
+      mesh.edgesColor = new window.BABYLON.Color4(...(box.color ? hexToRgbNorm(box.color) : [0,1,0,1]))
       mesh.material = new window.BABYLON.StandardMaterial('physboxmat_' + box.id, sceneRef.current)
       mesh.material.wireframe = wireframe
+      if (box.color) mesh.material.diffuseColor = new window.BABYLON.Color3(...hexToRgbNorm(box.color).slice(0,3))
       boxMeshMap.current[box.id] = mesh
       mesh.actionManager = new window.BABYLON.ActionManager(sceneRef.current)
       mesh.actionManager.registerAction(new window.BABYLON.ExecuteCodeAction(window.BABYLON.ActionManager.OnPickTrigger, () => {
@@ -164,7 +169,11 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
         meshName: part,
         position: { x: 0, y: 0, z: 0 },
         size: { x: 1, y: 1, z: 1 },
-        rotation: { x: 0, y: 0, z: 0 }
+        rotation: { x: 0, y: 0, z: 0 },
+        color: randomColor(),
+        label: '',
+        visible: true,
+        relative: true
       }
     ]))
   }
@@ -203,6 +212,12 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
     } : b))
   }
 
+  // Change color/label/visibility/relative
+  const handleBoxMetaInput = (boxId, field, value) => {
+    pushUndo()
+    setBoxes(prev => prev.map(b => b.id === boxId ? { ...b, [field]: value } : b))
+  }
+
   // Save boxes to IndexedDB/localStorage
   const handleSaveBoxes = async () => {
     await set(PHYSICS_BOXES_KEY + asset.id, boxes)
@@ -215,6 +230,33 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
     if (saved && Array.isArray(saved)) setBoxes(saved)
     else setBoxes([])
     alert('Physics boxes loaded!')
+  }
+
+  // Import/export JSON
+  const handleExport = () => {
+    const data = JSON.stringify(boxes, null, 2)
+    const blob = new Blob([data], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${asset.name || 'asset'}_physics_boxes.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+  const handleImport = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = evt => {
+      try {
+        const data = JSON.parse(evt.target.result)
+        if (Array.isArray(data)) setBoxes(data)
+        else alert('Invalid file format')
+      } catch {
+        alert('Failed to parse file')
+      }
+    }
+    reader.readAsText(file)
   }
 
   // Undo/Redo logic
@@ -233,6 +275,13 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
     setUndoStack(prev => [...prev, boxes])
     setBoxes(redoStack[0])
     setRedoStack(prev => prev.slice(1))
+  }
+
+  function hexToRgbNorm(hex) {
+    hex = hex.replace('#','')
+    if (hex.length === 3) hex = hex.split('').map(x=>x+x).join('')
+    const num = parseInt(hex, 16)
+    return [((num>>16)&255)/255, ((num>>8)&255)/255, (num&255)/255, 1]
   }
 
   return (
@@ -259,7 +308,11 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
               className={`px-2 py-1 rounded cursor-pointer ${selectedBox?.id === box.id ? 'bg-green-700 text-white' : 'text-green-300 hover:bg-green-600'}`}
               onClick={() => setSelectedBox(box)}
             >
-              Box {box.id.slice(-6)}
+              <div className="flex items-center gap-2">
+                <span style={{background:box.color, width:16, height:16, borderRadius:4, display:'inline-block', border:'1px solid #333'}}></span>
+                <span>{box.label || `Box ${box.id.slice(-6)}`}</span>
+                <button className="ml-auto text-xs px-1 py-0.5 rounded bg-gray-700 text-white" onClick={e => {e.stopPropagation(); handleBoxMetaInput(box.id, 'visible', !box.visible)}}>{box.visible === false ? 'Show' : 'Hide'}</button>
+              </div>
               <div className="text-xs text-purple-400 mt-1">
                 <span>Part: </span>
                 <select
@@ -275,6 +328,14 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
               </div>
               {selectedBox?.id === box.id && (
                 <div className="mt-2 space-y-1">
+                  <div className="flex gap-1 items-center text-xs">
+                    <span>Label:</span>
+                    <input type="text" value={box.label || ''} onChange={e => handleBoxMetaInput(box.id, 'label', e.target.value)} className="w-24 px-1 rounded bg-black/40 border border-purple-700 text-purple-200" />
+                  </div>
+                  <div className="flex gap-1 items-center text-xs">
+                    <span>Color:</span>
+                    <input type="color" value={box.color || '#00ff00'} onChange={e => handleBoxMetaInput(box.id, 'color', e.target.value)} className="w-8 h-6 border border-purple-700 rounded" />
+                  </div>
                   <div className="flex gap-1 items-center text-xs">
                     <span>Pos:</span>
                     {['x','y','z'].map(axis => (
@@ -292,6 +353,10 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
                     {['x','y','z'].map(axis => (
                       <input key={axis} type="number" step="0.01" value={box.rotation?.[axis] || 0} onChange={e => handleBoxTransformInput(box.id, 'rotation', axis, e.target.value)} className="w-12 px-1 rounded bg-black/40 border border-purple-700 text-purple-200" />
                     ))}
+                  </div>
+                  <div className="flex gap-1 items-center text-xs">
+                    <span>Relative:</span>
+                    <input type="checkbox" checked={box.relative !== false} onChange={e => handleBoxMetaInput(box.id, 'relative', e.target.checked)} />
                   </div>
                 </div>
               )}
@@ -313,6 +378,13 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
           <button className={`px-3 py-1 rounded ${showBoxes ? 'bg-green-700 text-white' : 'bg-gray-700 text-gray-300'}`} onClick={() => setShowBoxes(v => !v)}>{showBoxes ? 'Hide Boxes' : 'Show Boxes'}</button>
           <button className={`px-3 py-1 rounded ${wireframe ? 'bg-blue-700 text-white' : 'bg-gray-700 text-gray-300'}`} onClick={() => setWireframe(v => !v)}>{wireframe ? 'Wireframe' : 'Solid'}</button>
           <button className={`px-3 py-1 rounded ${snapping ? 'bg-purple-700 text-white' : 'bg-gray-700 text-gray-300'}`} onClick={() => setSnapping(v => !v)}>{snapping ? 'Snapping On' : 'Snapping Off'}</button>
+        </div>
+        <div className="mt-4 flex gap-2 flex-wrap">
+          <button className="bg-gray-800 hover:bg-gray-900 text-white px-3 py-1 rounded" onClick={handleExport}>Export</button>
+          <label className="bg-gray-800 hover:bg-gray-900 text-white px-3 py-1 rounded cursor-pointer">
+            Import
+            <input type="file" accept=".json" style={{display:'none'}} onChange={handleImport} />
+          </label>
         </div>
         <button className="mt-6 bg-purple-800 hover:bg-purple-900 text-white px-3 py-1 rounded" onClick={onClose}>Close</button>
       </div>
