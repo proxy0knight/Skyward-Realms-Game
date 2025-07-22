@@ -163,7 +163,6 @@ class BabylonCharacter {
         modelPath,
         this.scene,
         (meshes, particleSystems, skeletons, animationGroups) => {
-          console.log(`BabylonCharacter: Loaded ${this.element.id} character from ${modelPath}`)
           
           // Get the main character mesh (usually the first or root mesh)
           let characterMesh = meshes[0]
@@ -192,7 +191,6 @@ class BabylonCharacter {
           
           // Store animation groups
           this.animationGroups = animationGroups
-          console.log('BabylonCharacter: Available animations:', animationGroups.map(ag => ag.name))
           
           resolve(characterMesh)
         },
