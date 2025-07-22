@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { get } from 'idb-keyval'
 
 const PhysicsBoxEditor = ({ asset, onClose }) => {
   const canvasRef = useRef(null)
@@ -6,16 +7,83 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
   const [boxes, setBoxes] = useState([])
   const [selectedPart, setSelectedPart] = useState(null)
   const [selectedBox, setSelectedBox] = useState(null)
+  const [sceneReady, setSceneReady] = useState(false)
+  const engineRef = useRef(null)
+  const sceneRef = useRef(null)
+  const assetMeshesRef = useRef([])
 
-  // TODO: Load asset in Babylon.js scene and extract hierarchy
+  // Load asset in Babylon.js scene and extract hierarchy
   useEffect(() => {
-    // Placeholder: load asset and extract mesh/node hierarchy
-    setHierarchy([{ name: asset.name, id: asset.id }])
-    // TODO: Load saved boxes from asset metadata
-    setBoxes([])
+    let engine, scene, camera, light
+    let assetContainer = null
+    let boxMeshes = []
+    let disposed = false
+    async function setupScene() {
+      if (!canvasRef.current || !asset.id) return
+      // Clean up previous engine/scene
+      if (engineRef.current) {
+        engineRef.current.dispose()
+        engineRef.current = null
+      }
+      engine = new window.BABYLON.Engine(canvasRef.current, true)
+      scene = new window.BABYLON.Scene(engine)
+      engineRef.current = engine
+      sceneRef.current = scene
+      camera = new window.BABYLON.ArcRotateCamera('cam', Math.PI/2, Math.PI/2.5, 3, window.BABYLON.Vector3.Zero(), scene)
+      camera.attachControl(canvasRef.current, true)
+      light = new window.BABYLON.HemisphericLight('light', new window.BABYLON.Vector3(0,1,0), scene)
+      // Load asset GLB from IndexedDB
+      const base64 = await get(asset.id)
+      if (!base64) return
+      window.BABYLON.SceneLoader.ImportMesh('', '', base64, scene, (meshes, ps, skels, ags) => {
+        assetMeshesRef.current = meshes
+        // Extract hierarchy (flat list for now)
+        const flat = meshes.map(m => ({ name: m.name, id: m.id, type: m.getClassName?.() || 'Node' }))
+        setHierarchy(flat)
+        setSceneReady(true)
+      })
+      // Render loop
+      engine.runRenderLoop(() => {
+        if (!disposed) scene.render()
+      })
+    }
+    setupScene()
+    return () => {
+      disposed = true
+      if (engineRef.current) {
+        engineRef.current.dispose()
+        engineRef.current = null
+      }
+    }
   }, [asset])
 
-  // TODO: Babylon.js scene setup and box rendering
+  // Render static physics boxes (for now, just show as wireframe boxes)
+  useEffect(() => {
+    if (!sceneReady || !sceneRef.current) return
+    // Remove old box meshes
+    sceneRef.current.meshes.filter(m => m.name.startsWith('physbox_')).forEach(m => m.dispose())
+    // Render each box
+    boxes.forEach((box, i) => {
+      const mesh = window.BABYLON.MeshBuilder.CreateBox('physbox_' + i, { width: box.size?.x || 1, height: box.size?.y || 1, depth: box.size?.z || 1 }, sceneRef.current)
+      mesh.position = new window.BABYLON.Vector3(
+        box.position?.x || 0,
+        box.position?.y || 0,
+        box.position?.z || 0
+      )
+      mesh.rotation = new window.BABYLON.Vector3(
+        box.rotation?.x || 0,
+        box.rotation?.y || 0,
+        box.rotation?.z || 0
+      )
+      mesh.isPickable = false
+      mesh.visibility = 0.4
+      mesh.enableEdgesRendering()
+      mesh.edgesWidth = 2.0
+      mesh.edgesColor = new window.BABYLON.Color4(0, 1, 0, 1)
+      mesh.material = new window.BABYLON.StandardMaterial('physboxmat_' + i, sceneRef.current)
+      mesh.material.wireframe = true
+    })
+  }, [boxes, sceneReady])
 
   return (
     <div className="flex w-[900px] h-[600px] bg-black rounded-xl overflow-hidden">
@@ -29,7 +97,7 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
               className={`px-2 py-1 rounded cursor-pointer ${selectedPart?.id === part.id ? 'bg-purple-700 text-white' : 'text-purple-300 hover:bg-purple-600'}`}
               onClick={() => setSelectedPart(part)}
             >
-              {part.name}
+              {part.name} <span className="text-xs text-purple-400">({part.type})</span>
             </li>
           ))}
         </ul>
