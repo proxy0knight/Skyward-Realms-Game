@@ -11,16 +11,15 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
   const engineRef = useRef(null)
   const sceneRef = useRef(null)
   const assetMeshesRef = useRef([])
+  const gizmoManagerRef = useRef(null)
+  const boxMeshMap = useRef({})
 
   // Load asset in Babylon.js scene and extract hierarchy
   useEffect(() => {
     let engine, scene, camera, light
-    let assetContainer = null
-    let boxMeshes = []
     let disposed = false
     async function setupScene() {
       if (!canvasRef.current || !asset.id) return
-      // Clean up previous engine/scene
       if (engineRef.current) {
         engineRef.current.dispose()
         engineRef.current = null
@@ -37,12 +36,10 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
       if (!base64) return
       window.BABYLON.SceneLoader.ImportMesh('', '', base64, scene, (meshes, ps, skels, ags) => {
         assetMeshesRef.current = meshes
-        // Extract hierarchy (flat list for now)
         const flat = meshes.map(m => ({ name: m.name, id: m.id, type: m.getClassName?.() || 'Node' }))
         setHierarchy(flat)
         setSceneReady(true)
       })
-      // Render loop
       engine.runRenderLoop(() => {
         if (!disposed) scene.render()
       })
@@ -57,14 +54,15 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
     }
   }, [asset])
 
-  // Render static physics boxes (for now, just show as wireframe boxes)
+  // Render and update physics boxes
   useEffect(() => {
     if (!sceneReady || !sceneRef.current) return
     // Remove old box meshes
-    sceneRef.current.meshes.filter(m => m.name.startsWith('physbox_')).forEach(m => m.dispose())
+    Object.values(boxMeshMap.current).forEach(m => m.dispose())
+    boxMeshMap.current = {}
     // Render each box
     boxes.forEach((box, i) => {
-      const mesh = window.BABYLON.MeshBuilder.CreateBox('physbox_' + i, { width: box.size?.x || 1, height: box.size?.y || 1, depth: box.size?.z || 1 }, sceneRef.current)
+      const mesh = window.BABYLON.MeshBuilder.CreateBox('physbox_' + box.id, { width: box.size?.x || 1, height: box.size?.y || 1, depth: box.size?.z || 1 }, sceneRef.current)
       mesh.position = new window.BABYLON.Vector3(
         box.position?.x || 0,
         box.position?.y || 0,
@@ -75,15 +73,80 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
         box.rotation?.y || 0,
         box.rotation?.z || 0
       )
-      mesh.isPickable = false
+      mesh.isPickable = true
       mesh.visibility = 0.4
       mesh.enableEdgesRendering()
       mesh.edgesWidth = 2.0
       mesh.edgesColor = new window.BABYLON.Color4(0, 1, 0, 1)
-      mesh.material = new window.BABYLON.StandardMaterial('physboxmat_' + i, sceneRef.current)
+      mesh.material = new window.BABYLON.StandardMaterial('physboxmat_' + box.id, sceneRef.current)
       mesh.material.wireframe = true
+      boxMeshMap.current[box.id] = mesh
+      // Click to select
+      mesh.actionManager = new window.BABYLON.ActionManager(sceneRef.current)
+      mesh.actionManager.registerAction(new window.BABYLON.ExecuteCodeAction(window.BABYLON.ActionManager.OnPickTrigger, () => {
+        setSelectedBox(box)
+      }))
     })
   }, [boxes, sceneReady])
+
+  // GizmoManager for selected box
+  useEffect(() => {
+    if (!sceneReady || !sceneRef.current) return
+    if (!window.BABYLON.GizmoManager) return
+    if (!selectedBox) {
+      if (gizmoManagerRef.current) {
+        gizmoManagerRef.current.attachToMesh(null)
+      }
+      return
+    }
+    if (!gizmoManagerRef.current) {
+      gizmoManagerRef.current = new window.BABYLON.GizmoManager(sceneRef.current)
+      gizmoManagerRef.current.positionGizmoEnabled = true
+      gizmoManagerRef.current.rotationGizmoEnabled = true
+      gizmoManagerRef.current.scaleGizmoEnabled = true
+    }
+    const mesh = boxMeshMap.current[selectedBox.id]
+    if (mesh) {
+      gizmoManagerRef.current.attachToMesh(mesh)
+      // Update box state on transform
+      mesh.onAfterWorldMatrixUpdateObservable.add(() => {
+        setBoxes(prev => prev.map(b => b.id === selectedBox.id ? {
+          ...b,
+          position: { x: mesh.position.x, y: mesh.position.y, z: mesh.position.z },
+          rotation: { x: mesh.rotation.x, y: mesh.rotation.y, z: mesh.rotation.z },
+          size: { x: mesh.scaling.x, y: mesh.scaling.y, z: mesh.scaling.z }
+        } : b))
+      })
+    }
+    return () => {
+      if (gizmoManagerRef.current) {
+        gizmoManagerRef.current.attachToMesh(null)
+      }
+    }
+  }, [selectedBox, sceneReady])
+
+  // Add new box
+  const handleAddBox = () => {
+    const id = Date.now() + '_' + Math.random().toString(36).substr(2, 6)
+    const part = selectedPart ? selectedPart.name : null
+    setBoxes(prev => ([
+      ...prev,
+      {
+        id,
+        meshName: part,
+        position: { x: 0, y: 0, z: 0 },
+        size: { x: 1, y: 1, z: 1 },
+        rotation: { x: 0, y: 0, z: 0 }
+      }
+    ]))
+  }
+
+  // Remove selected box
+  const handleRemoveBox = () => {
+    if (!selectedBox) return
+    setBoxes(prev => prev.filter(b => b.id !== selectedBox.id))
+    setSelectedBox(null)
+  }
 
   return (
     <div className="flex w-[900px] h-[600px] bg-black rounded-xl overflow-hidden">
@@ -114,8 +177,8 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
           ))}
         </ul>
         <div className="mt-4 flex gap-2">
-          <button className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded" onClick={() => {/* TODO: Add box */}}>+ Add Box</button>
-          <button className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded" onClick={() => {/* TODO: Remove box */}} disabled={!selectedBox}>- Remove</button>
+          <button className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded" onClick={handleAddBox}>+ Add Box</button>
+          <button className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded" onClick={handleRemoveBox} disabled={!selectedBox}>- Remove</button>
         </div>
         <button className="mt-6 bg-purple-800 hover:bg-purple-900 text-white px-3 py-1 rounded" onClick={onClose}>Close</button>
       </div>
