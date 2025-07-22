@@ -26,13 +26,20 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
   const assetMeshesRef = useRef([])
   const gizmoManagerRef = useRef(null)
   const boxMeshMap = useRef({})
+  const [babylonReady, setBabylonReady] = useState(!!window.BABYLON)
 
   // Load asset in Babylon.js scene and extract hierarchy
   useEffect(() => {
     let engine, scene, camera, light
     let disposed = false
     async function setupScene() {
-      if (!canvasRef.current || !asset.id) return
+      // Dynamically import Babylon.js if not present
+      if (!window.BABYLON) {
+        setBabylonReady(false)
+        await import('@babylonjs/core')
+        setBabylonReady(true)
+      }
+      if (!canvasRef.current || !asset.id || !window.BABYLON) return
       if (engineRef.current) {
         engineRef.current.dispose()
         engineRef.current = null
@@ -282,6 +289,10 @@ const PhysicsBoxEditor = ({ asset, onClose }) => {
     if (hex.length === 3) hex = hex.split('').map(x=>x+x).join('')
     const num = parseInt(hex, 16)
     return [((num>>16)&255)/255, ((num>>8)&255)/255, (num&255)/255, 1]
+  }
+
+  if (!babylonReady && !window.BABYLON) {
+    return <div className="flex items-center justify-center h-full w-full text-purple-300 text-lg">Loading Babylon.js...</div>
   }
 
   return (
