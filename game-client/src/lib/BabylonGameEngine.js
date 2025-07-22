@@ -1,4 +1,4 @@
-SYNTAX_ERROR_TEST
+
 console.log('!!! THIS IS THE EDITED BabylonGameEngine.js FILE !!!');
 import * as BABYLON from '@babylonjs/core'
 import '@babylonjs/loaders/glTF'
