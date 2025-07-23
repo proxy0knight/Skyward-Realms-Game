@@ -112,12 +112,17 @@ const AdminDashboard = () => {
   // Add ModelThumbnail component for 3D previews
   const ModelThumbnail = ({ asset }) => {
     const canvasRef = React.useRef(null)
+    const [babylonReady, setBabylonReady] = React.useState(!!window.BABYLON)
     React.useEffect(() => {
       let engine, scene
       let disposed = false
       async function setup() {
-        if (!canvasRef.current || !asset.id) return
-        if (!window.BABYLON) await import('@babylonjs/core')
+        if (!window.BABYLON) {
+          setBabylonReady(false)
+          await import('@babylonjs/core')
+          setBabylonReady(true)
+        }
+        if (!canvasRef.current || !asset.id || !window.BABYLON) return
         engine = new window.BABYLON.Engine(canvasRef.current, true, { preserveDrawingBuffer: true })
         scene = new window.BABYLON.Scene(engine)
         const camera = new window.BABYLON.ArcRotateCamera('cam', Math.PI/2, Math.PI/2.5, 2.5, window.BABYLON.Vector3.Zero(), scene)
@@ -137,6 +142,9 @@ const AdminDashboard = () => {
       setup()
       return () => { disposed = true; if (engine) engine.dispose() }
     }, [asset])
+    if (!babylonReady && !window.BABYLON) {
+      return <div className="flex items-center justify-center w-24 h-16 bg-black/60 rounded">Loading...</div>
+    }
     return <canvas ref={canvasRef} style={{ width: 96, height: 64, background: '#222', borderRadius: 8 }} />
   }
 
