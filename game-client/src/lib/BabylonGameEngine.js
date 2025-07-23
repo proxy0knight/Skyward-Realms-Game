@@ -559,18 +559,31 @@ class BabylonGameEngine {
           if (base64) {
             try {
               const meshes = await this.loadGLBFromBase64(base64, `terrain_${x}_${z}`)
-              // Parent all meshes to a TransformNode at the correct Y
-              const terrainNode = new BABYLON.TransformNode(`terrainNode_${x}_${z}`, this.scene)
-              terrainNode.position = new BABYLON.Vector3(x, terrainY, z)
-              meshes.forEach(m => { m.parent = terrainNode; m.position = BABYLON.Vector3.Zero() })
-              // Only assign impostor to the parent node
-              if (this.physicsEngine) {
-                terrainNode.physicsImpostor = new BABYLON.PhysicsImpostor(
-                  terrainNode,
-                  BABYLON.PhysicsImpostor.BoxImpostor,
-                  { mass: 0, restitution: 0.3, friction: 0.8 },
-                  this.scene
-                )
+              // Place all meshes at correct Y
+              if (meshes.length === 1 && meshes[0] instanceof BABYLON.Mesh) {
+                meshes[0].position = new BABYLON.Vector3(x, terrainY, z)
+                if (this.physicsEngine) {
+                  meshes[0].physicsImpostor = new BABYLON.PhysicsImpostor(
+                    meshes[0],
+                    BABYLON.PhysicsImpostor.BoxImpostor,
+                    { mass: 0, restitution: 0.3, friction: 0.8 },
+                    this.scene
+                  )
+                }
+              } else if (meshes.length > 1) {
+                // Create invisible box mesh at correct Y
+                const box = BABYLON.MeshBuilder.CreateBox(`terrain_physbox_${x}_${z}`, { width: 1, height: 1, depth: 1 }, this.scene)
+                box.position = new BABYLON.Vector3(x, terrainY, z)
+                box.isVisible = false
+                if (this.physicsEngine) {
+                  box.physicsImpostor = new BABYLON.PhysicsImpostor(
+                    box,
+                    BABYLON.PhysicsImpostor.BoxImpostor,
+                    { mass: 0, restitution: 0.3, friction: 0.8 },
+                    this.scene
+                  )
+                }
+                meshes.forEach(m => { m.parent = box; m.position = BABYLON.Vector3.Zero() })
               }
               console.log(`[Terrain] Placed ${cell.type} at (${x},${z}) height ${terrainY}`)
             } catch (e) {
@@ -609,18 +622,29 @@ class BabylonGameEngine {
                 try {
                   const meshes = await this.loadGLBFromBase64(base64, `asset_${x}_${z}_${obj.assetId}`)
                   const y = terrainY + (obj.heightIndex || 0) * heightStep
-                  // Parent all meshes to a TransformNode at the correct Y
-                  const objNode = new BABYLON.TransformNode(`objNode_${x}_${z}_${obj.assetId}`, this.scene)
-                  objNode.position = new BABYLON.Vector3(x, y, z)
-                  meshes.forEach(m => { m.parent = objNode; m.position = BABYLON.Vector3.Zero() })
-                  // Only assign impostor to the parent node
-                  if (this.physicsEngine) {
-                    objNode.physicsImpostor = new BABYLON.PhysicsImpostor(
-                      objNode,
-                      BABYLON.PhysicsImpostor.BoxImpostor,
-                      { mass: 0, restitution: 0.3, friction: 0.8 },
-                      this.scene
-                    )
+                  if (meshes.length === 1 && meshes[0] instanceof BABYLON.Mesh) {
+                    meshes[0].position = new BABYLON.Vector3(x, y, z)
+                    if (this.physicsEngine) {
+                      meshes[0].physicsImpostor = new BABYLON.PhysicsImpostor(
+                        meshes[0],
+                        BABYLON.PhysicsImpostor.BoxImpostor,
+                        { mass: 0, restitution: 0.3, friction: 0.8 },
+                        this.scene
+                      )
+                    }
+                  } else if (meshes.length > 1) {
+                    const box = BABYLON.MeshBuilder.CreateBox(`obj_physbox_${x}_${z}_${obj.assetId}`, { width: 1, height: 1, depth: 1 }, this.scene)
+                    box.position = new BABYLON.Vector3(x, y, z)
+                    box.isVisible = false
+                    if (this.physicsEngine) {
+                      box.physicsImpostor = new BABYLON.PhysicsImpostor(
+                        box,
+                        BABYLON.PhysicsImpostor.BoxImpostor,
+                        { mass: 0, restitution: 0.3, friction: 0.8 },
+                        this.scene
+                      )
+                    }
+                    meshes.forEach(m => { m.parent = box; m.position = BABYLON.Vector3.Zero() })
                   }
                   console.log(`[Object] Placed asset ${obj.assetId} at (${x},${z}) height ${y}`)
                 } catch (e) {
