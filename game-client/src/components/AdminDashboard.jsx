@@ -123,6 +123,7 @@ const AdminDashboard = () => {
           setBabylonReady(true)
         }
         if (!canvasRef.current || !asset.id || !window.BABYLON) return
+        if (!asset.data) return
         engine = new window.BABYLON.Engine(canvasRef.current, true, { preserveDrawingBuffer: true })
         scene = new window.BABYLON.Scene(engine)
         const camera = new window.BABYLON.ArcRotateCamera('cam', Math.PI/2, Math.PI/2.5, 2.5, window.BABYLON.Vector3.Zero(), scene)
@@ -133,9 +134,7 @@ const AdminDashboard = () => {
         camera.panningSensibility = 0
         camera.inputs.removeByType('ArcRotateCameraKeyboardMoveInput')
         new window.BABYLON.HemisphericLight('light', new window.BABYLON.Vector3(0,1,0), scene)
-        const base64 = localStorage.getItem('skyward_assets') ? JSON.parse(localStorage.getItem('skyward_assets')).find(a => a.id === asset.id)?.data : null
-        if (!base64) return
-        window.BABYLON.SceneLoader.ImportMesh('', '', base64, scene, () => {
+        window.BABYLON.SceneLoader.ImportMesh('', '', asset.data, scene, () => {
           engine.runRenderLoop(() => { if (!disposed) scene.render() })
         })
       }
@@ -144,6 +143,9 @@ const AdminDashboard = () => {
     }, [asset])
     if (!babylonReady && !window.BABYLON) {
       return <div className="flex items-center justify-center w-24 h-16 bg-black/60 rounded">Loading...</div>
+    }
+    if (!asset.data) {
+      return <div className="flex items-center justify-center w-24 h-16 bg-black/60 rounded text-purple-300 text-xs">No Preview</div>
     }
     return <canvas ref={canvasRef} style={{ width: 96, height: 64, background: '#222', borderRadius: 8 }} />
   }
@@ -250,14 +252,9 @@ const AdminDashboard = () => {
                   </div>
                 </div>
                 {/* Main preview/editor area */}
-                <div className="flex-1 bg-black flex">
+                <div className="flex-1 bg-black flex items-stretch">
                   {selectedAsset && selectedAsset.type === 'model' ? (
-                    <div className="flex flex-1 h-full">
-                      {/* Babylon.js viewport (left) and tools/sidebar (right) */}
-                      <div className="flex-1 h-full">
-                        <PhysicsBoxEditor asset={selectedAsset} onClose={() => setSelectedAsset(null)} showSidebarOnRight />
-                      </div>
-                    </div>
+                    <PhysicsBoxEditor asset={selectedAsset} onClose={() => setSelectedAsset(null)} />
                   ) : (
                     <div className="flex items-center justify-center h-full text-purple-300 text-lg w-full">Select a 3D asset to configure physics boxes.</div>
                   )}
