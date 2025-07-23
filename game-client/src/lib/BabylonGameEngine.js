@@ -621,64 +621,25 @@ class BabylonGameEngine {
           box.material.diffuseColor = new BABYLON.Color3(0.2, 0.7, 0.3)
           this.ensurePhysicsBox(box, new BABYLON.Vector3(x, 0, z), {width: 1, height: 0.2, depth: 1})
         }
-        // 2. Asset mesh
-        if (cell.asset) {
-          const asset = getAssetById(cell.asset)
-          if (asset && asset.id) {
-            const base64 = await idbGet(asset.id)
-            if (base64) {
-              try {
-                const meshes = await this.loadGLBFromBase64(base64, `asset_${x}_${z}`)
-                const boxConfig = await idbGet(PHYSICS_BOXES_KEY + asset.id)
-                if (boxConfig && Array.isArray(boxConfig) && boxConfig.length > 0) {
-                  boxConfig.forEach(box => {
-                    let targetNode = null
-                    if (box.meshName) {
-                      targetNode = meshes.find(m => m.name === box.meshName)
-                    }
-                    if (!targetNode) targetNode = meshes[0]
-                    if (targetNode) {
-                      const impostorBox = BABYLON.MeshBuilder.CreateBox('admin_physbox_' + Math.random().toString(36).substr(2,6), box.size, this.scene)
-                      impostorBox.position = new BABYLON.Vector3(box.position.x, box.position.y, box.position.z)
-                      impostorBox.rotation = new BABYLON.Vector3(box.rotation.x, box.rotation.y, box.rotation.z)
-                      impostorBox.isVisible = false
-                      impostorBox.metadata = { _adminPhysicsBox: true, _targetNodeName: targetNode.name }
-                      impostorBox.parent = targetNode
-                      if (this.physicsEngine) {
-                        impostorBox.physicsImpostor = new BABYLON.PhysicsImpostor(
-                          impostorBox,
-                          BABYLON.PhysicsImpostor.BoxImpostor,
-                          { mass: 0, restitution: 0.3, friction: 0.8 },
-                          this.scene
-                        )
-                      }
-                      // Animation sync: update impostor transform to follow node
-                      this.scene.onBeforeRenderObservable.add(() => {
-                        if (!targetNode || !impostorBox) return
-                        const world = targetNode.getWorldMatrix()
-                        impostorBox.position = BABYLON.Vector3.TransformCoordinates(new BABYLON.Vector3(box.position.x, box.position.y, box.position.z), world)
-                        impostorBox.rotation = targetNode.rotation ? targetNode.rotation.clone() : impostorBox.rotation
-                      })
-                    } else {
-                      console.warn('[PhysicsBox] Target node not found for box:', box.meshName, 'Falling back to root.')
-                      this.ensurePhysicsBox(meshes, new BABYLON.Vector3(x, 0.5, z), {width: 1, height: 1, depth: 1})
-                    }
-                  })
-                } else {
-                  this.ensurePhysicsBox(meshes, new BABYLON.Vector3(x, 0.5, z), {width: 1, height: 1, depth: 1})
+        // 2. Per-object asset placement
+        if (cell.objects && Array.isArray(cell.objects)) {
+          for (const obj of cell.objects) {
+            const asset = getAssetById(obj.assetId)
+            if (asset && asset.id) {
+              const base64 = await idbGet(asset.id)
+              if (base64) {
+                try {
+                  const meshes = await this.loadGLBFromBase64(base64, `asset_${x}_${z}_${obj.assetId}`)
+                  // Compute Y position using non-flat terrain
+                  const groundY = typeof this.getTerrainHeight === 'function' ? this.getTerrainHeight(x, z) : 0
+                  const y = groundY + (obj.heightIndex || 0) * heightStep
+                  meshes.forEach(m => { m.position = new BABYLON.Vector3(x, y, z) })
+                  this.ensurePhysicsBox(meshes, new BABYLON.Vector3(x, y, z), {width: 1, height: 1, depth: 1})
+                } catch (e) {
+                  console.error(`[ASSET] Failed to load GLB for asset '${asset.id}' at (${x},${z}):`, e)
                 }
-              } catch (e) {
-                console.error(`[ASSET] Failed to load GLB for asset '${asset.id}' at (${x},${z}):`, e)
-                const placeholder = BABYLON.MeshBuilder.CreateBox(`assetplaceholder_${x}_${z}`, { width: 1, height: 1, depth: 1 }, this.scene)
-                placeholder.material = new BABYLON.StandardMaterial('assetBoxMat', this.scene)
-                placeholder.material.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2)
-                this.ensurePhysicsBox(placeholder, new BABYLON.Vector3(x, 0.5, z), {width: 1, height: 1, depth: 1})
               }
-            } else {
-              console.warn(`[ASSET] No GLB data found in IndexedDB for asset '${asset.id}' at (${x},${z})`)
             }
-          } else {
-            console.warn(`[ASSET] No asset found for placed asset id '${cell.asset}' at (${x},${z})`)
           }
         }
         // 3. Flags
