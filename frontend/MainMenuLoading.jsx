@@ -1,17 +1,38 @@
 import React, { useEffect, useState } from 'react';
-import assets from './assets.json';
 import './MainMenuLoading.css';
 
-const MainMenuLoading = ({ onLoaded }) => {
+const MainMenuLoading = ({ assetsPath, durationMs = 2000, onLoaded }) => {
   const [progress, setProgress] = useState(0);
+  const [assets, setAssets] = useState(null);
+  const [error, setError] = useState(null);
+
+  // Dynamically load assets JSON
   useEffect(() => {
+    setAssets(null);
+    setError(null);
+    fetch(assetsPath)
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to load assets');
+        return res.json();
+      })
+      .then(setAssets)
+      .catch(setError);
+  }, [assetsPath]);
+
+  // Animate loading bar
+  useEffect(() => {
+    if (!assets) return;
     if (progress < 100) {
-      const timer = setTimeout(() => setProgress(progress + 1), 20);
+      const step = 100 / (durationMs / 20);
+      const timer = setTimeout(() => setProgress(Math.min(progress + step, 100)), 20);
       return () => clearTimeout(timer);
     } else if (onLoaded) {
       setTimeout(onLoaded, 500);
     }
-  }, [progress, onLoaded]);
+  }, [progress, assets, durationMs, onLoaded]);
+
+  if (error) return <div className="mainmenu-loading-root">Error loading assets.</div>;
+  if (!assets) return <div className="mainmenu-loading-root">Loading assets...</div>;
 
   return (
     <div className="mainmenu-loading-root">
