@@ -62,7 +62,9 @@ const UniversalLoadingScreen = (props) => {
   if (error) return <div className="mainmenu-loading-root">{error}</div>;
   if (!assets) return <div className="mainmenu-loading-root">Loading assets...</div>;
 
-  // Always show advice rectangle (per fallback default)
+  // Show advice rectangle only if showAdvice is true (default true)
+  const showAdvice = assets.showAdvice !== undefined ? assets.showAdvice : true;
+
   return (
     <div className="mainmenu-loading-root">
       <img
@@ -82,9 +84,11 @@ const UniversalLoadingScreen = (props) => {
             style={{ width: `${props.progress}%` }}
           />
         </div>
-        <div className="mainmenu-advice-rect">
-          {error ? error : advice}
-        </div>
+        {showAdvice && (
+          <div className="mainmenu-advice-rect">
+            {error ? error : advice}
+          </div>
+        )}
       </div>
       <div className="mainmenu-crown-container">
         <img
