@@ -13,6 +13,7 @@ import AdminAccess from './components/AdminAccess'
 import CombatTestPanel from './components/CombatTestPanel'
 import StoryTestPanel from './components/StoryTestPanel'
 import { Flame, Droplets, Mountain, Wind } from 'lucide-react'
+import TestUniversalLoadingScreen from './frontend/TestUniversalLoadingScreen'
 
 function App() {
   const [gameState, setGameState] = useState('menu') // 'menu', 'character-selection', 'playing', 'admin-access', 'admin'
@@ -25,6 +26,7 @@ function App() {
   const [showCombatTest, setShowCombatTest] = useState(false)
   const [showStoryTest, setShowStoryTest] = useState(false)
   const [gameEngine, setGameEngine] = useState(null)
+  const [showTestLoading, setShowTestLoading] = useState(false)
 
   const elements = [
     {
@@ -181,102 +183,113 @@ function App() {
 
   return (
     <div className="w-full min-h-screen bg-black">
-      {gameState === 'menu' && (
-        <MainMenu onStartGame={handleStartGame} onAdminAccess={handleAdminAccess} />
-      )}
-      
-      {gameState === 'admin-access' && (
-        <AdminAccess onAccess={handleAdminLogin} onBack={handleBackFromAdmin} />
-      )}
-      
-      {gameState === 'admin' && (
-        <AdminPanel onBack={handleBackFromAdmin} />
-      )}
-      
-      {gameState === 'character-selection' && (
-        <div className="h-screen overflow-y-auto">
-          <CharacterSelection 
-            elements={elements}
-            selectedElement={selectedElement}
-            onSelectElement={handleElementSelect}
-            onStartGame={handleStartGameWithElement}
-            onBack={handleBackToMenu}
-          />
-        </div>
-      )}
-      
-      {gameState === 'playing' && player && (
-        <div className="relative w-full h-screen overflow-hidden">
-          {/* 3D Game Scene */}
-          <GameScene 
-            player={player} 
-            onPlayerUpdate={handlePlayerUpdate}
-            onDialogueOpen={handleDialogueOpen}
-            onQuestUpdate={handleQuestUpdate}
-            onGameEngineReady={handleGameEngineReady}
-          />
-          
-          {/* Game HUD */}
-          <GameHUD 
-            player={player}
-            onTogglePanel={handlePanelToggle}
-            activePanel={activePanel}
-          />
-
-          {/* Panels */}
-          <InventoryPanel 
-            isOpen={activePanel === 'inventory'}
-            onClose={() => setActivePanel(null)}
-            player={player}
-          />
-          
-          <SkillsPanel 
-            isOpen={activePanel === 'skills'}
-            onClose={() => setActivePanel(null)}
-            player={player}
-          />
-          
-          <MapPanel 
-            isOpen={activePanel === 'map'}
-            onClose={() => setActivePanel(null)}
-            player={player}
-          />
-          
-          <QuestPanel 
-            isOpen={activePanel === 'quests'}
-            onClose={() => setActivePanel(null)}
-            questData={questData}
-          />
-
-          {/* Test Panels */}
-          <CombatTestPanel
-            isOpen={showCombatTest}
-            onClose={() => setShowCombatTest(false)}
-            player={player}
-          />
-
-          <StoryTestPanel
-            isOpen={showStoryTest}
-            onClose={() => setShowStoryTest(false)}
-          />
-
-          {/* Dialogue Panel */}
-          {dialogueData && (
-            <DialoguePanel 
-              dialogue={dialogueData}
-              characterId={currentCharacter}
-              onChoice={handleDialogueChoice}
-              onClose={() => setDialogueData(null)}
-            />
+      {showTestLoading ? (
+        <TestUniversalLoadingScreen />
+      ) : (
+        <>
+          {gameState === 'menu' && (
+            <>
+              <MainMenu onStartGame={handleStartGame} onAdminAccess={handleAdminAccess} />
+              <div style={{textAlign:'center',marginTop:16}}>
+                <button onClick={() => setShowTestLoading(true)} style={{padding:'8px 24px',fontSize:'1.1rem',borderRadius:8,background:'#ffd700',color:'#222',border:'none',cursor:'pointer'}}>Test Loading Screen</button>
+              </div>
+            </>
           )}
+          
+          {gameState === 'admin-access' && (
+            <AdminAccess onAccess={handleAdminLogin} onBack={handleBackFromAdmin} />
+          )}
+          
+          {gameState === 'admin' && (
+            <AdminPanel onBack={handleBackFromAdmin} />
+          )}
+          
+          {gameState === 'character-selection' && (
+            <div className="h-screen overflow-y-auto">
+              <CharacterSelection 
+                elements={elements}
+                selectedElement={selectedElement}
+                onSelectElement={handleElementSelect}
+                onStartGame={handleStartGameWithElement}
+                onBack={handleBackToMenu}
+              />
+            </div>
+          )}
+          
+          {gameState === 'playing' && player && (
+            <div className="relative w-full h-screen overflow-hidden">
+              {/* 3D Game Scene */}
+              <GameScene 
+                player={player} 
+                onPlayerUpdate={handlePlayerUpdate}
+                onDialogueOpen={handleDialogueOpen}
+                onQuestUpdate={handleQuestUpdate}
+                onGameEngineReady={handleGameEngineReady}
+              />
+              
+              {/* Game HUD */}
+              <GameHUD 
+                player={player}
+                onTogglePanel={handlePanelToggle}
+                activePanel={activePanel}
+              />
 
-          {/* Test Instructions */}
-          <div className="absolute bottom-4 left-4 text-white text-sm bg-black/50 p-2 rounded">
-            <div>اختبار القتال: <kbd className="px-1 bg-gray-700 rounded">C</kbd></div>
-            <div>اختبار القصة: <kbd className="px-1 bg-gray-700 rounded">S</kbd></div>
-            <div>إغلاق: <kbd className="px-1 bg-gray-700 rounded">ESC</kbd></div>
-          </div>
-        </div>
+              {/* Panels */}
+              <InventoryPanel 
+                isOpen={activePanel === 'inventory'}
+                onClose={() => setActivePanel(null)}
+                player={player}
+              />
+              
+              <SkillsPanel 
+                isOpen={activePanel === 'skills'}
+                onClose={() => setActivePanel(null)}
+                player={player}
+              />
+              
+              <MapPanel 
+                isOpen={activePanel === 'map'}
+                onClose={() => setActivePanel(null)}
+                player={player}
+              />
+              
+              <QuestPanel 
+                isOpen={activePanel === 'quests'}
+                onClose={() => setActivePanel(null)}
+                questData={questData}
+              />
+
+              {/* Test Panels */}
+              <CombatTestPanel
+                isOpen={showCombatTest}
+                onClose={() => setShowCombatTest(false)}
+                player={player}
+              />
+
+              <StoryTestPanel
+                isOpen={showStoryTest}
+                onClose={() => setShowStoryTest(false)}
+              />
+
+              {/* Dialogue Panel */}
+              {dialogueData && (
+                <DialoguePanel 
+                  dialogue={dialogueData}
+                  characterId={currentCharacter}
+                  onChoice={handleDialogueChoice}
+                  onClose={() => setDialogueData(null)}
+                />
+              )}
+
+              {/* Test Instructions */}
+              <div className="absolute bottom-4 left-4 text-white text-sm bg-black/50 p-2 rounded">
+                <div>اختبار القتال: <kbd className="px-1 bg-gray-700 rounded">C</kbd></div>
+                <div>اختبار القصة: <kbd className="px-1 bg-gray-700 rounded">S</kbd></div>
+                <div>إغلاق: <kbd className="px-1 bg-gray-700 rounded">ESC</kbd></div>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   )
