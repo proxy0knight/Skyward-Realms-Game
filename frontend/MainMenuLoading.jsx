@@ -10,10 +10,10 @@ const MainMenuLoading = (props) => {
   const [error, setError] = useState(null);
   const [fallback, setFallback] = useState(null);
 
-  // Load fallback.json if any prop is missing
+  // Load fallback.json if any prop except progress is missing
   useEffect(() => {
     let needsFallback = false;
-    if (!props.assetsPath || props.progress === undefined || props.showAdvice === undefined || !props.waitingMsgPath) {
+    if (!props.assetsPath || props.showAdvice === undefined || !props.waitingMsgPath) {
       needsFallback = true;
     }
     if (needsFallback) {
@@ -22,7 +22,7 @@ const MainMenuLoading = (props) => {
         .then(setFallback)
         .catch(() => setFallback(null));
     }
-  }, [props.assetsPath, props.progress, props.showAdvice, props.waitingMsgPath]);
+  }, [props.assetsPath, props.showAdvice, props.waitingMsgPath]);
 
   // Dynamically load assets JSON
   useEffect(() => {
@@ -60,7 +60,11 @@ const MainMenuLoading = (props) => {
       .catch(() => setError('Error loading waiting messages.'));
   }, [props.showAdvice, props.waitingMsgPath, fallback]);
 
-  const progress = props.progress !== undefined ? props.progress : (fallback && fallback.progress) || 0;
+  // progress is mandatory
+  if (props.progress === undefined) {
+    return <div className="mainmenu-loading-root">Error: progress prop is required.</div>;
+  }
+  const progress = props.progress;
   const showAdvice = props.showAdvice !== undefined ? props.showAdvice : (fallback && fallback.showAdvice);
 
   if (error) return <div className="mainmenu-loading-root">{error}</div>;
