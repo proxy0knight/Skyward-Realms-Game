@@ -4,7 +4,7 @@ const MAPS_INDEX_KEY = 'skyward_maps_index'
 const MAP_KEY_PREFIX = 'skyward_world_map_'
 const TOOL_ASSET_KEY = 'skyward_tool_asset_assignments'
 const DEFAULT_SIZE = 32
-const DEFAULT_CELL = { type: 'ground', objects: [], flags: {} }
+const DEFAULT_CELL = { type: 'sea', terrainHeightIndex: 0, objects: [], flags: {} }
 const TERRAIN_TYPES = [
   { type: 'ground', label: 'Ground', color: '#4ade80', tag: 'Ground' },
   { type: 'water', label: 'Water', color: '#60a5fa', tag: 'Water' },
@@ -44,6 +44,8 @@ const MapEditor = () => {
   const [teleportDestMap, setTeleportDestMap] = useState('')
   const [teleportTwoWay, setTeleportTwoWay] = useState(true)
   const [startingMapId, setStartingMapId] = useState('')
+  const [terrainHeightIndex, setTerrainHeightIndex] = useState(0)
+  const [flagHeightIndex, setFlagHeightIndex] = useState(0)
 
   // Load maps index and current map
   useEffect(() => {
@@ -89,12 +91,13 @@ const MapEditor = () => {
       const newMap = prev.map(row => row.map(cell => ({ ...cell })))
       if (mode === 'terrain') {
         newMap[y][x].type = selectedTerrain
+        newMap[y][x].terrainHeightIndex = terrainHeightIndex
       } else if (mode === 'asset') {
         if (!selectedAsset) return prev
         if (!newMap[y][x].objects) newMap[y][x].objects = []
         newMap[y][x].objects.push({ assetId: selectedAsset, heightIndex: assetHeightIndex })
       } else if (mode === 'flag') {
-        newMap[y][x].flags = { ...newMap[y][x].flags, [selectedFlag]: true }
+        newMap[y][x].flags = { ...newMap[y][x].flags, [selectedFlag]: { heightIndex: flagHeightIndex } }
       }
       saveMap(newMap)
       return newMap
@@ -294,29 +297,20 @@ const MapEditor = () => {
         >Region/Flag</button>
         {mode === 'terrain' && (
           <div className="flex items-center gap-2">
-            {TERRAIN_TYPES.map(t => (
-              <div key={t.type} className="flex flex-col items-center">
-                <button
-                  onClick={() => setSelectedTerrain(t.type)}
-                  className={`px-3 py-1 rounded-lg font-semibold text-sm border-2 transition-colors ${selectedTerrain === t.type ? 'border-yellow-400 bg-yellow-400/20 text-yellow-200' : 'border-gray-700 bg-black/40 text-white hover:border-yellow-400'}`}
-                  style={{ background: selectedTerrain === t.type ? t.color + '33' : undefined }}
-                >
-                  <span className="inline-block w-4 h-4 rounded-full mr-2" style={{ background: t.color }}></span>
-                  {t.label}
-                </button>
-                {/* Tool asset assignment */}
-                <select
-                  value={toolAssets[t.type] || ''}
-                  onChange={e => handleToolAssetChange(t.type, e.target.value)}
-                  className="mt-1 px-2 py-1 rounded border border-purple-500/50 bg-black/40 text-xs text-white"
-                >
-                  <option value="">Default</option>
-                  {assets.filter(a => (a.category === t.tag || (a.tags || []).includes(t.tag))).map(a => (
-                    <option key={a.id} value={a.id}>{a.name} ({a.fileName})</option>
-                  ))}
-                </select>
-              </div>
-            ))}
+            <select
+              value={selectedTerrain}
+              onChange={e => setSelectedTerrain(e.target.value)}
+              className="px-3 py-1 rounded-lg border border-purple-500/50 bg-black/40 text-white"
+            >
+              {TERRAIN_TYPES.map(t => (
+                <option key={t.type} value={t.type}>{t.label}</option>
+              ))}
+            </select>
+            <label className="text-xs text-purple-300 flex items-center gap-1">
+              Height:
+              <input type="number" value={terrainHeightIndex} onChange={e => setTerrainHeightIndex(Number(e.target.value))} className="w-12 px-1 rounded bg-black/40 border border-purple-700 text-purple-200" step="1" />
+            </label>
+            <span className="text-xs text-purple-300">(Click cell to paint terrain)</span>
           </div>
         )}
         {mode === 'asset' && (
@@ -351,6 +345,10 @@ const MapEditor = () => {
                 {f.label}
               </button>
             ))}
+            <label className="text-xs text-purple-300 flex items-center gap-1">
+              Height:
+              <input type="number" value={flagHeightIndex} onChange={e => setFlagHeightIndex(Number(e.target.value))} className="w-12 px-1 rounded bg-black/40 border border-purple-700 text-purple-200" step="1" />
+            </label>
             <span className="text-xs text-purple-300">(Click cell to flag, right-click to clear)</span>
           </div>
         )}
