@@ -1,28 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import './MainMenuLoading.css';
+import './UniversalLoadingScreen.css';
 
 const getRandomInt = (max) => Math.floor(Math.random() * max);
 
-const MainMenuLoading = (props) => {
+const UniversalLoadingScreen = (props) => {
   const [assets, setAssets] = useState(null);
   const [waitingMsgs, setWaitingMsgs] = useState([]);
   const [advice, setAdvice] = useState('');
   const [error, setError] = useState(null);
   const [fallback, setFallback] = useState(null);
 
-  // Load fallback.json if any prop except progress is missing
+  // Load fallback.json if assetsPath is missing
   useEffect(() => {
-    let needsFallback = false;
-    if (!props.assetsPath || props.showAdvice === undefined || !props.waitingMsgPath) {
-      needsFallback = true;
-    }
-    if (needsFallback) {
+    if (!props.assetsPath) {
       fetch('./fallback.json')
         .then((res) => res.json())
         .then(setFallback)
         .catch(() => setFallback(null));
     }
-  }, [props.assetsPath, props.showAdvice, props.waitingMsgPath]);
+  }, [props.assetsPath]);
 
   // Dynamically load assets JSON
   useEffect(() => {
@@ -39,14 +35,12 @@ const MainMenuLoading = (props) => {
       .catch(() => setError('Error loading assets.'));
   }, [props.assetsPath, fallback]);
 
-  // Load waiting messages if advice is enabled
+  // Load waiting messages from path in assets
   useEffect(() => {
-    const showAdvice = props.showAdvice !== undefined ? props.showAdvice : (fallback && fallback.showAdvice);
-    const msgPath = props.waitingMsgPath || (fallback && fallback.waitingMsgPath);
-    if (!showAdvice) return;
+    if (!assets || !assets.waitingMsgPath) return;
     setWaitingMsgs([]);
     setAdvice('');
-    fetch(msgPath)
+    fetch(assets.waitingMsgPath)
       .then((res) => {
         if (!res.ok) throw new Error('Failed to load waiting messages');
         return res.json();
@@ -58,18 +52,17 @@ const MainMenuLoading = (props) => {
         }
       })
       .catch(() => setError('Error loading waiting messages.'));
-  }, [props.showAdvice, props.waitingMsgPath, fallback]);
+  }, [assets]);
 
   // progress is mandatory
   if (props.progress === undefined) {
     return <div className="mainmenu-loading-root">Error: progress prop is required.</div>;
   }
-  const progress = props.progress;
-  const showAdvice = props.showAdvice !== undefined ? props.showAdvice : (fallback && fallback.showAdvice);
 
   if (error) return <div className="mainmenu-loading-root">{error}</div>;
   if (!assets) return <div className="mainmenu-loading-root">Loading assets...</div>;
 
+  // Always show advice rectangle (per fallback default)
   return (
     <div className="mainmenu-loading-root">
       <img
@@ -86,14 +79,12 @@ const MainMenuLoading = (props) => {
         <div className="mainmenu-loading-bar-container">
           <div
             className="mainmenu-loading-bar"
-            style={{ width: `${progress}%` }}
+            style={{ width: `${props.progress}%` }}
           />
         </div>
-        {showAdvice && (
-          <div className="mainmenu-advice-rect">
-            {error ? error : advice}
-          </div>
-        )}
+        <div className="mainmenu-advice-rect">
+          {error ? error : advice}
+        </div>
       </div>
       <div className="mainmenu-crown-container">
         <img
@@ -107,4 +98,4 @@ const MainMenuLoading = (props) => {
   );
 };
 
-export default MainMenuLoading;
+export default UniversalLoadingScreen;

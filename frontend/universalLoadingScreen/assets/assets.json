@@ -1,5 +1,6 @@
 {
   "logo": "../game-client/src/assets/images/game-logo.png",
   "crown": "../game-client/src/assets/images/fantasy_mountains.jpg",
-  "loadingText": "Loading..."
+  "loadingText": "Loading...",
+  "waitingMsgPath": "../waitingmsg.json"
 }
