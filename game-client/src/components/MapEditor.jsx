@@ -4,7 +4,7 @@ const MAPS_INDEX_KEY = 'skyward_maps_index'
 const MAP_KEY_PREFIX = 'skyward_world_map_'
 const TOOL_ASSET_KEY = 'skyward_tool_asset_assignments'
 const DEFAULT_SIZE = 32
-const DEFAULT_CELL = { type: 'ground', asset: null, flags: {} }
+const DEFAULT_CELL = { type: 'ground', objects: [], flags: {} }
 const TERRAIN_TYPES = [
   { type: 'ground', label: 'Ground', color: '#4ade80', tag: 'Ground' },
   { type: 'water', label: 'Water', color: '#60a5fa', tag: 'Water' },
@@ -33,6 +33,7 @@ const MapEditor = () => {
   const [mode, setMode] = useState('terrain') // 'terrain', 'asset', 'flag'
   const [assets, setAssets] = useState([])
   const [selectedAsset, setSelectedAsset] = useState('')
+  const [assetHeightIndex, setAssetHeightIndex] = useState(0)
   const [selectedFlag, setSelectedFlag] = useState('spawn')
   const [toolAssets, setToolAssets] = useState({})
   const [showNewMap, setShowNewMap] = useState(false)
@@ -89,7 +90,9 @@ const MapEditor = () => {
       if (mode === 'terrain') {
         newMap[y][x].type = selectedTerrain
       } else if (mode === 'asset') {
-        newMap[y][x].asset = selectedAsset || null
+        if (!selectedAsset) return prev
+        if (!newMap[y][x].objects) newMap[y][x].objects = []
+        newMap[y][x].objects.push({ assetId: selectedAsset, heightIndex: assetHeightIndex })
       } else if (mode === 'flag') {
         newMap[y][x].flags = { ...newMap[y][x].flags, [selectedFlag]: true }
       }
@@ -98,10 +101,14 @@ const MapEditor = () => {
     })
   }
 
-  const clearAsset = (x, y) => {
+  const clearAsset = (x, y, objIdx = null) => {
     setMap(prev => {
       const newMap = prev.map(row => row.map(cell => ({ ...cell })))
-      newMap[y][x].asset = null
+      if (objIdx === null) {
+        newMap[y][x].objects = []
+      } else {
+        newMap[y][x].objects.splice(objIdx, 1)
+      }
       saveMap(newMap)
       return newMap
     })
@@ -324,6 +331,10 @@ const MapEditor = () => {
                 <option key={a.id} value={a.id}>{a.name} ({a.fileName})</option>
               ))}
             </select>
+            <label className="text-xs text-purple-300 flex items-center gap-1">
+              Height:
+              <input type="number" value={assetHeightIndex} onChange={e => setAssetHeightIndex(Number(e.target.value))} className="w-12 px-1 rounded bg-black/40 border border-purple-700 text-purple-200" step="1" />
+            </label>
             <span className="text-xs text-purple-300">(Click cell to place, right-click to remove)</span>
           </div>
         )}
@@ -363,7 +374,7 @@ const MapEditor = () => {
                     cursor: 'pointer',
                     position: 'relative',
                   }}
-                  title={isTeleport ? `Teleport to: ${mapsIndex.find(m => m.id === cell.flags.teleport.toMapId)?.name || cell.flags.teleport.toMapId} (${cell.flags.teleport.twoWay ? 'Two-way' : 'One-way'})` : `(${x},${y}) ${cell.type}${cell.asset ? ' [Asset]' : ''}`}
+                  title={isTeleport ? `Teleport to: ${mapsIndex.find(m => m.id === cell.flags.teleport.toMapId)?.name || cell.flags.teleport.toMapId} (${cell.flags.teleport.twoWay ? 'Two-way' : 'One-way'})` : `(${x},${y}) ${cell.type}${cell.objects && cell.objects.length ? ' [Objects]' : ''}`}
                   onMouseDown={e => {
                     e.preventDefault();
                     setIsPainting(true);
@@ -383,9 +394,12 @@ const MapEditor = () => {
                   onMouseEnter={() => { if (isPainting) paintCell(x, y) }}
                   onContextMenu={e => { e.preventDefault(); if (mode === 'asset') clearAsset(x, y); if (mode === 'flag' && selectedFlag === 'teleport') clearTeleport(x, y); if (mode === 'flag') clearFlag(x, y, selectedFlag) }}
                 >
-                  {cell.asset && (
-                    <span style={{ position: 'absolute', top: 2, right: 2, fontSize: 10, color: '#fff', background: '#6d28d9', borderRadius: 2, padding: '0 2px' }}>A</span>
-                  )}
+                  {cell.objects && cell.objects.map((obj, idx) => (
+                    <span key={idx} style={{ position: 'absolute', top: 2 + idx * 10, right: 2, fontSize: 10, color: '#fff', background: '#6d28d9', borderRadius: 2, padding: '0 2px', cursor: 'pointer' }} title={`Asset: ${obj.assetId}, Height: ${obj.heightIndex}`}
+                      onClick={e => { e.stopPropagation(); if (mode === 'asset') clearAsset(x, y, idx) }}>
+                      A{obj.heightIndex}
+                    </span>
+                  ))}
                   {cell.flags && Object.keys(cell.flags).map(flag => (
                     <span key={flag} style={{ position: 'absolute', bottom: 2, left: 2, fontSize: 9, color: '#fff', background: FLAG_TYPES.find(f => f.flag === flag)?.color || '#aaa', borderRadius: 2, padding: '0 2px', opacity: 0.85 }}>{flag[0].toUpperCase()}</span>
                   ))}
