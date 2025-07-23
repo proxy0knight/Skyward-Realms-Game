@@ -630,10 +630,9 @@ class BabylonGameEngine {
               if (base64) {
                 try {
                   const meshes = await this.loadGLBFromBase64(base64, `asset_${x}_${z}_${obj.assetId}`)
-                  // Compute Y position
-                  const groundY = 0 // (or use this.getTerrainHeight(x, z) if terrain is not flat)
+                  // Compute Y position using non-flat terrain
+                  const groundY = typeof this.getTerrainHeight === 'function' ? this.getTerrainHeight(x, z) : 0
                   const y = groundY + (obj.heightIndex || 0) * heightStep
-                  // Place at (x, y, z)
                   meshes.forEach(m => { m.position = new BABYLON.Vector3(x, y, z) })
                   this.ensurePhysicsBox(meshes, new BABYLON.Vector3(x, y, z), {width: 1, height: 1, depth: 1})
                 } catch (e) {
