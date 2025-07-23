@@ -308,7 +308,7 @@ const MapEditor = () => {
             </select>
             <label className="text-xs text-purple-300 flex items-center gap-1">
               Height:
-              <input type="number" value={terrainHeightIndex} onChange={e => setTerrainHeightIndex(Number(e.target.value))} className="w-12 px-1 rounded bg-black/40 border border-purple-700 text-purple-200" step="1" />
+              <input type="number" value={terrainHeightIndex} onChange={e => setTerrainHeightIndex(parseFloat(e.target.value))} className="w-12 px-1 rounded bg-black/40 border border-purple-700 text-purple-200" step="0.01" />
             </label>
             <span className="text-xs text-purple-300">(Click cell to paint terrain)</span>
           </div>
@@ -327,7 +327,7 @@ const MapEditor = () => {
             </select>
             <label className="text-xs text-purple-300 flex items-center gap-1">
               Height:
-              <input type="number" value={assetHeightIndex} onChange={e => setAssetHeightIndex(Number(e.target.value))} className="w-12 px-1 rounded bg-black/40 border border-purple-700 text-purple-200" step="1" />
+              <input type="number" value={assetHeightIndex} onChange={e => setAssetHeightIndex(parseFloat(e.target.value))} className="w-12 px-1 rounded bg-black/40 border border-purple-700 text-purple-200" step="0.01" />
             </label>
             <span className="text-xs text-purple-300">(Click cell to place, right-click to remove)</span>
           </div>
@@ -347,7 +347,7 @@ const MapEditor = () => {
             ))}
             <label className="text-xs text-purple-300 flex items-center gap-1">
               Height:
-              <input type="number" value={flagHeightIndex} onChange={e => setFlagHeightIndex(Number(e.target.value))} className="w-12 px-1 rounded bg-black/40 border border-purple-700 text-purple-200" step="1" />
+              <input type="number" value={flagHeightIndex} onChange={e => setFlagHeightIndex(parseFloat(e.target.value))} className="w-12 px-1 rounded bg-black/40 border border-purple-700 text-purple-200" step="0.01" />
             </label>
             <span className="text-xs text-purple-300">(Click cell to flag, right-click to clear)</span>
           </div>
