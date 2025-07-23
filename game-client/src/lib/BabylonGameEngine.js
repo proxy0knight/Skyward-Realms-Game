@@ -546,10 +546,12 @@ class BabylonGameEngine {
     // For spawn/teleport
     let playerSpawn = null
     const teleportTriggers = []
+    const heightStep = 1 // units per heightIndex
     for (let z = 0; z < this.mapData.length; z++) {
       for (let x = 0; x < this.mapData[z].length; x++) {
         const cell = this.mapData[z][x]
-        // 1. Terrain mesh
+        // 1. Terrain mesh (with height index)
+        let terrainY = (cell.terrainHeightIndex || 0) * heightStep
         let terrainAssetId = toolAssets[cell.type] || null
         let terrainAsset = terrainAssetId ? getAssetById(terrainAssetId) : null
         if (terrainAsset && terrainAsset.id) {
@@ -557,6 +559,7 @@ class BabylonGameEngine {
           if (base64) {
             try {
               const meshes = await this.loadGLBFromBase64(base64, `terrain_${x}_${z}`)
+              meshes.forEach(m => { m.position = new BABYLON.Vector3(x, terrainY, z) })
               const boxConfig = await idbGet(PHYSICS_BOXES_KEY + terrainAsset.id)
               if (boxConfig && Array.isArray(boxConfig) && boxConfig.length > 0) {
                 boxConfig.forEach(box => {
@@ -589,37 +592,37 @@ class BabylonGameEngine {
                     })
                   } else {
                     console.warn('[PhysicsBox] Target node not found for box:', box.meshName, 'Falling back to root.')
-                    this.ensurePhysicsBox(meshes, new BABYLON.Vector3(x, 0, z), {width: 1, height: 0.2, depth: 1})
+                    this.ensurePhysicsBox(meshes, new BABYLON.Vector3(x, terrainY, z), {width: 1, height: 0.2, depth: 1})
                   }
                 })
               } else {
-                this.ensurePhysicsBox(meshes, new BABYLON.Vector3(x, 0, z), {width: 1, height: 0.2, depth: 1})
+                this.ensurePhysicsBox(meshes, new BABYLON.Vector3(x, terrainY, z), {width: 1, height: 0.2, depth: 1})
               }
             } catch (e) {
               console.warn(`[createWorld] Failed to load terrain GLB for (${x},${z}):`, e)
               const box = BABYLON.MeshBuilder.CreateBox(`ground_${x}_${z}`, { width: 1, height: 0.2, depth: 1 }, this.scene)
-              box.position = new BABYLON.Vector3(x, 0, z)
+              box.position = new BABYLON.Vector3(x, terrainY, z)
               box.material = new BABYLON.StandardMaterial('groundMat', this.scene)
               box.material.diffuseColor = new BABYLON.Color3(0.2, 0.7, 0.3)
-              this.ensurePhysicsBox(box, new BABYLON.Vector3(x, 0, z), {width: 1, height: 0.2, depth: 1})
+              this.ensurePhysicsBox(box, new BABYLON.Vector3(x, terrainY, z), {width: 1, height: 0.2, depth: 1})
             }
           } else {
             console.warn(`[TERRAIN] No GLB data found in IndexedDB for terrain asset '${terrainAsset.id}' at (${x},${z}), using default box.`)
             const box = BABYLON.MeshBuilder.CreateBox(`ground_${x}_${z}`, { width: 1, height: 0.2, depth: 1 }, this.scene)
-            box.position = new BABYLON.Vector3(x, 0, z)
+            box.position = new BABYLON.Vector3(x, terrainY, z)
             box.material = new BABYLON.StandardMaterial('groundMat', this.scene)
             box.material.diffuseColor = new BABYLON.Color3(0.2, 0.7, 0.3)
-            this.ensurePhysicsBox(box, new BABYLON.Vector3(x, 0, z), {width: 1, height: 0.2, depth: 1})
+            this.ensurePhysicsBox(box, new BABYLON.Vector3(x, terrainY, z), {width: 1, height: 0.2, depth: 1})
           }
         } else {
           if (terrainAssetId) {
             console.warn(`[TERRAIN] No asset found for terrain type '${cell.type}' with id '${terrainAssetId}' at (${x},${z}), using default box.`)
           }
           const box = BABYLON.MeshBuilder.CreateBox(`ground_${x}_${z}`, { width: 1, height: 0.2, depth: 1 }, this.scene)
-          box.position = new BABYLON.Vector3(x, 0, z)
+          box.position = new BABYLON.Vector3(x, terrainY, z)
           box.material = new BABYLON.StandardMaterial('groundMat', this.scene)
           box.material.diffuseColor = new BABYLON.Color3(0.2, 0.7, 0.3)
-          this.ensurePhysicsBox(box, new BABYLON.Vector3(x, 0, z), {width: 1, height: 0.2, depth: 1})
+          this.ensurePhysicsBox(box, new BABYLON.Vector3(x, terrainY, z), {width: 1, height: 0.2, depth: 1})
         }
         // 2. Per-object asset placement
         if (cell.objects && Array.isArray(cell.objects)) {
@@ -630,9 +633,7 @@ class BabylonGameEngine {
               if (base64) {
                 try {
                   const meshes = await this.loadGLBFromBase64(base64, `asset_${x}_${z}_${obj.assetId}`)
-                  // Compute Y position using non-flat terrain
-                  const groundY = typeof this.getTerrainHeight === 'function' ? this.getTerrainHeight(x, z) : 0
-                  const y = groundY + (obj.heightIndex || 0) * heightStep
+                  const y = terrainY + (obj.heightIndex || 0) * heightStep
                   meshes.forEach(m => { m.position = new BABYLON.Vector3(x, y, z) })
                   this.ensurePhysicsBox(meshes, new BABYLON.Vector3(x, y, z), {width: 1, height: 1, depth: 1})
                 } catch (e) {
@@ -642,8 +643,16 @@ class BabylonGameEngine {
             }
           }
         }
-        // 3. Flags
+        // 3. Flags (if rendering as 3D objects, use terrainY + flag.heightIndex * heightStep)
         if (cell.flags) {
+          for (const flag in cell.flags) {
+            const flagData = cell.flags[flag]
+            if (flagData && typeof flagData.heightIndex === 'number') {
+              const fy = terrainY + flagData.heightIndex * heightStep
+              // Example: render a flag marker at (x, fy, z) if desired
+              // BABYLON.MeshBuilder.CreateBox(`flag_${flag}_${x}_${z}`, { size: 0.3 }, this.scene).position = new BABYLON.Vector3(x, fy, z)
+            }
+          }
           // Spawn
           if (cell.flags.spawn) {
             if (!playerSpawn) {
