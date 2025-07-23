@@ -3,11 +3,24 @@ import './MainMenuLoading.css';
 
 const getRandomInt = (max) => Math.floor(Math.random() * max);
 
-const MainMenuLoading = ({ assets, durationMs = 2000, onLoaded, showAdvice = false, waitingMsgPath = '/frontend/waitingmsg.json' }) => {
-  const [progress, setProgress] = useState(0);
+const MainMenuLoading = ({ assetsPath, progress = 0, showAdvice = false, waitingMsgPath = '/frontend/waitingmsg.json' }) => {
+  const [assets, setAssets] = useState(null);
   const [waitingMsgs, setWaitingMsgs] = useState([]);
   const [advice, setAdvice] = useState('');
   const [error, setError] = useState(null);
+
+  // Dynamically load assets JSON
+  useEffect(() => {
+    setAssets(null);
+    setError(null);
+    fetch(assetsPath)
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to load assets');
+        return res.json();
+      })
+      .then(setAssets)
+      .catch(() => setError('Error loading assets.'));
+  }, [assetsPath]);
 
   // Load waiting messages if advice is enabled
   useEffect(() => {
@@ -28,18 +41,7 @@ const MainMenuLoading = ({ assets, durationMs = 2000, onLoaded, showAdvice = fal
       .catch(() => setError('Error loading waiting messages.'));
   }, [showAdvice, waitingMsgPath]);
 
-  // Animate loading bar
-  useEffect(() => {
-    if (!assets) return;
-    if (progress < 100) {
-      const step = 100 / (durationMs / 20);
-      const timer = setTimeout(() => setProgress(Math.min(progress + step, 100)), 20);
-      return () => clearTimeout(timer);
-    } else if (onLoaded) {
-      setTimeout(onLoaded, 500);
-    }
-  }, [progress, assets, durationMs, onLoaded]);
-
+  if (error) return <div className="mainmenu-loading-root">{error}</div>;
   if (!assets) return <div className="mainmenu-loading-root">Loading assets...</div>;
 
   return (
