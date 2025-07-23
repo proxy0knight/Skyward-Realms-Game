@@ -1,23 +1,32 @@
 import React, { useEffect, useState } from 'react';
 import './MainMenuLoading.css';
 
-const MainMenuLoading = ({ assetsPath, durationMs = 2000, onLoaded }) => {
+const getRandomInt = (max) => Math.floor(Math.random() * max);
+
+const MainMenuLoading = ({ assets, durationMs = 2000, onLoaded, showAdvice = false, waitingMsgPath = '/frontend/waitingmsg.json' }) => {
   const [progress, setProgress] = useState(0);
-  const [assets, setAssets] = useState(null);
+  const [waitingMsgs, setWaitingMsgs] = useState([]);
+  const [advice, setAdvice] = useState('');
   const [error, setError] = useState(null);
 
-  // Dynamically load assets JSON
+  // Load waiting messages if advice is enabled
   useEffect(() => {
-    setAssets(null);
-    setError(null);
-    fetch(assetsPath)
+    if (!showAdvice) return;
+    setWaitingMsgs([]);
+    setAdvice('');
+    fetch(waitingMsgPath)
       .then((res) => {
-        if (!res.ok) throw new Error('Failed to load assets');
+        if (!res.ok) throw new Error('Failed to load waiting messages');
         return res.json();
       })
-      .then(setAssets)
-      .catch(setError);
-  }, [assetsPath]);
+      .then((msgs) => {
+        setWaitingMsgs(msgs);
+        if (Array.isArray(msgs) && msgs.length > 0) {
+          setAdvice(msgs[getRandomInt(msgs.length)]);
+        }
+      })
+      .catch(() => setError('Error loading waiting messages.'));
+  }, [showAdvice, waitingMsgPath]);
 
   // Animate loading bar
   useEffect(() => {
@@ -31,7 +40,6 @@ const MainMenuLoading = ({ assetsPath, durationMs = 2000, onLoaded }) => {
     }
   }, [progress, assets, durationMs, onLoaded]);
 
-  if (error) return <div className="mainmenu-loading-root">Error loading assets.</div>;
   if (!assets) return <div className="mainmenu-loading-root">Loading assets...</div>;
 
   return (
@@ -53,6 +61,11 @@ const MainMenuLoading = ({ assetsPath, durationMs = 2000, onLoaded }) => {
             style={{ width: `${progress}%` }}
           />
         </div>
+        {showAdvice && (
+          <div className="mainmenu-advice-rect">
+            {error ? error : advice}
+          </div>
+        )}
       </div>
       <div className="mainmenu-crown-container">
         <img
