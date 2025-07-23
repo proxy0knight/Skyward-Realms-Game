@@ -65,18 +65,36 @@ frontend/universalLoadingScreen/
    - Always provide the `progress` prop (0–100) to control the loading bar.
    - Use the loading screen as an overlay by conditionally rendering it while your page is loading.
    - You can override the `assetsPath` prop or rely on the default in `fallback.json`.
-   - The loading screen will automatically read the waiting message path from the assets file and load messages from there.
+   - The loading screen will automatically read the waiting message path and showAdvice from the assets file and load messages from there.
    - Place your own assets/messages in the `assets/` folder or customize the JSON files as needed.
 
 ## Props
 - `progress` (number, required): Loading progress (0–100).
-- `assetsPath` (string, optional): Path to the JSON file for logo, crown, loading text, and waitingMsgPath.
+- `assetsPath` (string, optional): Path to the JSON file for logo, crown, loading text, waitingMsgPath, and showAdvice.
+
+## Configuration via assets.json
+- `logo`: Path to the logo image.
+- `crown`: Path to the crown image.
+- `loadingText`: Text to display above the loading bar.
+- `waitingMsgPath`: Path to the JSON file with advice/messages.
+- `showAdvice`: Boolean to control whether the advice/message rectangle is shown.
+
+**Example assets.json:**
+```json
+{
+  "logo": "../game-client/src/assets/images/game-logo.png",
+  "crown": "../game-client/src/assets/images/fantasy_mountains.jpg",
+  "loadingText": "Loading...",
+  "waitingMsgPath": "../waitingmsg.json",
+  "showAdvice": true
+}
+```
 
 ## Fallback Behavior
 If `assetsPath` is missing, the component loads `fallback.json` and uses its value for `assetsPath`. By default, the advice/message rectangle is shown and default assets/messages are used.
 
 ## Customization
-- Edit `assets/assets.json` for default logo, crown, loading text, and `waitingMsgPath`.
+- Edit `assets/assets.json` for default logo, crown, loading text, `waitingMsgPath`, and `showAdvice`.
 - Edit the file referenced by `waitingMsgPath` for the pool of random advice/messages.
 - Edit `fallback.json` to change default prop values.
 - Style via `UniversalLoadingScreen.css`.
