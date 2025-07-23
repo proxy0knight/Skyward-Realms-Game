@@ -1,0 +1,6 @@
+{
+  "assetsPath": "./assets/assets.json",
+  "progress": 0,
+  "showAdvice": false,
+  "waitingMsgPath": "./waitingmsg.json"
+}

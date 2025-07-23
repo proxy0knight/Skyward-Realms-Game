@@ -3,31 +3,50 @@ import './MainMenuLoading.css';
 
 const getRandomInt = (max) => Math.floor(Math.random() * max);
 
-const MainMenuLoading = ({ assetsPath, progress = 0, showAdvice = false, waitingMsgPath = '/frontend/waitingmsg.json' }) => {
+const MainMenuLoading = (props) => {
   const [assets, setAssets] = useState(null);
   const [waitingMsgs, setWaitingMsgs] = useState([]);
   const [advice, setAdvice] = useState('');
   const [error, setError] = useState(null);
+  const [fallback, setFallback] = useState(null);
+
+  // Load fallback.json if any prop is missing
+  useEffect(() => {
+    let needsFallback = false;
+    if (!props.assetsPath || props.progress === undefined || props.showAdvice === undefined || !props.waitingMsgPath) {
+      needsFallback = true;
+    }
+    if (needsFallback) {
+      fetch('./fallback.json')
+        .then((res) => res.json())
+        .then(setFallback)
+        .catch(() => setFallback(null));
+    }
+  }, [props.assetsPath, props.progress, props.showAdvice, props.waitingMsgPath]);
 
   // Dynamically load assets JSON
   useEffect(() => {
+    const path = props.assetsPath || (fallback && fallback.assetsPath);
+    if (!path) return;
     setAssets(null);
     setError(null);
-    fetch(assetsPath)
+    fetch(path)
       .then((res) => {
         if (!res.ok) throw new Error('Failed to load assets');
         return res.json();
       })
       .then(setAssets)
       .catch(() => setError('Error loading assets.'));
-  }, [assetsPath]);
+  }, [props.assetsPath, fallback]);
 
   // Load waiting messages if advice is enabled
   useEffect(() => {
+    const showAdvice = props.showAdvice !== undefined ? props.showAdvice : (fallback && fallback.showAdvice);
+    const msgPath = props.waitingMsgPath || (fallback && fallback.waitingMsgPath);
     if (!showAdvice) return;
     setWaitingMsgs([]);
     setAdvice('');
-    fetch(waitingMsgPath)
+    fetch(msgPath)
       .then((res) => {
         if (!res.ok) throw new Error('Failed to load waiting messages');
         return res.json();
@@ -39,7 +58,10 @@ const MainMenuLoading = ({ assetsPath, progress = 0, showAdvice = false, waiting
         }
       })
       .catch(() => setError('Error loading waiting messages.'));
-  }, [showAdvice, waitingMsgPath]);
+  }, [props.showAdvice, props.waitingMsgPath, fallback]);
+
+  const progress = props.progress !== undefined ? props.progress : (fallback && fallback.progress) || 0;
+  const showAdvice = props.showAdvice !== undefined ? props.showAdvice : (fallback && fallback.showAdvice);
 
   if (error) return <div className="mainmenu-loading-root">{error}</div>;
   if (!assets) return <div className="mainmenu-loading-root">Loading assets...</div>;
