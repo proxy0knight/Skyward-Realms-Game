@@ -13,7 +13,7 @@ import AdminAccess from './components/AdminAccess'
 import CombatTestPanel from './components/CombatTestPanel'
 import StoryTestPanel from './components/StoryTestPanel'
 import { Flame, Droplets, Mountain, Wind } from 'lucide-react'
-import TestUniversalLoadingScreen from './frontend/TestUniversalLoadingScreen'
+import TestUniversalLoadingScreen from '../frontend/TestUniversalLoadingScreen'
 
 function App() {
   const [gameState, setGameState] = useState('menu') // 'menu', 'character-selection', 'playing', 'admin-access', 'admin'
