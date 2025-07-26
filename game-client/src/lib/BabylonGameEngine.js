@@ -95,8 +95,14 @@ class BabylonGameEngine {
       // Setup input
       this.setupInput()
 
+      // Ensure default map exists before loading
+      this.ensureDefaultMapExists()
+      
       // Load map data before creating world
-      this.mapData = this.loadMapData(this.getStartingMapId())
+      const startingMapId = this.getStartingMapId()
+      this.mapData = this.loadMapData(startingMapId)
+      console.log('BabylonGameEngine: Loaded map data for:', startingMapId, 'Size:', this.mapData?.length || 'null')
+      
       await this.createWorld()
 
       // Setup rendering optimizations
@@ -121,7 +127,14 @@ class BabylonGameEngine {
     const idx = JSON.parse(localStorage.getItem('skyward_maps_index') || '[]')
     let startId = localStorage.getItem('skyward_starting_map')
     if (!startId && idx.length > 0) startId = idx[0].id
-    return startId || 'default'
+    
+    // If no maps exist, create a default one
+    if (!startId || startId === 'default') {
+      this.ensureDefaultMapExists()
+      return 'default'
+    }
+    
+    return startId
   }
 
   /**
@@ -131,6 +144,15 @@ class BabylonGameEngine {
     const data = localStorage.getItem('skyward_world_map_' + mapId)
     if (!data) {
       console.warn('BabylonGameEngine: No map data found for mapId:', mapId)
+      
+      // If it's the default map, create it
+      if (mapId === 'default') {
+        this.ensureDefaultMapExists()
+        const defaultData = localStorage.getItem('skyward_world_map_default')
+        if (defaultData) {
+          return JSON.parse(defaultData)
+        }
+      }
       return null
     }
     const parsed = JSON.parse(data)
@@ -141,15 +163,51 @@ class BabylonGameEngine {
   }
 
   /**
+   * Ensure default map exists
+   */
+  ensureDefaultMapExists() {
+    const existingMap = localStorage.getItem('skyward_world_map_default')
+    if (existingMap) return
+    
+    console.log('BabylonGameEngine: Creating default map...')
+    this.createAndSaveDefaultMap()
+  }
+
+  /**
    * Create and save a default map if none exists
    */
   createAndSaveDefaultMap() {
-    const size = 32
-    const defaultCell = { type: 'ground', asset: null, flags: {} }
+    const size = 16
+    const defaultCell = { type: 'ground', asset: null, flags: {}, terrainHeightIndex: 0, objects: [] }
     const def = Array.from({ length: size }, () => Array.from({ length: size }, () => ({ ...defaultCell })))
+    
+    // Add a spawn point at the center
+    const centerX = Math.floor(size / 2)
+    const centerZ = Math.floor(size / 2)
+    def[centerZ][centerX].flags.spawn = { heightIndex: 0 }
+    
+    // Add some variety to the terrain
+    for (let z = 0; z < size; z++) {
+      for (let x = 0; x < size; x++) {
+        // Create a simple pattern with different terrain types
+        if ((x + z) % 4 === 0) {
+          def[z][x].type = 'grass'
+        } else if ((x + z) % 6 === 0) {
+          def[z][x].type = 'stone'
+        } else {
+          def[z][x].type = 'ground'
+        }
+      }
+    }
+    
     localStorage.setItem('skyward_world_map_default', JSON.stringify(def))
-    localStorage.setItem('skyward_maps_index', JSON.stringify([{ id: 'default', name: 'World', size }]))
-    if (!localStorage.getItem('skyward_starting_map')) localStorage.setItem('skyward_starting_map', 'default')
+    
+    // Update maps index
+    const mapsIndex = [{ id: 'default', name: 'Default World', size, isStarting: true }]
+    localStorage.setItem('skyward_maps_index', JSON.stringify(mapsIndex))
+    localStorage.setItem('skyward_starting_map', 'default')
+    
+    console.log('BabylonGameEngine: Default map created with size', size + 'x' + size)
   }
 
   /**
@@ -687,11 +745,19 @@ class BabylonGameEngine {
       }
     }
     // Place player at spawn
-    if (playerSpawn && this.babylonCharacter) {
-      this.babylonCharacter.setPosition(new BABYLON.Vector3(playerSpawn.x, 1, playerSpawn.z))
-      this.camera.setTarget(this.babylonCharacter.getPosition())
+    if (playerSpawn) {
+      console.log('BabylonGameEngine: Player spawn found at:', playerSpawn)
+      if (this.babylonCharacter) {
+        this.babylonCharacter.setPosition(new BABYLON.Vector3(playerSpawn.x, 2, playerSpawn.z))
+        this.camera.setTarget(this.babylonCharacter.getPosition())
+      }
     } else {
-      console.warn('No player spawn point found in map!')
+      console.warn('No player spawn point found in map! Using center position.')
+      const mapCenter = this.mapData ? { x: Math.floor(this.mapData[0].length / 2), z: Math.floor(this.mapData.length / 2) } : { x: 0, z: 0 }
+      if (this.babylonCharacter) {
+        this.babylonCharacter.setPosition(new BABYLON.Vector3(mapCenter.x, 2, mapCenter.z))
+        this.camera.setTarget(this.babylonCharacter.getPosition())
+      }
     }
     // Teleport logic: check player collision with triggers
     this.scene.registerBeforeRender(() => {

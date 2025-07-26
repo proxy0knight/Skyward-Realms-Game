@@ -99,44 +99,25 @@ class BabylonCharacter {
             return validMesh
           } else {
             console.warn('BabylonCharacter: No valid mesh found in imported GLB for modelId:', modelId, 'Meshes:', result.meshes)
-            return null
           }
         } catch (e) {
-          console.warn('BabylonCharacter: Failed to load custom model from IndexedDB, falling back to element model.', e)
+          console.warn('BabylonCharacter: Failed to load custom model from IndexedDB, falling back to procedural character.', e)
         }
       } else {
         console.warn('BabylonCharacter: No base64 data found in IndexedDB for modelId:', modelId)
       }
     }
-    // List of possible model paths for each element (in order of preference)
-    const modelPaths = {
-      fire: [
-        '/assets/models/characters/fire.glb',
-        '/assets/models/characters/fire_character.glb',
-        '/assets/models/fire.glb'
-      ],
-      water: [
-        '/assets/models/characters/water.glb',
-        '/assets/models/characters/water_character.glb', 
-        '/assets/models/water.glb'
-      ],
-      earth: [
-        '/assets/models/characters/earth.glb',
-        '/assets/models/characters/earth_character.glb',
-        '/assets/models/earth.glb'
-      ],
-      air: [
-        '/assets/models/characters/air.glb',
-        '/assets/models/characters/wind.glb',
-        '/assets/models/characters/air_character.glb',
-        '/assets/models/air.glb'
-      ]
-    }
     
-    const pathsToTry = modelPaths[this.element.id] || modelPaths.fire
+    // Try loading from available model paths (check what actually exists)
+    const modelPaths = [
+      `/assets/models/character/${this.element.id}.glb`,
+      `/character/${this.element.id}.glb`,
+      `/assets/models/characters/${this.element.id}.glb`,
+      `/assets/models/${this.element.id}.glb`
+    ]
     
     // Try each path until one works
-    for (const modelPath of pathsToTry) {
+    for (const modelPath of modelPaths) {
       // Check if file exists first
       const fileExists = await this.checkFileExists(modelPath)
       if (!fileExists) {
@@ -149,13 +130,14 @@ class BabylonCharacter {
         const characterMesh = await this.loadSingleModel(modelPath)
         console.log(`✅ Loaded character model: ${modelPath}`)
         return characterMesh
-      } catch {
-        console.log(`Failed to load ${modelPath}`)
+      } catch (error) {
+        console.log(`Failed to load ${modelPath}:`, error.message)
         continue
       }
     }
     
-    // If we get here, no models were found
+    // If we get here, no models were found - this will trigger fallback creation
+    console.log('BabylonCharacter: No 3D models found, will use procedural character')
     throw new Error(`No character models found for element: ${this.element.id}`)
   }
 
