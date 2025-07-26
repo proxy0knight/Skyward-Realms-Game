@@ -1,163 +1,145 @@
+import { Button } from '@/components/ui/button.jsx'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx'
+import { Play, Settings, Info, LogIn, Sparkles, Sword, Shield, Crown } from 'lucide-react'
+import './MainMenu.css'
 
-import React from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
-import { 
-  Play, 
-  Settings, 
-  Info, 
-  Sword, 
-  Shield, 
-  Zap,
-  Crown,
-  Trophy,
-  Sparkles
-} from 'lucide-react'
-
-const MainMenu = ({ onStartGame, onSettings, onAbout, onAdminAccess }) => {
+const MainMenu = ({ onStartGame, onAdminAccess }) => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-950 flex items-center justify-center p-4">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl floating"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl floating" style={{animationDelay: '2s'}}></div>
-        <div className="absolute top-3/4 left-1/2 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl floating" style={{animationDelay: '4s'}}></div>
+    <div className="game-header relative overflow-hidden">
+      {/* Enhanced animated background with multiple layers */}
+      <div className="fixed inset-0 opacity-40 pointer-events-none">
+        {/* Primary magical orbs */}
+        <div className="absolute top-20 left-20 w-40 h-40 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-20 w-60 h-60 bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute top-1/2 left-1/2 w-32 h-32 bg-gradient-to-r from-blue-500 via-cyan-500 to-purple-500 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+        <div className="absolute top-1/3 right-1/3 w-24 h-24 bg-gradient-to-r from-green-500 via-teal-500 to-blue-500 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1.5s' }}></div>
+        
+        {/* Secondary magical orbs */}
+        <div className="absolute top-10 right-10 w-20 h-20 bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute bottom-10 left-10 w-28 h-28 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '2.5s' }}></div>
+        <div className="absolute top-2/3 left-1/4 w-16 h-16 bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 rounded-full blur-xl animate-pulse" style={{ animationDelay: '3s' }}></div>
+        <div className="absolute bottom-1/3 right-1/4 w-36 h-36 bg-gradient-to-r from-lime-500 via-green-500 to-emerald-500 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '0.8s' }}></div>
       </div>
 
-      <div className="relative z-10 w-full max-w-6xl mx-auto">
-        <div className="grid lg:grid-cols-2 gap-8 items-center">
-          
-          {/* Left side - Game Info */}
-          <div className="space-y-8">
-            <div className="text-center lg:text-left">
-              <div className="flex items-center justify-center lg:justify-start gap-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                  <Crown className="w-7 h-7 text-white" />
-                </div>
-                <Badge variant="secondary" className="bg-blue-500/20 text-blue-300 border-blue-500/30">
-                  <Sparkles className="w-3 h-3 mr-1" />
-                  Beta Version
-                </Badge>
-              </div>
-              
-              <h1 className="text-6xl lg:text-7xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent mb-4">
-                Skyward Realms
-              </h1>
-              
-              <p className="text-xl text-slate-300 mb-8 leading-relaxed">
-                Embark on an epic journey through mystical realms. Master the elements, 
-                forge alliances, and become the ultimate champion in this immersive 3D fantasy world.
-              </p>
+      {/* Floating magical particles */}
+      <div className="fixed inset-0 pointer-events-none">
+        {Array.from({ length: 12 }, (_, i) => (
+          <div
+            key={i}
+            className="absolute animate-bounce"
+            style={{
+              top: `${20 + Math.random() * 60}%`,
+              left: `${10 + Math.random() * 80}%`,
+              animationDelay: `${Math.random() * 3}s`,
+              animationDuration: `${4 + Math.random() * 2}s`
+            }}
+          >
+            <Sparkles 
+              className="text-purple-300 opacity-60" 
+              size={8 + Math.random() * 12}
+            />
+          </div>
+        ))}
+      </div>
 
-              {/* Feature highlights */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                <Card className="glass border-blue-500/20 bg-blue-500/5">
-                  <CardContent className="p-4 text-center">
-                    <Sword className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-                    <h3 className="font-semibold text-white mb-1">Epic Combat</h3>
-                    <p className="text-sm text-slate-400">Master elemental abilities</p>
-                  </CardContent>
-                </Card>
-                
-                <Card className="glass border-purple-500/20 bg-purple-500/5">
-                  <CardContent className="p-4 text-center">
-                    <Shield className="w-8 h-8 text-purple-400 mx-auto mb-2" />
-                    <h3 className="font-semibold text-white mb-1">Rich Lore</h3>
-                    <p className="text-sm text-slate-400">Discover ancient secrets</p>
-                  </CardContent>
-                </Card>
-                
-                <Card className="glass border-cyan-500/20 bg-cyan-500/5">
-                  <CardContent className="p-4 text-center">
-                    <Zap className="w-8 h-8 text-cyan-400 mx-auto mb-2" />
-                    <h3 className="font-semibold text-white mb-1">Multiplayer</h3>
-                    <p className="text-sm text-slate-400">Join epic adventures</p>
-                  </CardContent>
-                </Card>
-              </div>
+      <div className="relative z-10 flex flex-col items-center justify-center w-full min-h-screen px-4 py-8">
+        {/* Enhanced Logo Section */}
+        <div className="flex flex-col items-center justify-center w-full max-w-2xl">
+          {/* Magical logo container */}
+          <div className="relative mb-4">
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-orange-500/20 rounded-full blur-2xl animate-pulse" />
+            <img
+              src="/assets/images/game-logo.png"
+              alt="Skyward Realms Logo"
+              className="relative z-10 w-24 h-24 mx-auto mb-2 drop-shadow-2xl animate-pulse"
+              style={{ filter: 'drop-shadow(0 0 20px rgba(168, 85, 247, 0.5))' }}
+            />
+            {/* Floating crown above logo */}
+            <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
+              <Crown className="w-6 h-6 text-yellow-400 animate-bounce" style={{ animationDuration: '2s' }} />
             </div>
           </div>
 
-          {/* Right side - Menu Actions */}
-          <div className="space-y-6">
-            <Card className="glass gradient-border">
-              <CardHeader className="text-center pb-4">
-                <CardTitle className="text-2xl font-bold text-white flex items-center justify-center gap-2">
-                  <Trophy className="w-6 h-6 text-yellow-400" />
-                  Game Menu
-                </CardTitle>
-                <CardDescription className="text-slate-400">
-                  Choose your path to adventure
-                </CardDescription>
-              </CardHeader>
-              
-              <CardContent className="space-y-4">
-                <Button 
-                  onClick={onStartGame}
-                  className="w-full btn-primary h-14 text-lg pulse-glow"
-                  size="lg"
-                >
-                  <Play className="w-6 h-6 mr-3" />
-                  Start Adventure
-                </Button>
-                
-                <Separator className="bg-slate-700" />
-                
-                <div className="grid grid-cols-1 gap-3">
-                  <Button 
-                    onClick={onSettings}
-                    variant="outline"
-                    className="h-12 glass border-slate-600 hover:border-blue-500/50 hover:bg-blue-500/10 text-white"
-                  >
-                    <Settings className="w-5 h-5 mr-3" />
-                    Settings & Preferences
-                  </Button>
-                  
-                  <Button 
-                    onClick={onAbout}
-                    variant="outline"
-                    className="h-12 glass border-slate-600 hover:border-purple-500/50 hover:bg-purple-500/10 text-white"
-                  >
-                    <Info className="w-5 h-5 mr-3" />
-                    About & Credits
-                  </Button>
-                  
-                  {onAdminAccess && (
-                    <Button 
-                      onClick={onAdminAccess}
-                      variant="outline"
-                      className="h-12 glass border-slate-600 hover:border-red-500/50 hover:bg-red-500/10 text-white"
-                    >
-                      <Crown className="w-5 h-5 mr-3" />
-                      Admin Dashboard
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+          {/* Enhanced game title */}
+          <div className="text-center mb-6">
+            <h1 className="text-4xl md:text-5xl font-bold mb-3 bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 bg-clip-text text-transparent animate-pulse">
+              عوالم السماء
+            </h1>
+            <h2 className="text-2xl md:text-3xl text-gray-300 mb-2 drop-shadow-lg">Skyward Realms</h2>
+            <p className="text-sm md:text-base text-gray-400 mb-4 max-w-md mx-auto leading-relaxed">
+              انطلق في رحلة ملحمية عبر عوالم العناصر السحرية واكتشف قوى لا محدودة
+            </p>
+            <div className="flex items-center justify-center gap-3 text-xs md:text-sm text-gray-500">
+              <Sparkles className="w-3 h-3 animate-pulse" />
+              <span>لعبة أدوار ثلاثية الأبعاد</span>
+              <Sparkles className="w-3 h-3 animate-pulse" />
+            </div>
+          </div>
 
-            {/* Quick stats or news */}
-            <Card className="glass border-slate-700/50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg text-white">Latest Updates</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                  <span className="text-sm text-slate-300">New elemental abilities added</span>
+          {/* Enhanced action buttons */}
+          <div className="flex flex-col gap-3 w-full max-w-sm">
+            <Button
+              onClick={onStartGame}
+              size="lg"
+              className="menu-button enhanced group relative overflow-hidden bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 hover:from-purple-700 hover:via-pink-700 hover:to-orange-700 text-white font-bold py-3 px-6 rounded-2xl transform transition-all duration-300 hover:scale-105 hover:-translate-y-1 shadow-2xl"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="relative z-10 flex items-center justify-center gap-3">
+                <Play className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+                <span className="text-base md:text-lg">ابدأ المغامرة</span>
+                <Sword className="w-4 h-4 text-yellow-300 group-hover:rotate-12 transition-transform duration-300" />
+              </div>
+            </Button>
+
+            <Button
+              onClick={onAdminAccess}
+              variant="outline"
+              size="lg"
+              className="menu-button enhanced group relative overflow-hidden bg-black/30 border-2 border-purple-500/50 text-purple-300 hover:bg-purple-500/20 hover:border-purple-400 font-semibold py-3 px-6 rounded-2xl transition-all duration-300 hover:scale-105 backdrop-blur-sm"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="relative z-10 flex items-center justify-center gap-3">
+                <Shield className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
+                <span className="text-sm md:text-base">لوحة التحكم</span>
+                <Settings className="w-4 h-4 group-hover:rotate-90 transition-transform duration-500" />
+              </div>
+            </Button>
+          </div>
+
+          {/* Game features showcase */}
+          <div className="mt-6 grid grid-cols-2 gap-3 w-full max-w-md">
+            <div className="bg-black/20 backdrop-blur-sm rounded-lg p-3 border border-purple-500/20 hover:border-purple-500/40 transition-colors duration-300">
+              <div className="text-center">
+                <div className="w-6 h-6 mx-auto mb-1 bg-gradient-to-r from-red-500 to-orange-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">🔥</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                  <span className="text-sm text-slate-300">Performance optimizations</span>
+                <span className="text-xs text-gray-300">عنصر النار</span>
+              </div>
+            </div>
+            <div className="bg-black/20 backdrop-blur-sm rounded-lg p-3 border border-blue-500/20 hover:border-blue-500/40 transition-colors duration-300">
+              <div className="text-center">
+                <div className="w-6 h-6 mx-auto mb-1 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">💧</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-                  <span className="text-sm text-slate-300">Enhanced map editor</span>
+                <span className="text-xs text-gray-300">عنصر الماء</span>
+              </div>
+            </div>
+            <div className="bg-black/20 backdrop-blur-sm rounded-lg p-3 border border-green-500/20 hover:border-green-500/40 transition-colors duration-300">
+              <div className="text-center">
+                <div className="w-6 h-6 mx-auto mb-1 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">🌿</span>
                 </div>
-              </CardContent>
-            </Card>
+                <span className="text-xs text-gray-300">عنصر الأرض</span>
+              </div>
+            </div>
+            <div className="bg-black/20 backdrop-blur-sm rounded-lg p-3 border border-gray-400/20 hover:border-gray-400/40 transition-colors duration-300">
+              <div className="text-center">
+                <div className="w-6 h-6 mx-auto mb-1 bg-gradient-to-r from-gray-400 to-blue-300 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">💨</span>
+                </div>
+                <span className="text-xs text-gray-300">عنصر الهواء</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -166,3 +148,4 @@ const MainMenu = ({ onStartGame, onSettings, onAbout, onAdminAccess }) => {
 }
 
 export default MainMenu
+
