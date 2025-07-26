@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import BabylonGameEngine from '../lib/BabylonGameEngine'
 import PerformanceMonitor from './PerformanceMonitor'
+import PlayerManager from '../lib/PlayerManager'
+import '../lib/babylon-setup.js'
 
-const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGameEngineReady }) => {
+const GameScene = ({ player, onPlayerUpdate, onQuestUpdate, onGameEngineReady }) => {
   const mountRef = useRef(null)
   const gameEngineRef = useRef(null)
+  const playerManagerRef = useRef(null)
   const [gameStats, setGameStats] = useState({ 
     fps: 0, 
     playerPosition: { x: 0, y: 0, z: 0 },
@@ -74,7 +77,7 @@ const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGa
 
         // Create player in Babylon.js world
         console.log('GameScene: Creating player in Babylon.js world...')
-        const playerMesh = await gameEngine.createPlayer(player)
+        await gameEngine.createPlayer(player)
         console.log('GameScene: Babylon.js player created successfully')
 
         // Set up event listeners and callbacks
@@ -89,22 +92,22 @@ const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGa
          })
 
         // Set up game update loop
-        gameEngine.on('update', (deltaTime) => {
-          // Update game stats for performance monitoring
-          if (gameEngine.getFPS) {
-            const playerPos = gameEngine.babylonCharacter ? gameEngine.babylonCharacter.getPosition() : { x: 0, y: 0, z: 0 }
-            setGameStats(prev => ({
-              fps: gameEngine.getFPS(),
-            playerPosition: {
-              x: Math.round(playerPos.x * 100) / 100,
-              y: Math.round(playerPos.y * 100) / 100,
-              z: Math.round(playerPos.z * 100) / 100
-            },
-            cameraRotation: gameEngine.camera ? {
-              y: Math.round(gameEngine.camera.alpha * 180 / Math.PI),
-              x: Math.round(gameEngine.camera.beta * 180 / Math.PI)
-            } : { y: 0, x: 0 }
-          }))
+        gameEngine.on('update', () => {
+        // Update game stats for performance monitoring
+        if (gameEngine.getFPS) {
+        const playerPos = gameEngine.babylonCharacter ? gameEngine.babylonCharacter.getPosition() : { x: 0, y: 0, z: 0 }
+        setGameStats({
+        fps: gameEngine.getFPS(),
+        playerPosition: {
+        x: Math.round(playerPos.x * 100) / 100,
+        y: Math.round(playerPos.y * 100) / 100,
+        z: Math.round(playerPos.z * 100) / 100
+        },
+        cameraRotation: gameEngine.camera ? {
+        y: Math.round(gameEngine.camera.alpha * 180 / Math.PI),
+        x: Math.round(gameEngine.camera.beta * 180 / Math.PI)
+        } : { y: 0, x: 0 }
+        })
         }
         
         // Update mouse lock status from Babylon.js engine
@@ -125,11 +128,9 @@ const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGa
           onPlayerUpdate(updatedPlayer)
         }
 
-        // Update quest info in UI
+        // Update quest info in UI - TODO: implement story system
         if (onQuestUpdate) {
-          const activeQuests = storySystem.getActiveQuests()
-          const storyProgress = storySystem.getStoryProgress()
-          onQuestUpdate({ activeQuests, storyProgress })
+          onQuestUpdate({ activeQuests: [], storyProgress: {} })
         }
       })
 
@@ -195,30 +196,7 @@ const GameScene = ({ player, onPlayerUpdate, onDialogueOpen, onQuestUpdate, onGa
           }
         }, 100)
       }
-      if (worldManagerRef.current) {
-        worldManagerRef.current.dispose()
-        worldManagerRef.current = null
-      }
-      if (combatSystemRef.current) {
-        combatSystemRef.current.dispose()
-        combatSystemRef.current = null
-      }
-      if (skillManagerRef.current) {
-        skillManagerRef.current.dispose()
-        skillManagerRef.current = null
-      }
-      if (explorationSystemRef.current) {
-        explorationSystemRef.current.dispose()
-        explorationSystemRef.current = null
-      }
-      if (resourceManagerRef.current) {
-        resourceManagerRef.current.dispose()
-        resourceManagerRef.current = null
-      }
-      if (storySystemRef.current) {
-        storySystemRef.current.dispose()
-        storySystemRef.current = null
-      }
+
     }
   }, []) // Remove dependencies to prevent re-initialization
 

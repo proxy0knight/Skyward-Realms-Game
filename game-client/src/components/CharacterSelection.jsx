@@ -2,25 +2,87 @@ import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
 import { ArrowLeft, Sparkles, Flame, Droplets, Mountain, Wind } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
-const CharacterSelection = ({ elements, selectedElement, onSelectElement, onStartGame, onBack }) => {
-  const getElementIcon = (elementId) => {
+const DEFAULT_ELEMENTS = [
+  {
+    id: 'fire',
+    name: 'عنصر النار',
+    description: 'قوة اللهب والحرارة، هجوم قوي وسرعة عالية.',
+    color: '#FF4500',
+    abilities: ['كرة نار', 'درع اللهب', 'عاصفة نارية'],
+    icon: Flame,
+    image: '/assets/images/fire_elemental.jpg',
+  },
+  {
+    id: 'water',
+    name: 'عنصر الماء',
+    description: 'الشفاء والتحكم في الماء والجليد.',
+    color: '#1E90FF',
+    abilities: ['شفاء', 'جدار جليدي', 'تسونامي'],
+    icon: Droplets,
+    image: '/assets/images/water_magic.jpg',
+  },
+  {
+    id: 'earth',
+    name: 'عنصر الأرض',
+    description: 'دفاع قوي وتحكم في الصخور والتربة.',
+    color: '#8B4513',
+    abilities: ['درع حجري', 'زلزال', 'أشواك حجرية'],
+    icon: Mountain,
+    image: '/assets/images/earth_elemental.jpg',
+  },
+  {
+    id: 'air',
+    name: 'عنصر الهواء',
+    description: 'سرعة وخفة وقدرة على الطيران.',
+    color: '#87CEEB',
+    abilities: ['شفرة ريح', 'طيران', 'إعصار'],
+    icon: Wind,
+    image: '/assets/images/air_elemental.jpg',
+  },
+]
+
+const CharacterSelection = ({ selectedElement, onSelectElement, onStartGame, onBack }) => {
+  const [characterList, setCharacterList] = useState(DEFAULT_ELEMENTS)
+  const [assets, setAssets] = useState([])
+
+  useEffect(() => {
+    // Try to load admin-defined characters
+    const chars = localStorage.getItem('skyward_world_characters')
+    if (chars) {
+      const parsed = JSON.parse(chars)
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        setCharacterList(parsed)
+        // Load assets for preview images
+        const assetList = JSON.parse(localStorage.getItem('skyward_assets') || '[]')
+        setAssets(assetList)
+        return
+      }
+    }
+    setCharacterList(DEFAULT_ELEMENTS)
+  }, [])
+
+  const getCharacterImage = (char) => {
+    if (char.modelId && assets.length > 0) {
+      const asset = assets.find(a => a.id === char.modelId)
+      if (asset && asset.type === 'model') {
+        // No thumbnail for GLB, fallback to icon
+        return '/assets/images/elements_four.jpg'
+      }
+    }
+    // Fallback to default or provided image
+    return char.image || '/assets/images/elements_four.jpg'
+  }
+
+  const getElementIcon = (elementId, char) => {
+    if (char && char.icon) return char.icon
     switch (elementId) {
       case 'fire': return Flame
       case 'water': return Droplets
       case 'earth': return Mountain
       case 'air': return Wind
       default: return Sparkles
-    }
-  }
-
-  const getElementImage = (elementId) => {
-    switch (elementId) {
-      case 'fire': return '/assets/images/fire_elemental.jpg'
-      case 'water': return '/assets/images/water_magic.jpg'
-      case 'earth': return '/assets/images/earth_elemental.jpg'
-      case 'air': return '/assets/images/air_elemental.jpg'
-      default: return '/assets/images/elements_four.jpg'
     }
   }
 
@@ -46,18 +108,18 @@ const CharacterSelection = ({ elements, selectedElement, onSelectElement, onStar
 
         {/* Elements Grid */}
         <div className="grid grid-cols-2 grid-rows-2 gap-6 mb-8" style={{ width: '70vw', maxWidth: 900, minWidth: 320 }}>
-          {elements.slice(0, 4).map((element) => {
-            const IconComponent = element.icon
-            const isSelected = selectedElement?.id === element.id
+          {characterList.slice(0, 4).map((char, idx) => {
+            const IconComponent = getElementIcon(char.id, char)
+            const isSelected = selectedElement?.id === char.id
             return (
               <Card
-                key={element.id}
+                key={char.id || idx}
                 className={`relative flex flex-row h-56 cursor-pointer transition-all duration-300 transform hover:scale-105 group ${
                   isSelected
                     ? 'bg-gradient-to-br from-purple-600/40 to-orange-600/40 border-2 border-orange-500 shadow-lg shadow-orange-500/50 scale-105'
                     : 'bg-black/60 backdrop-blur-xl border-gray-600/30 hover:border-purple-500/70 hover:bg-black/80'
                 }`}
-                onClick={() => onSelectElement(element)}
+                onClick={() => onSelectElement(char)}
               >
                 {/* Ribbon for selected */}
                 {isSelected && (
@@ -72,41 +134,43 @@ const CharacterSelection = ({ elements, selectedElement, onSelectElement, onStar
                   <div className="relative mb-2">
                     <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-full overflow-hidden border-2 border-gray-700 group-hover:border-purple-500 transition-all duration-300">
                       <img
-                        src={getElementImage(element.id)}
-                        alt={element.name}
+                        src={getCharacterImage(char)}
+                        alt={char.name}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                       />
                     </div>
                     {/* Element Icon Overlay */}
                     <div
                       className="absolute -bottom-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center border border-white shadow-sm"
-                      style={{ backgroundColor: `${element.color}20`, borderColor: element.color }}
+                      style={{ backgroundColor: `${char.color || '#fff'}20`, borderColor: char.color || '#fff' }}
                     >
                       <IconComponent
                         className="h-3 w-3"
-                        style={{ color: element.color }}
+                        style={{ color: char.color || '#fff' }}
                       />
                     </div>
                   </div>
-                  <CardTitle className="text-base sm:text-lg text-white font-bold mb-1 text-center w-full">{element.name}</CardTitle>
+                  <CardTitle className="text-base sm:text-lg text-white font-bold mb-1 text-center w-full">{char.name}</CardTitle>
                 </div>
                 {/* Right: Info */}
                 <div className="flex flex-col justify-center w-1/2 p-3">
                   <p className="text-gray-300 text-xs sm:text-sm text-center leading-relaxed mb-2">
-                    {element.description}
+                    {char.description}
                   </p>
-                  <h4 className="text-xs font-semibold text-purple-300 text-center mb-1">القدرات:</h4>
-                  <div className="flex flex-wrap gap-1 justify-center">
-                    {element.abilities.map((ability, index) => (
-                      <Badge
-                        key={index}
-                        variant="outline"
-                        className="text-xs border-gray-600 text-gray-300 hover:border-purple-500 transition-colors"
-                      >
-                        {ability}
-                      </Badge>
-                    ))}
-                  </div>
+                  {char.abilities && char.abilities.length > 0 && <>
+                    <h4 className="text-xs font-semibold text-purple-300 text-center mb-1">القدرات:</h4>
+                    <div className="flex flex-wrap gap-1 justify-center">
+                      {char.abilities.map((ability, index) => (
+                        <Badge
+                          key={index}
+                          variant="outline"
+                          className="text-xs border-gray-600 text-gray-300 hover:border-purple-500 transition-colors"
+                        >
+                          {ability}
+                        </Badge>
+                      ))}
+                    </div>
+                  </>}
                 </div>
               </Card>
             )

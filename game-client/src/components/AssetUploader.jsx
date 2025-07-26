@@ -1,10 +1,17 @@
 import React, { useState, useRef } from 'react'
+import { set } from 'idb-keyval'
+
+const ASSET_CATEGORIES = [
+  'Ground', 'Grass', 'Bricks', 'Dirt', 'Rocks', 'Tree', 'Vegetation', 'Building', 'Structure', 'Water', 'Skybox', 'HDR', 'Lighting', 'Animal', 'Monster', 'NPC', 'Player Character', 'Other'
+]
 
 const AssetUploader = ({ onAssetUpload, onSwitchTab }) => {
   const [uploadProgress, setUploadProgress] = useState(0)
   const [isUploading, setIsUploading] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const fileInputRef = useRef(null)
+  const [category, setCategory] = useState('')
+  const [tags, setTags] = useState('')
 
   const supportedFormats = {
     models: ['.glb', '.gltf', '.obj', '.fbx'],
@@ -21,22 +28,7 @@ const AssetUploader = ({ onAssetUpload, onSwitchTab }) => {
     return 'unknown'
   }
 
-  const getFileIcon = (type) => {
-    switch (type) {
-      case 'model': return '🎭'
-      case 'texture': return '🖼️'
-      case 'audio': return '🎵'
-      default: return '📄'
-    }
-  }
 
-  const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes'
-    const k = 1024
-    const sizes = ['Bytes', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-  }
 
   const processFile = async (file) => {
     setIsUploading(true)
@@ -56,20 +48,28 @@ const AssetUploader = ({ onAssetUpload, onSwitchTab }) => {
         reader.readAsDataURL(file)
       })
 
+      const assetId = Date.now() + '_' + Math.random().toString(36).substr(2, 9)
       const asset = {
-        id: Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+        id: assetId,
         name: file.name.replace(/\.[^/.]+$/, ""), // Remove extension
         fileName: file.name,
         type: getFileType(file.name),
         size: file.size,
-        data: base64,
         uploadDate: new Date().toISOString(),
         loaded: false,
-        optimized: false
+        optimized: false,
+        category: category || '',
+        tags: tags.split(',').map(t => t.trim()).filter(Boolean)
       }
 
+      // Store asset data in IndexedDB
+      await set(assetId, base64)
+
+      // Store asset metadata in localStorage
+      const prevAssets = JSON.parse(localStorage.getItem('skyward_assets') || '[]')
+      const updatedAssets = [...prevAssets, asset]
+      localStorage.setItem('skyward_assets', JSON.stringify(updatedAssets))
       onAssetUpload(asset)
-      
       setUploadProgress(100)
       setTimeout(() => {
         setIsUploading(false)
@@ -129,7 +129,32 @@ const AssetUploader = ({ onAssetUpload, onSwitchTab }) => {
       {/* Upload Area */}
       <div className="bg-black/30 backdrop-blur-lg rounded-xl border border-purple-500/30 p-6">
         <h2 className="text-xl font-bold text-white mb-4">⬆️ Upload Assets</h2>
-        
+        {/* Category and Tags */}
+        <div className="flex flex-col md:flex-row md:space-x-4 mb-4">
+          <div className="flex-1 mb-2 md:mb-0">
+            <label className="block text-sm font-medium text-purple-300 mb-1">Category</label>
+            <select
+              value={category}
+              onChange={e => setCategory(e.target.value)}
+              className="w-full px-3 py-2 bg-black/30 border border-purple-500/50 rounded-lg text-white"
+            >
+              <option value="">Select category...</option>
+              {ASSET_CATEGORIES.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-purple-300 mb-1">Tags (comma separated)</label>
+            <input
+              type="text"
+              value={tags}
+              onChange={e => setTags(e.target.value)}
+              placeholder="e.g. grass, green, field"
+              className="w-full px-3 py-2 bg-black/30 border border-purple-500/50 rounded-lg text-white"
+            />
+          </div>
+        </div>
         {/* Drag & Drop Zone */}
         <div
           className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 ${

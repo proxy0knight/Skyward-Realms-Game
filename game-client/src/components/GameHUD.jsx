@@ -54,8 +54,6 @@ const GameHUD = ({ player, onTogglePanel, activePanel }) => {
     }
   }, [])
 
-  const isMobile = viewport.width < 640
-  const isTablet = viewport.width >= 640 && viewport.width < 1024
   const isDesktop = viewport.width >= 1024
 
   const getElementIcon = (elementId) => {

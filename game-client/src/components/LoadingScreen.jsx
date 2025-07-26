@@ -61,7 +61,7 @@ const LoadingScreen = ({ progress = 0, currentTask = "تحميل عالم الع
     }, 2000)
 
     return () => clearInterval(interval)
-  }, [])
+  }, [elements.length])
 
   const currentElementData = elements[currentElement]
 

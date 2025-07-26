@@ -714,7 +714,7 @@ export class StorySystem {
       }
     }
 
-    Object.entries(quests).forEach(([id, quest]) => {
+    Object.entries(quests).forEach(([, quest]) => {
       // Add quest to appropriate character
       if (quest.giver && this.characters.has(quest.giver)) {
         const character = this.characters.get(quest.giver)

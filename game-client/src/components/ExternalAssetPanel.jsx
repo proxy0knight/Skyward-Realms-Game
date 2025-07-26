@@ -139,11 +139,11 @@ const ExternalAssetPanel = ({ isOpen, onClose, gameEngine }) => {
       }
 
       const instance = gameEngine.assetManager.createModelInstance(assetId, {
-        position: new THREE.Vector3(
-          Math.random() * 20 - 10,
-          0,
-          Math.random() * 20 - 10
-        )
+        position: {
+          x: Math.random() * 20 - 10,
+          y: 0,
+          z: Math.random() * 20 - 10
+        }
       })
 
       gameEngine.scene.add(instance)

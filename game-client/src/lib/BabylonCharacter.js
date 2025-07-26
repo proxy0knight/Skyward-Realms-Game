@@ -1,5 +1,6 @@
 import * as BABYLON from '@babylonjs/core'
 import '@babylonjs/loaders/glTF'
+import { get as idbGet } from 'idb-keyval'
 
 class BabylonCharacter {
   constructor(scene, playerData) {
@@ -17,6 +18,15 @@ class BabylonCharacter {
     
     // Movement
     this.moveSpeed = 5
+    this.runSpeed = 10 // New: running speed
+    this.acceleration = 30 // New: acceleration rate
+    this.deceleration = 40 // New: deceleration rate
+    this.velocity = new BABYLON.Vector3(0, 0, 0) // New: current velocity
+    this.isRunning = false // New: running state
+    this.isGrounded = false // New: grounded state
+    this.lastGroundedTime = 0 // New: last time on ground
+    this.groundCheckRayLength = 1.2 // New: ray length for ground check
+    this.cameraMode = 'third' // New: camera mode (third/first)
     this.position = BABYLON.Vector3.Zero()
     
     // Element system
@@ -52,8 +62,8 @@ class BabylonCharacter {
       console.log('BabylonCharacter: GLB character with effects loaded successfully!')
       return this.characterGroup
       
-    } catch (error) {
-      console.warn('BabylonCharacter: Could not load GLB model, creating fallback:', error)
+    } catch {
+      console.warn('BabylonCharacter: Could not load GLB model, creating fallback')
       return await this.createFallbackCharacter()
     }
   }
@@ -65,7 +75,7 @@ class BabylonCharacter {
     try {
       const response = await fetch(filePath, { method: 'HEAD' })
       return response.ok
-    } catch (error) {
+    } catch {
       return false
     }
   }
@@ -74,6 +84,30 @@ class BabylonCharacter {
    * Load GLB character model based on element
    */
   async loadCharacterModel() {
+    // Support modelId at both playerData.modelId and playerData.element.modelId
+    const modelId = this.playerData.modelId || (this.playerData.element && this.playerData.element.modelId)
+    if (modelId) {
+      console.log('BabylonCharacter: Attempting to load custom model from IndexedDB with modelId:', modelId)
+      const base64 = await idbGet(modelId)
+      if (base64) {
+        try {
+          const result = await BABYLON.SceneLoader.ImportMeshAsync('', '', base64, this.scene)
+          // Find first valid mesh
+          const validMesh = result.meshes.find(m => m && m instanceof BABYLON.Mesh && m.getTotalVertices && m.getTotalVertices() > 0)
+          if (validMesh) {
+            console.log('BabylonCharacter: Successfully loaded custom model from IndexedDB:', modelId, 'Mesh:', validMesh.name)
+            return validMesh
+          } else {
+            console.warn('BabylonCharacter: No valid mesh found in imported GLB for modelId:', modelId, 'Meshes:', result.meshes)
+            return null
+          }
+        } catch (e) {
+          console.warn('BabylonCharacter: Failed to load custom model from IndexedDB, falling back to element model.', e)
+        }
+      } else {
+        console.warn('BabylonCharacter: No base64 data found in IndexedDB for modelId:', modelId)
+      }
+    }
     // List of possible model paths for each element (in order of preference)
     const modelPaths = {
       fire: [
@@ -115,8 +149,8 @@ class BabylonCharacter {
         const characterMesh = await this.loadSingleModel(modelPath)
         console.log(`✅ Loaded character model: ${modelPath}`)
         return characterMesh
-      } catch (error) {
-        console.log(`Failed to load ${modelPath}:`, error.message)
+      } catch {
+        console.log(`Failed to load ${modelPath}`)
         continue
       }
     }
@@ -136,7 +170,6 @@ class BabylonCharacter {
         modelPath,
         this.scene,
         (meshes, particleSystems, skeletons, animationGroups) => {
-          console.log(`BabylonCharacter: Loaded ${this.element.id} character from ${modelPath}`)
           
           // Get the main character mesh (usually the first or root mesh)
           let characterMesh = meshes[0]
@@ -165,7 +198,6 @@ class BabylonCharacter {
           
           // Store animation groups
           this.animationGroups = animationGroups
-          console.log('BabylonCharacter: Available animations:', animationGroups.map(ag => ag.name))
           
           resolve(characterMesh)
         },
@@ -258,48 +290,59 @@ class BabylonCharacter {
    * Setup physics for character
    */
   setupPhysics() {
-    if (!this.characterMesh) return
-    
+    if (!this.characterMesh) {
+      console.warn('BabylonCharacter: No valid character mesh for physics. Attempting to use ensurePhysicsBox as fallback.')
+      if (this.scene && this.scene.gameEngine && typeof this.scene.gameEngine.ensurePhysicsBox === 'function') {
+        // Use a default position for the player (e.g., 0,1,0)
+        this.scene.gameEngine.ensurePhysicsBox([], new BABYLON.Vector3(0, 1, 0), {width: 1, height: 2, depth: 1})
+      }
+      return
+    }
     // Add physics impostor only if physics engine is available
     if (this.scene.getPhysicsEngine()) {
       try {
-        this.characterMesh.physicsImpostor = new BABYLON.PhysicsImpostor(
-          this.characterMesh,
-          BABYLON.PhysicsImpostor.CapsuleImpostor,
-          { 
-            mass: 1, 
-            restitution: 0.1, 
-            friction: 0.8,
-            // Enable collision detection
-            ignoreCollisions: false
-          },
-          this.scene
-        )
-      } catch (error) {
-        console.warn('BabylonCharacter: Could not create physics impostor:', error)
+        if (this.characterMesh && this.characterMesh instanceof BABYLON.Mesh && this.characterMesh.getTotalVertices && this.characterMesh.getTotalVertices() > 0) {
+          this.characterMesh.physicsImpostor = new BABYLON.PhysicsImpostor(
+            this.characterMesh,
+            BABYLON.PhysicsImpostor.CapsuleImpostor,
+            { 
+              mass: 1, 
+              restitution: 0.1, 
+              friction: 0.8,
+              // Enable collision detection
+              ignoreCollisions: false
+            },
+            this.scene
+          )
+        } else {
+          console.warn('BabylonCharacter: characterMesh is not a valid mesh for physics impostor. Using ensurePhysicsBox as fallback.')
+          if (this.scene && this.scene.gameEngine && typeof this.scene.gameEngine.ensurePhysicsBox === 'function') {
+            this.scene.gameEngine.ensurePhysicsBox([this.characterMesh], this.characterMesh.position || new BABYLON.Vector3(0, 1, 0), {width: 1, height: 2, depth: 1})
+          }
+          return
+        }
+      } catch {
+        console.warn('BabylonCharacter: Could not create physics impostor')
         this.characterMesh.physicsImpostor = null
         console.log('BabylonCharacter: Physics disabled for this character')
         return
       }
-      
       // Prevent character from falling through terrain
       if (this.characterMesh.physicsImpostor) {
         // Add a small delay to ensure physics impostor is fully initialized
         setTimeout(() => {
           try {
-            if (this.characterMesh.physicsImpostor) {
+            if (this.characterMesh.physicsImpostor && this.characterMesh.physicsImpostor.physicsBody) {
               this.characterMesh.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero())
               this.characterMesh.physicsImpostor.setAngularVelocity(BABYLON.Vector3.Zero())
             }
-          } catch (error) {
-            console.warn('BabylonCharacter: Could not set initial velocity:', error)
+          } catch {
+            console.warn('BabylonCharacter: Could not set initial velocity')
           }
         }, 100)
-        
         // Add ground detection
         this.setupGroundDetection()
       }
-      
       console.log('BabylonCharacter: Physics setup complete')
     } else {
       console.log('BabylonCharacter: Physics not available, using visual-only character')
@@ -372,7 +415,7 @@ class BabylonCharacter {
     // Use procedural texture if file doesn't exist
     try {
       fireParticles.particleTexture = new BABYLON.Texture('/textures/flare.png', this.scene)
-    } catch (error) {
+    } catch {
       console.log('BabylonCharacter: Using procedural fire texture')
     }
     
@@ -419,7 +462,7 @@ class BabylonCharacter {
     const waterParticles = new BABYLON.ParticleSystem('waterParticles', 50, this.scene)
     try {
       waterParticles.particleTexture = new BABYLON.Texture('/textures/droplet.png', this.scene)
-    } catch (error) {
+    } catch {
       console.log('BabylonCharacter: Using procedural water texture')
     }
     
@@ -475,7 +518,7 @@ class BabylonCharacter {
       
       // Animate floating
       rock.animations = []
-      const animationFloat = BABYLON.Animation.CreateAndStartAnimation(
+      BABYLON.Animation.CreateAndStartAnimation(
         'rockFloat_' + i,
         rock,
         'position.y',
@@ -496,7 +539,7 @@ class BabylonCharacter {
     const windParticles = new BABYLON.ParticleSystem('windParticles', 80, this.scene)
     try {
       windParticles.particleTexture = new BABYLON.Texture('/textures/wind.png', this.scene)
-    } catch (error) {
+    } catch {
       console.log('BabylonCharacter: Using procedural wind texture')
     }
     
@@ -603,42 +646,52 @@ class BabylonCharacter {
   }
 
   /**
-   * Move character
+   * Move character (with acceleration, deceleration, running)
    */
-  move(direction) {
+  move(direction, isRunning = false) {
     if (!this.characterGroup) return
-    
-    const moveVector = direction.scale(this.moveSpeed * 0.016) // Frame-rate independent
-    
+    const deltaTime = this.scene.getEngine().getDeltaTime() / 1000
+    const targetSpeed = isRunning ? this.runSpeed : this.moveSpeed
+    // Only use X/Z for movement
+    const moveDir = new BABYLON.Vector3(direction.x, 0, direction.z)
+    if (moveDir.length() > 0) {
+      moveDir.normalize()
+      // Accelerate towards target speed
+      const desiredVelocity = moveDir.scale(targetSpeed)
+      this.velocity.x = this._approach(this.velocity.x, desiredVelocity.x, this.acceleration * deltaTime)
+      this.velocity.z = this._approach(this.velocity.z, desiredVelocity.z, this.acceleration * deltaTime)
+    } else {
+      // Decelerate to stop
+      this.velocity.x = this._approach(this.velocity.x, 0, this.deceleration * deltaTime)
+      this.velocity.z = this._approach(this.velocity.z, 0, this.deceleration * deltaTime)
+    }
+    // Apply movement
     if (this.characterMesh && this.characterMesh.physicsImpostor) {
       try {
-        // Physics-based movement with collision detection
         const currentVelocity = this.characterMesh.physicsImpostor.getLinearVelocity()
-        
         if (currentVelocity) {
-          // Only apply horizontal movement, preserve vertical velocity for gravity/jumping
           this.characterMesh.physicsImpostor.setLinearVelocity(
-            new BABYLON.Vector3(moveVector.x, currentVelocity.y, moveVector.z)
+            new BABYLON.Vector3(this.velocity.x, currentVelocity.y, this.velocity.z)
           )
         }
-      } catch (error) {
-        console.warn('BabylonCharacter: Physics velocity error, using fallback movement:', error)
-        // Fallback to direct position movement
-        if (this.characterGroup) {
-          this.characterGroup.position.addInPlace(moveVector)
-        }
-        return
+      } catch {
+        // Fallback to direct movement
+        this.characterGroup.position.addInPlace(new BABYLON.Vector3(this.velocity.x * deltaTime, 0, this.velocity.z * deltaTime))
       }
-      
-      // Add collision detection through raycasting
-      this.checkCollisions(moveVector)
+      this.checkCollisions(new BABYLON.Vector3(this.velocity.x, 0, this.velocity.z))
     } else {
-      // Direct position movement (fallback) with collision check
-      const newPosition = this.characterGroup.position.add(moveVector)
-      if (this.isPositionValid(newPosition)) {
-        this.characterGroup.position.addInPlace(moveVector)
-      }
+      // Fallback: direct movement
+      this.characterGroup.position.addInPlace(new BABYLON.Vector3(this.velocity.x * deltaTime, 0, this.velocity.z * deltaTime))
     }
+  }
+
+  /**
+   * Helper for smooth acceleration/deceleration
+   */
+  _approach(current, target, delta) {
+    if (current < target) return Math.min(current + delta, target)
+    if (current > target) return Math.max(current - delta, target)
+    return target
   }
 
   /**
@@ -671,6 +724,20 @@ class BabylonCharacter {
   }
 
   /**
+   * Check if character is grounded (raycast down)
+   */
+  checkGrounded() {
+    if (!this.characterMesh) return false
+    const origin = this.characterMesh.position.clone()
+    const down = new BABYLON.Vector3(0, -1, 0)
+    const ray = new BABYLON.Ray(origin, down, this.groundCheckRayLength)
+    const hit = this.scene.pickWithRay(ray, (mesh) => mesh !== this.characterMesh && mesh.checkCollisions !== false)
+    this.isGrounded = !!(hit && hit.hit && hit.distance < this.groundCheckRayLength)
+    if (this.isGrounded) this.lastGroundedTime = Date.now()
+    return this.isGrounded
+  }
+
+  /**
    * Check if position is valid (for non-physics movement)
    */
   isPositionValid(position) {
@@ -686,56 +753,27 @@ class BabylonCharacter {
   }
 
   /**
-   * Jump
+   * Jump (only if grounded)
    */
   jump() {
     if (!this.characterGroup) return
-    
-    // Prevent multiple jumps (simple ground check)
-    if (this.isJumping) return
+    this.checkGrounded()
+    if (!this.isGrounded && Date.now() - this.lastGroundedTime > 200) return // Prevent double jump
     this.isJumping = true
-    
-    // Reset jumping state after a delay
-    setTimeout(() => {
-      this.isJumping = false
-    }, 1000)
-    
+    setTimeout(() => { this.isJumping = false }, 1000)
     if (this.characterMesh && this.characterMesh.physicsImpostor) {
-      // Physics-based jump
       const currentVelocity = this.characterMesh.physicsImpostor.getLinearVelocity()
       this.characterMesh.physicsImpostor.setLinearVelocity(
-        currentVelocity.add(new BABYLON.Vector3(0, 8, 0))
+        new BABYLON.Vector3(currentVelocity.x, 8, currentVelocity.z)
       )
     } else {
-      // Simple position-based jump (fallback) - up and down motion
+      // Fallback: animate jump
       const startY = this.characterGroup.position.y
       const jumpHeight = 2
-      const jumpDuration = 800 // ms
-      
-      // Create up animation
-      const upAnimation = BABYLON.Animation.CreateAndStartAnimation(
-        'jumpUp',
-        this.characterGroup,
-        'position.y',
-        60,
-        30,
-        startY,
-        startY + jumpHeight,
-        BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
-      )
-      
-      // Create down animation after a delay
+      const jumpDuration = 800
+      BABYLON.Animation.CreateAndStartAnimation('jumpUp', this.characterGroup, 'position.y', 60, 30, startY, startY + jumpHeight, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT)
       setTimeout(() => {
-        BABYLON.Animation.CreateAndStartAnimation(
-          'jumpDown',
-          this.characterGroup,
-          'position.y',
-          60,
-          30,
-          startY + jumpHeight,
-          startY,
-          BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
-        )
+        BABYLON.Animation.CreateAndStartAnimation('jumpDown', this.characterGroup, 'position.y', 60, 30, startY + jumpHeight, startY, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT)
       }, jumpDuration / 2)
     }
   }
@@ -754,6 +792,14 @@ class BabylonCharacter {
     if (this.characterGroup) {
       this.characterGroup.position = position
     }
+  }
+
+  /**
+   * Toggle camera mode (first/third person)
+   */
+  toggleCameraMode() {
+    this.cameraMode = this.cameraMode === 'third' ? 'first' : 'third'
+    // Camera logic will be handled in the engine
   }
 
   /**

@@ -28,7 +28,7 @@ import {
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
-const InventoryPanel = ({ isOpen, onClose, player }) => {
+const InventoryPanel = ({ isOpen, onClose }) => {
   const [viewport, setViewport] = useState({ width: 1024, height: 768 })
 
   useEffect(() => {

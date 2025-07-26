@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
 import { X, Flame, Droplets, Mountain, Wind, Zap, Cloud } from 'lucide-react'
 import './InventoryPanel.css'
 
-const CombatTestPanel = ({ isOpen, onClose, player }) => {
+const CombatTestPanel = ({ isOpen, onClose }) => {
   const [comboChain, setComboChain] = useState([])
   const [lastComboTime, setLastComboTime] = useState(0)
   const [combatLog, setCombatLog] = useState([])
@@ -183,14 +183,14 @@ const CombatTestPanel = ({ isOpen, onClose, player }) => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-2">
-                  {Object.entries(elementIcons).map(([elementId, IconComponent]) => (
+                  {Object.entries(elementIcons).map(([elementId, ElementIcon]) => ( // eslint-disable-line no-unused-vars
                     <Button
                       key={elementId}
                       onClick={() => castSkill(elementId)}
                       className="flex items-center gap-2"
                       style={{ backgroundColor: elementColors[elementId] + '20', borderColor: elementColors[elementId] }}
                     >
-                      <IconComponent className="h-4 w-4" style={{ color: elementColors[elementId] }} />
+                      <ElementIcon className="h-4 w-4" style={{ color: elementColors[elementId] }} />
                       {elementId}
                     </Button>
                   ))}

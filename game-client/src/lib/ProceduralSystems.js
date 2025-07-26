@@ -340,7 +340,7 @@ export class ProceduralGameManager {
     return player
   }
 
-  update(deltaTime) {
+  update() {
     // Update any time-based systems
     // This can be expanded for buffs, quests, etc.
   }

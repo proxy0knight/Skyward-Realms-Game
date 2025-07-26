@@ -10,6 +10,9 @@ import '@babylonjs/core/Cameras/arcRotateCamera'
 import '@babylonjs/core/Cameras/universalCamera'
 import '@babylonjs/core/Cameras/Inputs/arcRotateCameraPointersInput'
 import '@babylonjs/core/Cameras/Inputs/arcRotateCameraKeyboardMoveInput'
+import { get as idbGet } from 'idb-keyval'
+
+const PHYSICS_BOXES_KEY = 'skyward_physics_boxes_'
 
 class BabylonGameEngine {
   constructor() {
@@ -41,7 +44,6 @@ class BabylonGameEngine {
     // Event system for compatibility with CombatSystem
     this.eventListeners = new Map()
     
-    console.log('BabylonGameEngine: Initialized')
   }
 
   /**
@@ -92,10 +94,11 @@ class BabylonGameEngine {
       
       // Setup input
       this.setupInput()
-      
-      // Create world
+
+      // Load map data before creating world
+      this.mapData = this.loadMapData(this.getStartingMapId())
       await this.createWorld()
-      
+
       // Setup rendering optimizations
       this.setupOptimizations()
       
@@ -112,11 +115,78 @@ class BabylonGameEngine {
   }
 
   /**
+   * Get starting map ID from localStorage
+   */
+  getStartingMapId() {
+    const idx = JSON.parse(localStorage.getItem('skyward_maps_index') || '[]')
+    let startId = localStorage.getItem('skyward_starting_map')
+    if (!startId && idx.length > 0) startId = idx[0].id
+    return startId || 'default'
+  }
+
+  /**
+   * Load map data by ID
+   */
+  loadMapData(mapId) {
+    const data = localStorage.getItem('skyward_world_map_' + mapId)
+    if (!data) {
+      console.warn('BabylonGameEngine: No map data found for mapId:', mapId)
+      return null
+    }
+    const parsed = JSON.parse(data)
+    if (!parsed || !Array.isArray(parsed) || parsed.length === 0) {
+      console.warn('BabylonGameEngine: Loaded map data is empty or invalid for mapId:', mapId)
+    }
+    return parsed
+  }
+
+  /**
+   * Create and save a default map if none exists
+   */
+  createAndSaveDefaultMap() {
+    const size = 32
+    const defaultCell = { type: 'ground', asset: null, flags: {} }
+    const def = Array.from({ length: size }, () => Array.from({ length: size }, () => ({ ...defaultCell })))
+    localStorage.setItem('skyward_world_map_default', JSON.stringify(def))
+    localStorage.setItem('skyward_maps_index', JSON.stringify([{ id: 'default', name: 'World', size }]))
+    if (!localStorage.getItem('skyward_starting_map')) localStorage.setItem('skyward_starting_map', 'default')
+  }
+
+  /**
+   * Load world asset assignments from localStorage
+   */
+  loadWorldAssignments() {
+    try {
+      const data = localStorage.getItem('skyward_world_assignments')
+      return data ? JSON.parse(data) : {}
+    } catch {
+      return {}
+    }
+  }
+
+  /**
+   * Load world characters from localStorage
+   */
+  loadWorldCharacters() {
+    try {
+      const data = localStorage.getItem('skyward_world_characters')
+      return data ? JSON.parse(data) : []
+    } catch {
+      return []
+    }
+  }
+
+  /**
+   * Get available characters for selection
+   */
+  getAvailableCharacters() {
+    return this.worldCharacters || []
+  }
+
+  /**
    * Setup physics engine with Cannon.js
    */
   async setupPhysics() {
-    console.log('BabylonGameEngine: Setting up physics...')
-    
     try {
       // Import cannon dynamically
       const cannonModule = await import('cannon')
@@ -126,7 +196,6 @@ class BabylonGameEngine {
       this.scene.enablePhysics(new BABYLON.Vector3(0, -9.81, 0), new CannonJSPlugin(true, 10, CANNON))
       this.physicsEngine = this.scene.getPhysicsEngine()
       
-      console.log('✅ Physics engine enabled with gravity')
     } catch (error) {
       console.warn('⚠️ Physics engine failed to initialize, using fallback:', error)
       // Fallback: disable physics features
@@ -138,8 +207,6 @@ class BabylonGameEngine {
    * Setup camera with advanced controls
    */
   setupCamera() {
-    console.log('BabylonGameEngine: Setting up camera...')
-    
     try {
       // Create arc rotate camera (third person)
       this.camera = new BABYLON.ArcRotateCamera(
@@ -168,7 +235,6 @@ class BabylonGameEngine {
       // Try to attach controls with multiple fallback methods
       this.attachCameraControls()
       
-      console.log('✅ Camera setup complete')
     } catch (error) {
       console.error('❌ Camera setup failed:', error)
       // Fallback: create simple free camera
@@ -184,17 +250,14 @@ class BabylonGameEngine {
       // Method 1: Try attachControls if available
       if (this.camera.attachControls && typeof this.camera.attachControls === 'function') {
         this.camera.attachControls(this.canvas, true)
-        console.log('✅ Camera controls attached via attachControls')
         return
       }
       
       // Method 2: Manual control setup
       this.setupManualCameraControls()
-      console.log('✅ Manual camera controls setup')
       
     } catch (error) {
       console.warn('⚠️ Camera controls setup failed:', error)
-      console.log('Camera will work but without mouse/keyboard controls')
     }
   }
 
@@ -229,7 +292,6 @@ class BabylonGameEngine {
     // Pointer lock change events
     document.addEventListener('pointerlockchange', () => {
       this.isMouseLocked = document.pointerLockElement === this.canvas
-      console.log('Mouse lock status:', this.isMouseLocked ? 'LOCKED' : 'UNLOCKED')
     })
     
     // Mouse controls for locked mode
@@ -292,7 +354,11 @@ class BabylonGameEngine {
    */
   lockMouse() {
     try {
-      this.canvas.requestPointerLock()
+      // Only call requestPointerLock in response to a user gesture
+      // (This function should be called from a click event handler)
+      if (document.activeElement === this.canvas) {
+        this.canvas.requestPointerLock()
+      }
     } catch (error) {
       console.warn('Pointer lock not supported:', error)
     }
@@ -313,8 +379,6 @@ class BabylonGameEngine {
    * Create fallback camera if ArcRotateCamera fails
    */
   createFallbackCamera() {
-    console.log('BabylonGameEngine: Creating fallback camera...')
-    
     try {
       // Create simple universal camera
       this.camera = new BABYLON.UniversalCamera(
@@ -324,7 +388,6 @@ class BabylonGameEngine {
       )
       
       this.camera.lookAt(BABYLON.Vector3.Zero())
-      console.log('✅ Fallback camera created')
     } catch (error) {
       console.error('❌ Even fallback camera failed:', error)
       // Create most basic camera
@@ -339,7 +402,7 @@ class BabylonGameEngine {
     try {
       const response = await fetch(filePath, { method: 'HEAD' })
       return response.ok
-    } catch (error) {
+    } catch {
       return false
     }
   }
@@ -348,6 +411,17 @@ class BabylonGameEngine {
    * Setup environment with fallback to procedural
    */
   async setupEnvironment() {
+    const assigned = this.worldAssignments?.skybox
+    if (assigned) {
+      const asset = this.getAssetById(assigned)
+      if (asset && asset.data) {
+        // Try to load .env from base64 (not natively supported, but placeholder for backend integration)
+        // For now, fallback to procedural skybox
+        // TODO: Implement .env loading from base64 if possible
+        this.createProceduralSkybox()
+        return
+      }
+    }
     // Skip environment texture loading for now to avoid warnings
     // Future: Add proper environment texture support when files are available
     console.log('BabylonGameEngine: Using procedural skybox (environment textures disabled)')
@@ -396,7 +470,6 @@ class BabylonGameEngine {
     
     // Add gradient effect
     skyboxMaterial.disableLighting = true
-    console.log('✅ Procedural skybox created')
   }
 
   /**
@@ -426,7 +499,6 @@ class BabylonGameEngine {
     hemiLight.diffuse = new BABYLON.Color3(0.8, 0.8, 1)
     hemiLight.groundColor = new BABYLON.Color3(0.4, 0.3, 0.2)
     
-    console.log('✅ Advanced lighting setup complete')
   }
 
   /**
@@ -448,137 +520,284 @@ class BabylonGameEngine {
       }
     })
     
-    console.log('✅ Input system ready')
+    // Camera mode toggle (C key)
+    window.addEventListener('keydown', (event) => {
+      if (event.code === 'KeyC') {
+        this.toggleCameraMode()
+      }
+    })
+    
   }
 
   /**
    * Create the game world
    */
   async createWorld() {
-    console.log('BabylonGameEngine: Creating game world...')
-    
-    // Create terrain
-    await this.createTerrain()
-    
-    // Create water
-    await this.createWater()
-    
-    // Create vegetation
-    await this.createVegetation()
-    
-    // Create player will be called from GameScene
-    // await this.createPlayer()
-    
-    console.log('✅ Game world created successfully!')
+    console.log('BabylonGameEngine: Creating game world from map data...')
+    if (!this.mapData) {
+      console.warn('No map data found! Falling back to default terrain.')
+      await this.createTerrain() // fallback
+      return
+    }
+    // Load tool-asset assignments
+    const toolAssets = JSON.parse(localStorage.getItem('skyward_tool_asset_assignments') || '{}')
+    const assets = JSON.parse(localStorage.getItem('skyward_assets') || '[]')
+    const getAssetById = (id) => assets.find(a => a.id === id)
+    // For spawn/teleport
+    let playerSpawn = null
+    const teleportTriggers = []
+    const heightStep = 1 // units per heightIndex
+    for (let z = 0; z < this.mapData.length; z++) {
+      for (let x = 0; x < this.mapData[z].length; x++) {
+        const cell = this.mapData[z][x]
+        // 1. Terrain mesh (with height index)
+        let terrainY = (cell.terrainHeightIndex || 0) * heightStep
+        let terrainAssetId = toolAssets[cell.type] || null
+        let terrainAsset = terrainAssetId ? getAssetById(terrainAssetId) : null
+        if (terrainAsset && terrainAsset.id) {
+          const base64 = await idbGet(terrainAsset.id)
+          if (base64) {
+            try {
+              const meshes = await this.loadGLBFromBase64(base64, `terrain_${x}_${z}`)
+              // Place all meshes at correct Y
+              if (meshes.length === 1 && meshes[0] instanceof BABYLON.Mesh) {
+                meshes[0].position = new BABYLON.Vector3(x, terrainY, z)
+                if (this.physicsEngine) {
+                  meshes[0].physicsImpostor = new BABYLON.PhysicsImpostor(
+                    meshes[0],
+                    BABYLON.PhysicsImpostor.BoxImpostor,
+                    { mass: 0, restitution: 0.3, friction: 0.8 },
+                    this.scene
+                  )
+                }
+              } else if (meshes.length > 1) {
+                // Create invisible box mesh at correct Y
+                const box = BABYLON.MeshBuilder.CreateBox(`terrain_physbox_${x}_${z}`, { width: 1, height: 1, depth: 1 }, this.scene)
+                box.position = new BABYLON.Vector3(x, terrainY, z)
+                box.isVisible = false
+                if (this.physicsEngine) {
+                  box.physicsImpostor = new BABYLON.PhysicsImpostor(
+                    box,
+                    BABYLON.PhysicsImpostor.BoxImpostor,
+                    { mass: 0, restitution: 0.3, friction: 0.8 },
+                    this.scene
+                  )
+                }
+                meshes.forEach(m => { m.parent = box; m.position = BABYLON.Vector3.Zero() })
+              }
+              console.log(`[Terrain] Placed ${cell.type} at (${x},${z}) height ${terrainY}`)
+            } catch (e) {
+              console.warn(`[createWorld] Failed to load terrain GLB for (${x},${z}):`, e)
+              const box = BABYLON.MeshBuilder.CreateBox(`ground_${x}_${z}`, { width: 1, height: 0.2, depth: 1 }, this.scene)
+              box.position = new BABYLON.Vector3(x, terrainY, z)
+              box.material = new BABYLON.StandardMaterial('groundMat', this.scene)
+              box.material.diffuseColor = new BABYLON.Color3(0.2, 0.7, 0.3)
+              this.ensurePhysicsBox(box, new BABYLON.Vector3(x, terrainY, z), {width: 1, height: 0.2, depth: 1})
+            }
+          } else {
+            console.warn(`[TERRAIN] No GLB data found in IndexedDB for terrain asset '${terrainAsset.id}' at (${x},${z}), using default box.`)
+            const box = BABYLON.MeshBuilder.CreateBox(`ground_${x}_${z}`, { width: 1, height: 0.2, depth: 1 }, this.scene)
+            box.position = new BABYLON.Vector3(x, terrainY, z)
+            box.material = new BABYLON.StandardMaterial('groundMat', this.scene)
+            box.material.diffuseColor = new BABYLON.Color3(0.2, 0.7, 0.3)
+            this.ensurePhysicsBox(box, new BABYLON.Vector3(x, terrainY, z), {width: 1, height: 0.2, depth: 1})
+          }
+        } else {
+          if (terrainAssetId) {
+            console.warn(`[TERRAIN] No asset found for terrain type '${cell.type}' with id '${terrainAssetId}' at (${x},${z}), using default box.`)
+          }
+          const box = BABYLON.MeshBuilder.CreateBox(`ground_${x}_${z}`, { width: 1, height: 0.2, depth: 1 }, this.scene)
+          box.position = new BABYLON.Vector3(x, terrainY, z)
+          box.material = new BABYLON.StandardMaterial('groundMat', this.scene)
+          box.material.diffuseColor = new BABYLON.Color3(0.2, 0.7, 0.3)
+          this.ensurePhysicsBox(box, new BABYLON.Vector3(x, terrainY, z), {width: 1, height: 0.2, depth: 1})
+        }
+        // 2. Per-object asset placement
+        if (cell.objects && Array.isArray(cell.objects)) {
+          for (const obj of cell.objects) {
+            const asset = getAssetById(obj.assetId)
+            if (asset && asset.id) {
+              const base64 = await idbGet(asset.id)
+              if (base64) {
+                try {
+                  const meshes = await this.loadGLBFromBase64(base64, `asset_${x}_${z}_${obj.assetId}`)
+                  const y = terrainY + (obj.heightIndex || 0) * heightStep
+                  if (meshes.length === 1 && meshes[0] instanceof BABYLON.Mesh) {
+                    meshes[0].position = new BABYLON.Vector3(x, y, z)
+                    if (this.physicsEngine) {
+                      meshes[0].physicsImpostor = new BABYLON.PhysicsImpostor(
+                        meshes[0],
+                        BABYLON.PhysicsImpostor.BoxImpostor,
+                        { mass: 0, restitution: 0.3, friction: 0.8 },
+                        this.scene
+                      )
+                    }
+                  } else if (meshes.length > 1) {
+                    const box = BABYLON.MeshBuilder.CreateBox(`obj_physbox_${x}_${z}_${obj.assetId}`, { width: 1, height: 1, depth: 1 }, this.scene)
+                    box.position = new BABYLON.Vector3(x, y, z)
+                    box.isVisible = false
+                    if (this.physicsEngine) {
+                      box.physicsImpostor = new BABYLON.PhysicsImpostor(
+                        box,
+                        BABYLON.PhysicsImpostor.BoxImpostor,
+                        { mass: 0, restitution: 0.3, friction: 0.8 },
+                        this.scene
+                      )
+                    }
+                    meshes.forEach(m => { m.parent = box; m.position = BABYLON.Vector3.Zero() })
+                  }
+                  console.log(`[Object] Placed asset ${obj.assetId} at (${x},${z}) height ${y}`)
+                } catch (e) {
+                  console.error(`[ASSET] Failed to load GLB for asset '${asset.id}' at (${x},${z}):`, e)
+                }
+              }
+            }
+          }
+        }
+        // 3. Flags (if rendering as 3D objects, use terrainY + flag.heightIndex * heightStep)
+        if (cell.flags) {
+          for (const flag in cell.flags) {
+            const flagData = cell.flags[flag]
+            if (flagData && typeof flagData.heightIndex === 'number') {
+
+              // Example: render a flag marker at (x, fy, z) if desired
+              // BABYLON.MeshBuilder.CreateBox(`flag_${flag}_${x}_${z}`, { size: 0.3 }, this.scene).position = new BABYLON.Vector3(x, fy, z)
+            }
+          }
+          // Spawn
+          if (cell.flags.spawn) {
+            if (!playerSpawn) {
+              playerSpawn = { x, z }
+            }
+          }
+          // Tree spawn
+          if (cell.flags.tree_spawn) {
+            // If you have a tree asset, try to load it here (add your logic)
+          }
+          // Teleport
+          if (cell.flags.teleport) {
+            const trigger = BABYLON.MeshBuilder.CreateBox(`teleport_${x}_${z}`, { width: 1, height: 1, depth: 1 }, this.scene)
+            trigger.position = new BABYLON.Vector3(x, 0.5, z)
+            trigger.isVisible = false
+            trigger.isPickable = false
+            trigger.metadata = { teleport: cell.flags.teleport }
+            teleportTriggers.push(trigger)
+          }
+        }
+      }
+    }
+    // Place player at spawn
+    if (playerSpawn && this.babylonCharacter) {
+      this.babylonCharacter.setPosition(new BABYLON.Vector3(playerSpawn.x, 1, playerSpawn.z))
+      this.camera.setTarget(this.babylonCharacter.getPosition())
+    } else {
+      console.warn('No player spawn point found in map!')
+    }
+    // Teleport logic: check player collision with triggers
+    this.scene.registerBeforeRender(() => {
+      if (!this.babylonCharacter) return
+      const pos = this.babylonCharacter.getPosition()
+      for (const trigger of teleportTriggers) {
+        if (BABYLON.Vector3.Distance(trigger.position, pos) < 0.7) {
+          const tp = trigger.metadata.teleport
+          if (tp && tp.toMapId) {
+            console.log('Teleporting to map:', tp.toMapId)
+            this.loadMapAndTeleport(tp.toMapId)
+            break
+          }
+        }
+      }
+    })
   }
 
   /**
-   * Create advanced terrain system
+   * Load a map by ID and teleport player to first spawn or first cell
+   */
+  async loadMapAndTeleport(mapId) {
+    this.mapData = this.loadMapData(mapId)
+    if (!this.mapData) return
+    // Remove all meshes from scene
+    this.scene.meshes.slice().forEach(m => m.dispose())
+    // Rebuild world
+    await this.createWorld()
+    // Place player at spawn or (0,0)
+    let spawn = null
+    for (let z = 0; z < this.mapData.length; z++) {
+      for (let x = 0; x < this.mapData[z].length; x++) {
+        if (this.mapData[z][x].flags && this.mapData[z][x].flags.spawn) {
+          spawn = { x, z }
+          break
+        }
+      }
+      if (spawn) break
+    }
+    if (!spawn) spawn = { x: 0, z: 0 }
+    if (this.babylonCharacter) {
+      this.babylonCharacter.setPosition(new BABYLON.Vector3(spawn.x, 2, spawn.z))
+      this.camera.setTarget(this.babylonCharacter.getPosition())
+    }
+  }
+
+  /**
+   * Create advanced terrain system (use assigned asset if available)
    */
   async createTerrain() {
-    console.log('BabylonGameEngine: Creating terrain...')
-    
-    // Create terrain using Babylon.js DynamicTerrain
-    const terrainSub = 200
-    const terrainOptions = {
-      width: 400,
-      height: 400,
-      subdivisions: terrainSub,
-      minHeight: 0,
-      maxHeight: 20,
-      onReady: (terrain) => {
-        // Add physics
-        terrain.physicsImpostor = new BABYLON.PhysicsImpostor(
-          terrain,
-          BABYLON.PhysicsImpostor.HeightmapImpostor,
-          { mass: 0, restitution: 0.3, friction: 0.8 },
-          this.scene
-        )
-        
-        // Enable collision detection for terrain
-        terrain.checkCollisions = true
-        
-        // Add to shadow casters
-        terrain.receiveShadows = true
+    const assigned = this.worldAssignments?.terrain
+    if (assigned) {
+      // Try to load assigned terrain model from localStorage assets
+      const asset = this.getAssetById(assigned)
+      if (asset && asset.data) {
+        await this.loadGLBFromBase64(asset.data, 'assignedTerrain')
+        return
       }
     }
-    
-    // Create heightmap data
-    const heightmapData = new Float32Array(terrainSub * terrainSub)
-    for (let i = 0; i < heightmapData.length; i++) {
-      const x = (i % terrainSub) / terrainSub * 20 - 10
-      const z = Math.floor(i / terrainSub) / terrainSub * 20 - 10
-      heightmapData[i] = Math.sin(x * 0.5) * 2 + Math.cos(z * 0.3) * 1.5
-    }
-    
+    console.log('BabylonGameEngine: Creating terrain...')
     // Create simple terrain (skip heightmap to avoid texture loading issues)
     const simpleTerrain = BABYLON.MeshBuilder.CreateGround('terrain', {
       width: 400,
       height: 400,
       subdivisions: 100
     }, this.scene)
-    
     const terrainMaterial = new BABYLON.PBRMaterial('terrainMaterial', this.scene)
     terrainMaterial.baseColor = new BABYLON.Color3(0.2, 0.6, 0.2)
     terrainMaterial.roughness = 0.8
     terrainMaterial.metallic = 0.1
     simpleTerrain.material = terrainMaterial
     simpleTerrain.receiveShadows = true
-    
-    // Add physics if available
-    if (this.physicsEngine) {
-      simpleTerrain.physicsImpostor = new BABYLON.PhysicsImpostor(
-        simpleTerrain,
-        BABYLON.PhysicsImpostor.BoxImpostor,
-        { mass: 0, restitution: 0.3, friction: 0.8 },
-        this.scene
-      )
-      console.log('✅ Terrain physics enabled')
-    } else {
-      console.log('✅ Terrain created without physics (fallback mode)')
-    }
-    
-    console.log('✅ Terrain created with procedural materials and physics')
+    // Use ensurePhysicsBox for terrain
+    this.ensurePhysicsBox(simpleTerrain, new BABYLON.Vector3(200, 0, 200), {width: 400, height: 0.2, depth: 400})
   }
 
   /**
-   * Create advanced water system
+   * Create water (use assigned asset if available)
    */
   async createWater() {
+    const assigned = this.worldAssignments?.water
+    if (assigned) {
+      const asset = this.getAssetById(assigned)
+      if (asset && asset.data) {
+        await this.loadGLBFromBase64(asset.data, 'assignedWater')
+        return
+      }
+    }
     console.log('BabylonGameEngine: Creating water system...')
-    
     // Create water mesh
     const waterMesh = BABYLON.MeshBuilder.CreateGround('water', {
       width: 50,
       height: 50,
       subdivisions: 32
     }, this.scene)
-    
     // Simple water material (avoid texture dependencies)
     const waterMaterial = new BABYLON.PBRMaterial('waterMaterial', this.scene)
     waterMaterial.baseColor = new BABYLON.Color3(0, 0.3, 0.6)
     waterMaterial.roughness = 0.1
     waterMaterial.metallic = 0.0
     waterMaterial.alpha = 0.8
-    
-    // Simple transparent water effect
-    
     waterMesh.material = waterMaterial
     waterMesh.position.y = 2
-    
-    // Water physics (trigger zone) - only if physics available
-    if (this.physicsEngine) {
-      waterMesh.physicsImpostor = new BABYLON.PhysicsImpostor(
-        waterMesh,
-        BABYLON.PhysicsImpostor.BoxImpostor,
-        { mass: 0, restitution: 0, friction: 0 },
-        this.scene
-      )
-    }
-    
+    // Use ensurePhysicsBox for water
+    this.ensurePhysicsBox(waterMesh, waterMesh.position, {width: 50, height: 0.2, depth: 50})
     this.waterMesh = waterMesh
-    
-    console.log('✅ Advanced water system created with reflections')
   }
 
   /**
@@ -626,35 +845,19 @@ class BabylonGameEngine {
       const x = (Math.random() - 0.5) * 300
       const z = (Math.random() - 0.5) * 300
       const y = 1.5
-      
       const treeInstance = treeMesh.createInstance(`tree_${i}`)
-      treeInstance.position = new BABYLON.Vector3(x, y, z)
       treeInstance.scaling = new BABYLON.Vector3(
         0.8 + Math.random() * 0.4,
         0.8 + Math.random() * 0.4,
         0.8 + Math.random() * 0.4
       )
-      
-      // Add physics if available
-      if (this.physicsEngine) {
-        treeInstance.physicsImpostor = new BABYLON.PhysicsImpostor(
-          treeInstance,
-          BABYLON.PhysicsImpostor.CylinderImpostor,
-          { mass: 0, restitution: 0.1, friction: 0.9 },
-          this.scene
-        )
-        
-        // Enable collision detection for trees
-        treeInstance.checkCollisions = true
-      }
-      
+      this.ensurePhysicsBox(treeInstance, new BABYLON.Vector3(x, y, z), {width: 1, height: 3, depth: 1})
       treePositions.push(treeInstance)
     }
     
     // Hide original
     treeMesh.setEnabled(false)
     
-    console.log(`✅ Created ${treePositions.length} instanced trees with physics`)
   }
 
   /**
@@ -702,8 +905,6 @@ class BabylonGameEngine {
     // Update camera target
     this.camera.setTarget(this.babylonCharacter.getPosition())
     
-    console.log('✅ Enhanced player character created with GLB model and elemental effects')
-    return characterGroup
   }
 
   /**
@@ -728,7 +929,6 @@ class BabylonGameEngine {
     // Optimize materials
     this.scene.cleanCachedTextureBuffer()
     
-    console.log('✅ Optimizations enabled')
   }
 
   /**
@@ -771,14 +971,58 @@ class BabylonGameEngine {
       moveVector.addInPlace(cameraRight)
     }
     
+    // Running (Shift key)
+    const isRunning = !!this.inputMap['ShiftLeft'] || !!this.inputMap['ShiftRight']
+    
     // Apply movement
     if (moveVector.length() > 0) {
       moveVector.normalize()
-      this.babylonCharacter.move(moveVector)
+      this.babylonCharacter.move(moveVector, isRunning)
+    } else {
+      this.babylonCharacter.move(new BABYLON.Vector3(0, 0, 0), false)
     }
     
     // Update camera target
-    this.camera.setTarget(this.babylonCharacter.getPosition())
+    this.updateCameraFollow()
+  }
+
+  /**
+   * Update camera follow/position based on camera mode
+   */
+  updateCameraFollow() {
+    if (!this.babylonCharacter) return
+    // Third-person: follow character
+    if (this.babylonCharacter.cameraMode === 'third') {
+      this.camera.setTarget(this.babylonCharacter.getPosition())
+      // Show character mesh
+      if (this.babylonCharacter.characterMesh) {
+        this.babylonCharacter.characterMesh.isVisible = true
+      }
+      // (Optional: adjust camera position for third-person)
+    } else if (this.babylonCharacter.cameraMode === 'first') {
+      // First-person: move camera to character head position
+      const pos = this.babylonCharacter.getPosition()
+      // Place camera at head height, slightly forward
+      const headOffset = new BABYLON.Vector3(0, 1.5, 0)
+      const forward = this.camera.getTarget().subtract(this.camera.position).normalize()
+      const cameraPos = pos.add(headOffset).add(forward.scale(0.2))
+      this.camera.position = cameraPos
+      this.camera.setTarget(pos.add(headOffset).add(forward.scale(2)))
+      // Hide character mesh
+      if (this.babylonCharacter.characterMesh) {
+        this.babylonCharacter.characterMesh.isVisible = false
+      }
+    }
+  }
+
+  /**
+   * Toggle camera mode (first/third person)
+   */
+  toggleCameraMode() {
+    if (this.babylonCharacter) {
+      this.babylonCharacter.toggleCameraMode()
+    }
+    // Camera logic handled in updateCameraFollow
   }
 
   /**
@@ -807,7 +1051,6 @@ class BabylonGameEngine {
       this.engine.resize()
     })
     
-    console.log('✅ Render loop started')
   }
 
   /**
@@ -839,7 +1082,6 @@ class BabylonGameEngine {
     }
     this.gameObjects.set(id, object)
     
-    console.log(`BabylonGameEngine: Added game object ${id}`)
   }
 
   /**
@@ -854,7 +1096,6 @@ class BabylonGameEngine {
     }
     
     this.gameObjects.delete(id)
-    console.log(`BabylonGameEngine: Removed game object ${id}`)
   }
 
   /**
@@ -924,6 +1165,404 @@ class BabylonGameEngine {
     if (this.scene) {
       this.scene.dispose()
     }
+  }
+
+  /**
+   * Helper: Get asset by id from localStorage assets
+   */
+  getAssetById(assetId) {
+    try {
+      const assets = JSON.parse(localStorage.getItem('skyward_assets') || '[]')
+      return assets.find(a => a.id === assetId)
+    } catch {
+      return null
+    }
+  }
+
+  /**
+   * Helper: Load GLB model from base64 data
+   */
+  async loadGLBFromBase64(base64, meshName) {
+    return new Promise((resolve, reject) => {
+      BABYLON.SceneLoader.ImportMesh(
+        '',
+        '',
+        base64,
+        this.scene,
+        (meshes) => {
+          meshes.forEach(m => { m.name = meshName; m.receiveShadows = true })
+          resolve(meshes)
+        },
+        null,
+        (error) => reject(error)
+      )
+    })
+  }
+
+  /**
+   * Universal helper: ensure an invisible physics box for any object (mesh, group, or node)
+   * - If mesh: assign impostor if not present
+   * - If not mesh: create box at object's world position (if available), parent all children
+   * - Always logs what is being processed
+   */
+  ensurePhysicsBox(meshOrMeshes, position, size = {width:1, height:1, depth:1}) {
+    const meshes = Array.isArray(meshOrMeshes) ? meshOrMeshes : [meshOrMeshes]
+    // Log all objects passed
+    meshes.forEach((m, i) => {
+      if (!m) {
+        console.warn(`[PhysicsBox] [${i}] is null/undefined`)
+      } else if (m instanceof BABYLON.Mesh) {
+        console.log(`[PhysicsBox] [${i}] Mesh:`, m.name, 'Vertices:', m.getTotalVertices())
+      } else if (m instanceof BABYLON.TransformNode) {
+        console.log(`[PhysicsBox] [${i}] TransformNode:`, m.name)
+      } else {
+        console.log(`[PhysicsBox] [${i}] Unknown type:`, m)
+      }
+    })
+    // Find a mesh suitable for physics
+    const validMesh = meshes.find(m => m && m instanceof BABYLON.Mesh && m.getTotalVertices() > 0)
+    if (validMesh && this.physicsEngine) {
+      // Already suitable, assign impostor if not present
+      if (!validMesh.physicsImpostor) {
+        try {
+          validMesh.physicsImpostor = new BABYLON.PhysicsImpostor(
+            validMesh,
+            BABYLON.PhysicsImpostor.BoxImpostor,
+            { mass: 0, restitution: 0.3, friction: 0.8 },
+            this.scene
+          )
+          console.log(`[PhysicsBox] Assigned impostor to mesh:`, validMesh.name)
+        } catch (e) {
+          console.warn(`[PhysicsBox] Failed to assign impostor to mesh:`, validMesh.name, e)
+        }
+      }
+      return validMesh
+    } else {
+      // Not a mesh, or no valid mesh found: create invisible physics box
+      // Try to use world position of first node if available
+      let boxPos = position ? position.clone() : new BABYLON.Vector3(0,0,0)
+      const firstNode = meshes.find(m => m && typeof m.getAbsolutePosition === 'function')
+      if (firstNode) {
+        try {
+          const absPos = firstNode.getAbsolutePosition()
+          if (absPos && absPos.x !== undefined) {
+            boxPos = absPos.clone()
+            console.log(`[PhysicsBox] Using absolute position of node for box:`, boxPos)
+          }
+        } catch (e) {
+          console.warn(`[PhysicsBox] Could not get absolute position of node:`, e)
+        }
+      }
+      const box = BABYLON.MeshBuilder.CreateBox('univ_physbox_' + Math.random().toString(36).substr(2,6), size, this.scene)
+      box.position = boxPos
+      box.isVisible = false
+      if (this.physicsEngine && box && box instanceof BABYLON.Mesh) {
+        try {
+          box.physicsImpostor = new BABYLON.PhysicsImpostor(
+            box,
+            BABYLON.PhysicsImpostor.BoxImpostor,
+            { mass: 0, restitution: 0.3, friction: 0.8 },
+            this.scene
+          )
+          console.log(`[PhysicsBox] Assigned impostor to box at:`, box.position)
+        } catch (e) {
+          console.warn(`[PhysicsBox] Failed to assign impostor to box:`, e)
+        }
+      }
+      // Parent all visible meshes/nodes to the box
+      meshes.forEach(m => {
+        if (m) {
+          if (typeof m.setParent === 'function') {
+            m.setParent(box)
+            if (m.position) m.position = new BABYLON.Vector3(0, 0, 0)
+            m.isVisible = true
+            console.log(`[PhysicsBox] Parented node/mesh to box:`, m.name)
+          } else if ('parent' in m) {
+            m.parent = box
+            if (m.position) m.position = new BABYLON.Vector3(0, 0, 0)
+            m.isVisible = true
+            console.log(`[PhysicsBox] Parented node/mesh to box (fallback):`, m.name)
+          }
+        }
+      })
+      return box
+    }
+  }
+
+  /**
+   * Update the 3D world from map editor data
+   */
+  async updateWorldFromMap(mapData) {
+    if (!this.scene || !mapData) return
+
+    try {
+      console.log('BabylonGameEngine: Updating world from map data...')
+      
+      // Clear existing map-generated meshes
+      this.scene.meshes.forEach(mesh => {
+        if (mesh.metadata?.fromMapEditor) {
+          mesh.dispose()
+        }
+      })
+
+      // Recreate terrain based on map data
+      if (mapData.cells && Array.isArray(mapData.cells)) {
+        await this.generateTerrainFromMap(mapData)
+      }
+
+      // Place assets
+      if (mapData.assets) {
+        for (const asset of mapData.assets) {
+          await this.loadAndPlaceAsset(asset)
+        }
+      }
+
+      // Create spawn areas
+      if (mapData.spawnAreas) {
+        for (const spawnArea of mapData.spawnAreas) {
+          await this.createSpawnArea(spawnArea)
+        }
+      }
+
+      console.log('BabylonGameEngine: World updated successfully')
+    } catch (error) {
+      console.error('BabylonGameEngine: Error updating world from map:', error)
+    }
+  }
+
+  /**
+   * Generate terrain from map data
+   */
+  async generateTerrainFromMap(mapData) {
+    const { cells, size = 32 } = mapData
+    const scale = 4 // Scale factor for terrain
+
+    for (let x = 0; x < size; x++) {
+      for (let z = 0; z < size; z++) {
+        const cell = cells[x]?.[z]
+        if (!cell) continue
+
+        const worldX = (x - size/2) * scale
+        const worldZ = (z - size/2) * scale
+
+        // Create terrain mesh based on cell type
+        let mesh
+        switch (cell.type) {
+          case 'grass':
+            mesh = BABYLON.MeshBuilder.CreateGround(`grass_${x}_${z}`, {
+              width: scale,
+              height: scale
+            }, this.scene)
+            break
+          case 'water':
+            mesh = BABYLON.MeshBuilder.CreateGround(`water_${x}_${z}`, {
+              width: scale,
+              height: scale
+            }, this.scene)
+            mesh.position.y = -0.1
+            break
+          case 'stone':
+            mesh = BABYLON.MeshBuilder.CreateBox(`stone_${x}_${z}`, {
+              width: scale,
+              height: 1,
+              depth: scale
+            }, this.scene)
+            mesh.position.y = 0.5
+            break
+          default:
+            mesh = BABYLON.MeshBuilder.CreateGround(`terrain_${x}_${z}`, {
+              width: scale,
+              height: scale
+            }, this.scene)
+        }
+
+        if (mesh) {
+          mesh.position.x = worldX
+          mesh.position.z = worldZ
+          mesh.metadata = { fromMapEditor: true, cellType: cell.type }
+          
+          // Apply basic material
+          const material = new BABYLON.StandardMaterial(`mat_${cell.type}_${x}_${z}`, this.scene)
+          switch (cell.type) {
+            case 'grass':
+              material.diffuseColor = new BABYLON.Color3(0.2, 0.6, 0.2)
+              break
+            case 'water':
+              material.diffuseColor = new BABYLON.Color3(0.2, 0.4, 0.8)
+              break
+            case 'stone':
+              material.diffuseColor = new BABYLON.Color3(0.5, 0.5, 0.5)
+              break
+            default:
+              material.diffuseColor = new BABYLON.Color3(0.4, 0.3, 0.2)
+          }
+          mesh.material = material
+        }
+      }
+    }
+  }
+
+  /**
+   * Load and place an asset in the 3D world
+   */
+  async loadAndPlaceAsset(asset) {
+    if (!asset || !this.scene) return null
+
+    try {
+      let mesh
+      
+      // Create different meshes based on asset type
+      switch (asset.type) {
+        case 'tree':
+          mesh = await this.createTreeAsset(asset)
+          break
+        case 'rock':
+          mesh = await this.createRockAsset(asset)
+          break
+        case 'structure':
+          mesh = await this.createStructureAsset(asset)
+          break
+        default:
+          // Default box for unknown assets
+          mesh = BABYLON.MeshBuilder.CreateBox(asset.id || 'asset', {
+            width: 1,
+            height: 1,
+            depth: 1
+          }, this.scene)
+      }
+
+      if (mesh && asset.position) {
+        mesh.position = new BABYLON.Vector3(
+          asset.position.x || 0,
+          asset.position.y || 0,
+          asset.position.z || 0
+        )
+        
+        if (asset.rotation) {
+          mesh.rotation = new BABYLON.Vector3(
+            asset.rotation.x || 0,
+            asset.rotation.y || 0,
+            asset.rotation.z || 0
+          )
+        }
+        
+        if (asset.scale) {
+          mesh.scaling = new BABYLON.Vector3(
+            asset.scale.x || 1,
+            asset.scale.y || 1,
+            asset.scale.z || 1
+          )
+        }
+
+        mesh.metadata = { fromMapEditor: true, assetData: asset }
+      }
+
+      return mesh
+    } catch (error) {
+      console.error('BabylonGameEngine: Error loading asset:', error)
+      return null
+    }
+  }
+
+  /**
+   * Create spawn area in the 3D world
+   */
+  async createSpawnArea(spawnAreaData) {
+    if (!spawnAreaData || !this.scene) return null
+
+    try {
+      // Create visual representation of spawn area
+      let areaMesh
+      
+      switch (spawnAreaData.shape) {
+        case 'circle':
+          areaMesh = BABYLON.MeshBuilder.CreateGround(`spawn_area_${spawnAreaData.id}`, {
+            width: spawnAreaData.radius * 2,
+            height: spawnAreaData.radius * 2
+          }, this.scene)
+          break
+        case 'rectangle':
+          areaMesh = BABYLON.MeshBuilder.CreateGround(`spawn_area_${spawnAreaData.id}`, {
+            width: spawnAreaData.width || 10,
+            height: spawnAreaData.height || 10
+          }, this.scene)
+          break
+        default:
+          areaMesh = BABYLON.MeshBuilder.CreateGround(`spawn_area_${spawnAreaData.id}`, {
+            width: 10,
+            height: 10
+          }, this.scene)
+      }
+
+      if (areaMesh && spawnAreaData.position) {
+        areaMesh.position = new BABYLON.Vector3(
+          spawnAreaData.position.x || 0,
+          0.1, // Slightly above ground
+          spawnAreaData.position.z || 0
+        )
+
+        // Make it semi-transparent
+        const material = new BABYLON.StandardMaterial(`spawn_area_mat_${spawnAreaData.id}`, this.scene)
+        material.diffuseColor = new BABYLON.Color3(1, 1, 0) // Yellow
+        material.alpha = 0.3
+        areaMesh.material = material
+        areaMesh.metadata = { fromMapEditor: true, spawnAreaData: spawnAreaData }
+      }
+
+      return areaMesh
+    } catch (error) {
+      console.error('BabylonGameEngine: Error creating spawn area:', error)
+      return null
+    }
+  }
+
+  /**
+   * Helper method to create tree assets
+   */
+  async createTreeAsset(asset) {
+    const treeMesh = BABYLON.MeshBuilder.CreateCylinder(`tree_${asset.id}`, {
+      height: 3,
+      diameter: 0.5
+    }, this.scene)
+    
+    const material = new BABYLON.StandardMaterial(`tree_mat_${asset.id}`, this.scene)
+    material.diffuseColor = new BABYLON.Color3(0.4, 0.2, 0.1)
+    treeMesh.material = material
+    
+    return treeMesh
+  }
+
+  /**
+   * Helper method to create rock assets
+   */
+  async createRockAsset(asset) {
+    const rockMesh = BABYLON.MeshBuilder.CreateSphere(`rock_${asset.id}`, {
+      diameter: 1.5,
+      segments: 8
+    }, this.scene)
+    
+    const material = new BABYLON.StandardMaterial(`rock_mat_${asset.id}`, this.scene)
+    material.diffuseColor = new BABYLON.Color3(0.5, 0.5, 0.5)
+    rockMesh.material = material
+    
+    return rockMesh
+  }
+
+  /**
+   * Helper method to create structure assets
+   */
+  async createStructureAsset(asset) {
+    const structureMesh = BABYLON.MeshBuilder.CreateBox(`structure_${asset.id}`, {
+      width: 2,
+      height: 3,
+      depth: 2
+    }, this.scene)
+    
+    const material = new BABYLON.StandardMaterial(`structure_mat_${asset.id}`, this.scene)
+    material.diffuseColor = new BABYLON.Color3(0.6, 0.4, 0.2)
+    structureMesh.material = material
+    
+    return structureMesh
   }
 }
 

@@ -1,10 +1,22 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useRef, useEffect } from 'react'
+import Modal from './ui/modal.jsx'
+import { get, del } from 'idb-keyval'
+import PhysicsBoxEditor from './PhysicsBoxEditor'
 
 const AssetBrowser = ({ assets, onSelectAsset, onDeleteAsset, selectedAsset }) => {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('all')
   const [sortBy, setSortBy] = useState('date')
   const [viewMode, setViewMode] = useState('grid')
+  const [filterCategory, setFilterCategory] = useState('all')
+  const [filterTag, setFilterTag] = useState('')
+  const [editAsset, setEditAsset] = useState(null)
+  const [editCategory, setEditCategory] = useState('')
+  const [editTags, setEditTags] = useState('')
+  const [physicsEditorAsset, setPhysicsEditorAsset] = useState(null)
+
+  const allCategories = Array.from(new Set(assets.map(a => a.category).filter(Boolean)))
+  const allTags = Array.from(new Set(assets.flatMap(a => a.tags || [])))
 
   const getFileIcon = (type) => {
     switch (type) {
@@ -28,12 +40,58 @@ const AssetBrowser = ({ assets, onSelectAsset, onDeleteAsset, selectedAsset }) =
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   }
 
+  const handleEditClick = (asset) => {
+    setEditAsset(asset)
+    setEditCategory(asset.category || '')
+    setEditTags((asset.tags || []).join(', '))
+  }
+
+  // Babylon.js preview for GLB/GLTF
+  const ModelPreview = ({ asset }) => {
+    const canvasRef = useRef(null)
+    useEffect(() => {
+      if (!asset || asset.type !== 'model' || !asset.id) return
+      let engine, scene
+      get(asset.id).then(base64 => {
+        if (!base64) return
+        import('@babylonjs/core').then(BABYLON => {
+          engine = new BABYLON.Engine(canvasRef.current, true)
+          scene = new BABYLON.Scene(engine)
+          const camera = new BABYLON.ArcRotateCamera('cam', Math.PI/2, Math.PI/2.5, 3, BABYLON.Vector3.Zero(), scene)
+          camera.attachControl(canvasRef.current, true)
+          new BABYLON.HemisphericLight('light', new BABYLON.Vector3(0,1,0), scene)
+          BABYLON.SceneLoader.ImportMesh('', '', base64, scene, () => {
+            engine.runRenderLoop(() => scene.render())
+          })
+        })
+      })
+      return () => { engine && engine.dispose() }
+    }, [asset])
+    return <canvas ref={canvasRef} style={{ width: 240, height: 180, background: '#222', borderRadius: 8 }} />
+  }
+
+  const handleEditSave = () => {
+    if (!editAsset) return
+    const updatedAssets = assets.map(a =>
+      a.id === editAsset.id
+        ? { ...a, category: editCategory, tags: editTags.split(',').map(t => t.trim()).filter(Boolean) }
+        : a
+    )
+    localStorage.setItem('skyward_assets', JSON.stringify(updatedAssets))
+    setEditAsset(null)
+    setEditCategory('')
+    setEditTags('')
+    window.location.reload() // Quick way to refresh UI; in a real app, use state management
+  }
+
   const filteredAndSortedAssets = useMemo(() => {
     let filtered = assets.filter(asset => {
       const matchesSearch = asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            asset.fileName.toLowerCase().includes(searchTerm.toLowerCase())
       const matchesType = filterType === 'all' || asset.type === filterType
-      return matchesSearch && matchesType
+      const matchesCategory = filterCategory === 'all' || asset.category === filterCategory
+      const matchesTag = !filterTag || (asset.tags && asset.tags.includes(filterTag))
+      return matchesSearch && matchesType && matchesCategory && matchesTag
     })
 
     return filtered.sort((a, b) => {
@@ -49,11 +107,12 @@ const AssetBrowser = ({ assets, onSelectAsset, onDeleteAsset, selectedAsset }) =
           return new Date(b.uploadDate) - new Date(a.uploadDate)
       }
     })
-  }, [assets, searchTerm, filterType, sortBy])
+  }, [assets, searchTerm, filterType, sortBy, filterCategory, filterTag])
 
-  const handleDeleteAsset = (asset, e) => {
+  const handleDeleteAsset = async (asset, e) => {
     e.stopPropagation()
     if (confirm(`Are you sure you want to delete "${asset.name}"?`)) {
+      await del(asset.id)
       onDeleteAsset(asset.id)
     }
   }
@@ -76,13 +135,38 @@ const AssetBrowser = ({ assets, onSelectAsset, onDeleteAsset, selectedAsset }) =
               <div className="text-purple-300 text-xs">{asset.type.toUpperCase()}</div>
             </div>
           </div>
-          <button
-            onClick={(e) => handleDeleteAsset(asset, e)}
-            className="text-red-400 hover:text-red-300 transition-colors"
-            title="Delete asset"
-          >
-            🗑️
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={(e) => { e.stopPropagation(); handleEditClick(asset) }}
+              className="text-blue-400 hover:text-blue-300 transition-colors"
+              title="Edit asset"
+            >
+              ✏️
+            </button>
+            <button
+              onClick={(e) => handleDeleteAsset(asset, e)}
+              className="text-red-400 hover:text-red-300 transition-colors"
+              title="Delete asset"
+            >
+              🗑️
+            </button>
+            {asset.type === 'model' && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setPhysicsEditorAsset(asset) }}
+                className="text-green-400 hover:text-green-300 transition-colors"
+                title="Configure Physics Boxes"
+              >
+                🧊 Configure Physics
+              </button>
+            )}
+          </div>
+        </div>
+        {/* Category and Tags */}
+        <div className="flex flex-wrap gap-1 mb-2">
+          {asset.category && <span className="px-2 py-0.5 rounded bg-purple-700 text-white text-xs">{asset.category}</span>}
+          {(asset.tags || []).map(tag => (
+            <span key={tag} className="px-2 py-0.5 rounded bg-purple-900 text-purple-300 text-xs">{tag}</span>
+          ))}
         </div>
         
         <div className="space-y-1 text-xs text-purple-300">
@@ -127,8 +211,15 @@ const AssetBrowser = ({ assets, onSelectAsset, onDeleteAsset, selectedAsset }) =
           <div className="text-purple-300 text-sm">{formatFileSize(asset.size)}</div>
           <div className="text-purple-300 text-sm">{formatDate(asset.uploadDate)}</div>
         </div>
+        {/* Category and Tags */}
+        <div className="flex flex-wrap gap-1 ml-4">
+          {asset.category && <span className="px-2 py-0.5 rounded bg-purple-700 text-white text-xs">{asset.category}</span>}
+          {(asset.tags || []).map(tag => (
+            <span key={tag} className="px-2 py-0.5 rounded bg-purple-900 text-purple-300 text-xs">{tag}</span>
+          ))}
+        </div>
         
-        <div className="flex items-center space-x-2 ml-4">
+        <div className="flex items-center space-x-2 mt-2">
           <span className={`px-2 py-1 rounded text-xs ${
             asset.loaded ? 'bg-green-600 text-white' : 'bg-gray-600 text-gray-300'
           }`}>
@@ -137,6 +228,13 @@ const AssetBrowser = ({ assets, onSelectAsset, onDeleteAsset, selectedAsset }) =
           {asset.optimized && (
             <span className="px-2 py-1 rounded text-xs bg-blue-600 text-white">⚡</span>
           )}
+          <button
+            onClick={(e) => { e.stopPropagation(); handleEditClick(asset) }}
+            className="text-blue-400 hover:text-blue-300 transition-colors"
+            title="Edit asset"
+          >
+            ✏️
+          </button>
           <button
             onClick={(e) => handleDeleteAsset(asset, e)}
             className="text-red-400 hover:text-red-300 transition-colors ml-2"
@@ -187,7 +285,7 @@ const AssetBrowser = ({ assets, onSelectAsset, onDeleteAsset, selectedAsset }) =
 
       {/* Filters and Search */}
       <div className="bg-black/30 backdrop-blur-lg rounded-xl border border-purple-500/30 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           {/* Search */}
           <div>
             <label className="block text-sm font-medium text-purple-300 mb-2">
@@ -201,7 +299,6 @@ const AssetBrowser = ({ assets, onSelectAsset, onDeleteAsset, selectedAsset }) =
               className="w-full px-3 py-2 bg-black/30 border border-purple-500/50 rounded-lg text-white placeholder-purple-400 focus:outline-none focus:border-purple-400"
             />
           </div>
-
           {/* Filter by Type */}
           <div>
             <label className="block text-sm font-medium text-purple-300 mb-2">
@@ -218,24 +315,38 @@ const AssetBrowser = ({ assets, onSelectAsset, onDeleteAsset, selectedAsset }) =
               <option value="audio">🎵 Audio</option>
             </select>
           </div>
-
-          {/* Sort */}
+          {/* Filter by Category */}
           <div>
             <label className="block text-sm font-medium text-purple-300 mb-2">
-              🔄 Sort By
+              🏷️ Category
             </label>
             <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
+              value={filterCategory}
+              onChange={e => setFilterCategory(e.target.value)}
               className="w-full px-3 py-2 bg-black/30 border border-purple-500/50 rounded-lg text-white focus:outline-none focus:border-purple-400"
             >
-              <option value="date">Upload Date</option>
-              <option value="name">Name</option>
-              <option value="type">Type</option>
-              <option value="size">File Size</option>
+              <option value="all">All Categories</option>
+              {allCategories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
             </select>
           </div>
-
+          {/* Filter by Tag */}
+          <div>
+            <label className="block text-sm font-medium text-purple-300 mb-2">
+              🏷️ Tag
+            </label>
+            <select
+              value={filterTag}
+              onChange={e => setFilterTag(e.target.value)}
+              className="w-full px-3 py-2 bg-black/30 border border-purple-500/50 rounded-lg text-white focus:outline-none focus:border-purple-400"
+            >
+              <option value="">All Tags</option>
+              {allTags.map(tag => (
+                <option key={tag} value={tag}>{tag}</option>
+              ))}
+            </select>
+          </div>
           {/* Quick Actions */}
           <div>
             <label className="block text-sm font-medium text-purple-300 mb-2">
@@ -247,6 +358,8 @@ const AssetBrowser = ({ assets, onSelectAsset, onDeleteAsset, selectedAsset }) =
                   setSearchTerm('')
                   setFilterType('all')
                   setSortBy('date')
+                  setFilterCategory('all')
+                  setFilterTag('')
                 }}
                 className="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg transition-colors text-sm"
               >
@@ -335,6 +448,56 @@ const AssetBrowser = ({ assets, onSelectAsset, onDeleteAsset, selectedAsset }) =
             </div>
           </div>
         </div>
+      )}
+
+      {/* Edit Modal */}
+      {editAsset && (
+        <Modal onClose={() => setEditAsset(null)}>
+          <div className="p-6 bg-black/90 rounded-xl max-w-md mx-auto">
+            <h2 className="text-xl font-bold text-white mb-4">Edit Asset</h2>
+            {editAsset.type === 'model' && editAsset.data && (
+              <div className="mb-4 flex flex-col items-center">
+                <div className="mb-2 text-purple-300 text-xs">3D Preview</div>
+                <ModelPreview asset={editAsset} />
+              </div>
+            )}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-purple-300 mb-1">Category</label>
+              <input
+                type="text"
+                value={editCategory}
+                onChange={e => setEditCategory(e.target.value)}
+                className="w-full px-3 py-2 bg-black/30 border border-purple-500/50 rounded-lg text-white"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-purple-300 mb-1">Tags (comma separated)</label>
+              <input
+                type="text"
+                value={editTags}
+                onChange={e => setEditTags(e.target.value)}
+                className="w-full px-3 py-2 bg-black/30 border border-purple-500/50 rounded-lg text-white"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setEditAsset(null)}
+                className="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded-lg"
+              >Cancel</button>
+              <button
+                onClick={handleEditSave}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
+              >Save</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Physics Box Editor Modal */}
+      {physicsEditorAsset && (
+        <Modal onClose={() => setPhysicsEditorAsset(null)}>
+          <PhysicsBoxEditor asset={physicsEditorAsset} onClose={() => setPhysicsEditorAsset(null)} />
+        </Modal>
       )}
     </div>
   )
