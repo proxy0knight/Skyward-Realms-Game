@@ -53,21 +53,45 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
   const [selectedTool, setSelectedTool] = useState('terrain')
   const [selectedTerrain, setSelectedTerrain] = useState('grass')
   const [selectedAsset, setSelectedAsset] = useState(null)
+  const [selectedSpawnAsset, setSelectedSpawnAsset] = useState(null)
   const [mapData, setMapData] = useState(null)
+  const [savedMaps, setSavedMaps] = useState([])
+  const [currentMapId, setCurrentMapId] = useState(null)
   const [gridSize, setGridSize] = useState(32)
   const [cellSize, setCellSize] = useState(10)
   const [showGrid, setShowGrid] = useState(true)
   const [selectedCell, setSelectedCell] = useState(null)
   const [spawnAreas, setSpawnAreas] = useState([])
   const [brushSize, setBrushSize] = useState(1)
+  const [assetHeight, setAssetHeight] = useState(0)
   const [isEditing, setIsEditing] = useState(false)
+  const [showCreateMapDialog, setShowCreateMapDialog] = useState(false)
+  const [newMapName, setNewMapName] = useState('')
+  const [newMapSize, setNewMapSize] = useState(32)
   const canvasRef = useRef(null)
   const [availableAssets, setAvailableAssets] = useState([])
+
+  // Load saved maps from localStorage
+  useEffect(() => {
+    const loadSavedMaps = () => {
+      try {
+        const maps = JSON.parse(localStorage.getItem('savedMaps') || '[]')
+        setSavedMaps(maps)
+        if (maps.length > 0 && !currentMapId) {
+          setCurrentMapId(maps[0].id)
+        }
+      } catch (error) {
+        console.error('Failed to load saved maps:', error)
+      }
+    }
+    loadSavedMaps()
+  }, [])
 
   // Initialize map data
   useEffect(() => {
     const initMapData = () => {
       const newMapData = {
+        id: currentMapId || `map_${Date.now()}`,
         name: 'New Map',
         size: gridSize,
         cellSize: cellSize,
@@ -83,15 +107,20 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
           }))
         ),
         spawnPoints: [],
-        teleports: []
+        teleports: [],
+        createdAt: Date.now()
       }
       setMapData(newMapData)
     }
 
-    if (!mapData) {
-      initMapData()
+    if (!mapData || (currentMapId && mapData.id !== currentMapId)) {
+      if (currentMapId) {
+        loadMapById(currentMapId)
+      } else {
+        initMapData()
+      }
     }
-  }, [gridSize, cellSize, mapData])
+  }, [gridSize, cellSize, currentMapId])
 
   // Load available assets
   useEffect(() => {
@@ -99,10 +128,16 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
       try {
         // This would typically load from your asset management system
         const mockAssets = [
-          { id: 'tree_oak', name: 'Oak Tree', category: 'vegetation', path: '/assets/models/trees/oak.glb' },
-          { id: 'rock_01', name: 'Rock Small', category: 'props', path: '/assets/models/rocks/rock_01.glb' },
-          { id: 'house_01', name: 'Basic House', category: 'structures', path: '/assets/models/buildings/house_01.glb' },
-          { id: 'crystal', name: 'Magic Crystal', category: 'effects', path: '/assets/models/effects/crystal.glb' }
+          { id: 'tree_oak', name: 'Oak Tree', category: 'vegetation', path: '/assets/models/trees/oak.glb', height: 2.5 },
+          { id: 'tree_pine', name: 'Pine Tree', category: 'vegetation', path: '/assets/models/trees/pine.glb', height: 3.0 },
+          { id: 'rock_01', name: 'Rock Small', category: 'props', path: '/assets/models/rocks/rock_01.glb', height: 0.5 },
+          { id: 'rock_02', name: 'Rock Large', category: 'props', path: '/assets/models/rocks/rock_02.glb', height: 1.2 },
+          { id: 'house_01', name: 'Basic House', category: 'structures', path: '/assets/models/buildings/house_01.glb', height: 4.0 },
+          { id: 'tower_01', name: 'Watch Tower', category: 'structures', path: '/assets/models/buildings/tower_01.glb', height: 8.0 },
+          { id: 'crystal', name: 'Magic Crystal', category: 'effects', path: '/assets/models/effects/crystal.glb', height: 1.0 },
+          { id: 'portal', name: 'Portal', category: 'effects', path: '/assets/models/effects/portal.glb', height: 2.0 },
+          { id: 'warrior', name: 'Warrior', category: 'characters', path: '/assets/models/characters/warrior.glb', height: 1.8 },
+          { id: 'mage', name: 'Mage', category: 'characters', path: '/assets/models/characters/mage.glb', height: 1.7 }
         ]
         setAvailableAssets(mockAssets)
       } catch (error) {
@@ -112,6 +147,77 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
 
     loadAssets()
   }, [])
+
+  // Create new map
+  const createNewMap = () => {
+    if (!newMapName.trim()) return
+
+    const mapId = `map_${Date.now()}`
+    const newMap = {
+      id: mapId,
+      name: newMapName,
+      size: newMapSize,
+      cellSize: 10,
+      cells: Array(newMapSize).fill(null).map((_, x) => 
+        Array(newMapSize).fill(null).map((_, z) => ({
+          x,
+          z,
+          terrain: 'grass',
+          height: 0,
+          objects: [],
+          flags: {},
+          spawnArea: null
+        }))
+      ),
+      spawnPoints: [],
+      teleports: [],
+      createdAt: Date.now()
+    }
+
+    // Save to localStorage
+    const updatedMaps = [...savedMaps, { id: mapId, name: newMapName, size: newMapSize }]
+    setSavedMaps(updatedMaps)
+    localStorage.setItem('savedMaps', JSON.stringify(updatedMaps))
+    localStorage.setItem(`map_${mapId}`, JSON.stringify(newMap))
+
+    setCurrentMapId(mapId)
+    setMapData(newMap)
+    setGridSize(newMapSize)
+    setShowCreateMapDialog(false)
+    setNewMapName('')
+    setNewMapSize(32)
+  }
+
+  // Load map by ID
+  const loadMapById = (mapId) => {
+    try {
+      const mapJson = localStorage.getItem(`map_${mapId}`)
+      if (mapJson) {
+        const loadedMap = JSON.parse(mapJson)
+        setMapData(loadedMap)
+        setGridSize(loadedMap.size)
+        setCurrentMapId(mapId)
+        
+        if (gameEngine && onMapUpdate) {
+          onMapUpdate(loadedMap)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load map:', error)
+    }
+  }
+
+  // Save current map
+  const saveCurrentMap = () => {
+    if (!mapData) return
+
+    try {
+      localStorage.setItem(`map_${mapData.id}`, JSON.stringify(mapData))
+      console.log(`Map ${mapData.name} saved successfully!`)
+    } catch (error) {
+      console.error('Failed to save map:', error)
+    }
+  }
 
   // Canvas drawing for map visualization
   const drawMap = useCallback(() => {
@@ -254,10 +360,11 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
               if (selectedAsset && !cell.objects.find(obj => obj.assetId === selectedAsset.id)) {
                 cell.objects.push({
                   assetId: selectedAsset.id,
-                  position: { x: 0, y: 0, z: 0 },
+                  name: selectedAsset.name,
+                  position: { x: 0, y: assetHeight, z: 0 },
                   rotation: { x: 0, y: 0, z: 0 },
                   scale: { x: 1, y: 1, z: 1 },
-                  heightOffset: 0
+                  heightOffset: assetHeight
                 })
               }
               break
@@ -305,7 +412,8 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
       name: `Spawn Area ${spawnAreas.length + 1}`,
       center: { x: selectedCell.x, z: selectedCell.z },
       size: { width: 5, height: 5 },
-      assetId: selectedAsset?.id || null,
+      assetId: selectedSpawnAsset?.id || null,
+      assetName: selectedSpawnAsset?.name || 'No Asset',
       spawnRate: 1.0,
       maxObjects: 10,
       respawnInterval: 30000, // 30 seconds
@@ -313,9 +421,31 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
     }
 
     setSpawnAreas(prev => [...prev, newSpawnArea])
+    
+    // Mark cells as spawn area
+    const newMapData = { ...mapData }
+    const cells = newMapData.cells.map(row => [...row])
+    
+    for (let dx = -2; dx <= 2; dx++) {
+      for (let dz = -2; dz <= 2; dz++) {
+        const cellX = selectedCell.x + dx
+        const cellZ = selectedCell.z + dz
+        
+        if (cellX >= 0 && cellX < gridSize && cellZ >= 0 && cellZ < gridSize) {
+          cells[cellX][cellZ].spawnArea = newSpawnArea.id
+        }
+      }
+    }
+    
+    newMapData.cells = cells
+    setMapData(newMapData)
   }
 
   const saveMap = async () => {
+    saveCurrentMap()
+  }
+
+  const exportMap = async () => {
     try {
       const mapJson = JSON.stringify(mapData, null, 2)
       const blob = new Blob([mapJson], { type: 'application/json' })
@@ -328,7 +458,7 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
       
       URL.revokeObjectURL(url)
     } catch (error) {
-      console.error('Failed to save map:', error)
+      console.error('Failed to export map:', error)
     }
   }
 
@@ -359,13 +489,36 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
             Map Editor
           </CardTitle>
           <div className="flex gap-2">
+            {/* Map Selection */}
+            <Select value={currentMapId || ''} onValueChange={setCurrentMapId}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Select Map" />
+              </SelectTrigger>
+              <SelectContent>
+                {savedMaps.map(map => (
+                  <SelectItem key={map.id} value={map.id}>
+                    {map.name} ({map.size}x{map.size})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            <Button size="sm" onClick={() => setShowCreateMapDialog(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              New Map
+            </Button>
+            
             <Button onClick={saveMap} size="sm" variant="outline">
-              <Download className="w-4 h-4 mr-2" />
+              <Save className="w-4 h-4 mr-2" />
               Save
+            </Button>
+            <Button size="sm" variant="outline" onClick={exportMap}>
+              <Download className="w-4 h-4 mr-2" />
+              Export
             </Button>
             <Button size="sm" variant="outline" onClick={() => document.getElementById('map-file-input').click()}>
               <Upload className="w-4 h-4 mr-2" />
-              Load
+              Import
             </Button>
             <input
               id="map-file-input"
@@ -376,6 +529,49 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
             />
           </div>
         </div>
+
+        {/* Create Map Dialog */}
+        {showCreateMapDialog && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <Card className="w-96">
+              <CardHeader>
+                <CardTitle>Create New Map</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>Map Name</Label>
+                  <Input 
+                    value={newMapName}
+                    onChange={(e) => setNewMapName(e.target.value)}
+                    placeholder="Enter map name"
+                  />
+                </div>
+                <div>
+                  <Label>Map Size</Label>
+                  <Select value={newMapSize.toString()} onValueChange={(value) => setNewMapSize(parseInt(value))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="16">16x16</SelectItem>
+                      <SelectItem value="32">32x32</SelectItem>
+                      <SelectItem value="64">64x64</SelectItem>
+                      <SelectItem value="128">128x128</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button variant="outline" onClick={() => setShowCreateMapDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={createNewMap} disabled={!newMapName.trim()}>
+                    Create
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </CardHeader>
 
       <CardContent className="p-4">
@@ -460,7 +656,7 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
           {/* Tools Panel */}
           <div className="space-y-4">
             <Tabs value={selectedTool} onValueChange={setSelectedTool}>
-              <TabsList className="grid grid-cols-2 gap-1">
+              <TabsList className="grid grid-cols-3 gap-1">
                 <TabsTrigger value="terrain" className="text-xs">
                   <Mountain className="w-3 h-3 mr-1" />
                   Terrain
@@ -469,9 +665,35 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
                   <Trees className="w-3 h-3 mr-1" />
                   Assets
                 </TabsTrigger>
+                <TabsTrigger value="spawn" className="text-xs">
+                  <Target className="w-3 h-3 mr-1" />
+                  Spawn
+                </TabsTrigger>
               </TabsList>
               
               <TabsContent value="terrain" className="space-y-3">
+                <div>
+                  <Label className="text-xs">Terrain Type</Label>
+                  <Select value={selectedTerrain} onValueChange={setSelectedTerrain}>
+                    <SelectTrigger className="w-full mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(TERRAIN_TYPES).map(([key, terrain]) => (
+                        <SelectItem key={key} value={key}>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded" 
+                              style={{ backgroundColor: terrain.color }}
+                            />
+                            {terrain.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
                 <div className="grid grid-cols-2 gap-2">
                   {Object.entries(TERRAIN_TYPES).map(([key, terrain]) => (
                     <Button
@@ -492,7 +714,62 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
               </TabsContent>
               
               <TabsContent value="asset" className="space-y-3">
-                <ScrollArea className="h-64">
+                <div>
+                  <Label className="text-xs">Asset Category</Label>
+                  <Select value={selectedAsset?.category || ''} onValueChange={(category) => {
+                    const firstAsset = availableAssets.find(a => a.category === category)
+                    if (firstAsset) setSelectedAsset(firstAsset)
+                  }}>
+                    <SelectTrigger className="w-full mt-1">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(ASSET_CATEGORIES).map(([key, info]) => (
+                        <SelectItem key={key} value={key}>
+                          {info.icon} {info.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-xs">Asset</Label>
+                  <Select value={selectedAsset?.id || ''} onValueChange={(assetId) => {
+                    const asset = availableAssets.find(a => a.id === assetId)
+                    if (asset) {
+                      setSelectedAsset(asset)
+                      setAssetHeight(asset.height || 0)
+                    }
+                  }}>
+                    <SelectTrigger className="w-full mt-1">
+                      <SelectValue placeholder="Select asset" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableAssets
+                        .filter(asset => !selectedAsset?.category || asset.category === selectedAsset.category)
+                        .map(asset => (
+                          <SelectItem key={asset.id} value={asset.id}>
+                            {asset.name} (H: {asset.height || 0}m)
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-xs">Height Offset ({assetHeight}m)</Label>
+                  <Slider
+                    value={[assetHeight]}
+                    onValueChange={(value) => setAssetHeight(value[0])}
+                    min={-5}
+                    max={10}
+                    step={0.1}
+                    className="mt-2"
+                  />
+                </div>
+
+                <ScrollArea className="h-48">
                   <div className="space-y-2">
                     {Object.entries(ASSET_CATEGORIES).map(([category, info]) => (
                       <div key={category}>
@@ -505,10 +782,13 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
                                 key={asset.id}
                                 variant={selectedAsset?.id === asset.id ? "default" : "outline"}
                                 size="sm"
-                                onClick={() => setSelectedAsset(asset)}
+                                onClick={() => {
+                                  setSelectedAsset(asset)
+                                  setAssetHeight(asset.height || 0)
+                                }}
                                 className="justify-start text-xs h-8"
                               >
-                                {asset.name}
+                                {asset.name} <Badge variant="outline" className="ml-auto text-xs">{asset.height || 0}m</Badge>
                               </Button>
                             ))}
                         </div>
@@ -517,6 +797,49 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
                   </div>
                 </ScrollArea>
               </TabsContent>
+
+              <TabsContent value="spawn" className="space-y-3">
+                <div>
+                  <Label className="text-xs">Spawn Asset</Label>
+                  <Select value={selectedSpawnAsset?.id || ''} onValueChange={(assetId) => {
+                    const asset = availableAssets.find(a => a.id === assetId)
+                    setSelectedSpawnAsset(asset)
+                  }}>
+                    <SelectTrigger className="w-full mt-1">
+                      <SelectValue placeholder="Select spawn asset" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableAssets.map(asset => (
+                        <SelectItem key={asset.id} value={asset.id}>
+                          {asset.name} ({asset.category})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs">Spawn Settings</Label>
+                  <div className="space-y-2">
+                    <div>
+                      <Label className="text-xs">Max Objects</Label>
+                      <Input type="number" defaultValue="10" className="mt-1" />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Respawn Time (seconds)</Label>
+                      <Input type="number" defaultValue="30" className="mt-1" />
+                    </div>
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={createSpawnArea} 
+                  disabled={!selectedCell || !selectedSpawnAsset}
+                  className="w-full"
+                >
+                  Create Spawn Area
+                </Button>
+              </TabsContent>
             </Tabs>
 
             <Separator />
@@ -524,15 +847,7 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
             {/* Special Tools */}
             <div className="space-y-2">
               <Label className="text-sm font-semibold">Special Tools</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant={selectedTool === 'spawn' ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedTool('spawn')}
-                >
-                  <Target className="w-3 h-3 mr-1" />
-                  Spawn
-                </Button>
+              <div className="grid grid-cols-1 gap-2">
                 <Button
                   variant={selectedTool === 'erase' ? "default" : "outline"}
                   size="sm"
@@ -547,16 +862,16 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
             {/* Spawn Areas */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-sm font-semibold">Spawn Areas</Label>
-                <Button size="sm" onClick={createSpawnArea} disabled={!selectedCell}>
-                  <Plus className="w-3 h-3" />
-                </Button>
+                <Label className="text-sm font-semibold">Active Spawn Areas</Label>
               </div>
               <ScrollArea className="h-32">
                 <div className="space-y-1">
                   {spawnAreas.map(area => (
                     <div key={area.id} className="flex items-center justify-between p-2 border rounded">
-                      <span className="text-xs">{area.name}</span>
+                      <div className="flex-1">
+                        <div className="text-xs font-medium">{area.name}</div>
+                        <div className="text-xs text-gray-500">{area.assetName}</div>
+                      </div>
                       <Button size="sm" variant="ghost" onClick={() => setSpawnAreas(prev => prev.filter(a => a.id !== area.id))}>
                         <Trash2 className="w-3 h-3" />
                       </Button>
