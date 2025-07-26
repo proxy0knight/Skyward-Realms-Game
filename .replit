@@ -11,15 +11,3 @@ run = ["sh", "-c", "pnpm run dev"]
 localPort = 5173
 externalPort = 5173
 exposeLocalhost = true
-
-[workflows]
-runButton = "Development Server"
-
-[[workflows.workflow]]
-name = "Development Server"
-author = 40873790
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd game-client && pnpm install && pnpm run dev"

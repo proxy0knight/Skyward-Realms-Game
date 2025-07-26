@@ -54,7 +54,6 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
   const [selectedAsset, setSelectedAsset] = useState(null)
   const [selectedModel, setSelectedModel] = useState('')
   const [selectedSpawnAsset, setSelectedSpawnAsset] = useState(null)
-  const [selectedTool, setSelectedTool] = useState('terrain')
   const [mapData, setMapData] = useState(null)
   const [savedMaps, setSavedMaps] = useState([])
   const [currentMapId, setCurrentMapId] = useState(null)
@@ -73,7 +72,6 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
   const [teleportAreas, setTeleportAreas] = useState([])
   const [selectedTeleportTarget, setSelectedTeleportTarget] = useState('')
   const [startingMapId, setStartingMapId] = useState(null)
-  const [availableAssets, setAvailableAssets] = useState([])
 
   // Load saved maps from localStorage
   useEffect(() => {
