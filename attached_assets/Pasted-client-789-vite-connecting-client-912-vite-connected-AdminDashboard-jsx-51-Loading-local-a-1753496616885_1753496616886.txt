@@ -1,0 +1,101 @@
+client:789 [vite] connecting...
+client:912 [vite] connected.
+AdminDashboard.jsx:51 Loading local assets...
+select.jsx:96 Error: A <Select.Item /> must have a value prop that is not an empty string. This is because the Select value can be set to an empty string to clear the selection and show the placeholder.
+    at SelectItem (select.tsx:1278:13)
+    at react-stack-bottom-frame (react-dom-client.development.js:23863:20)
+    at renderWithHooks (react-dom-client.development.js:5529:22)
+    at updateForwardRef (react-dom-client.development.js:8645:19)
+    at beginWork (react-dom-client.development.js:10861:18)
+    at runWithFiberInDEV (react-dom-client.development.js:1519:30)
+    at performUnitOfWork (react-dom-client.development.js:15132:22)
+    at workLoopSync (react-dom-client.development.js:14956:41)
+    at renderRootSync (react-dom-client.development.js:14936:11)
+    at performWorkOnRoot (react-dom-client.development.js:14462:44)
+
+The above error occurred in the <SelectItem> component.
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+
+overrideMethod @ hook.js:608
+defaultOnCaughtError @ react-dom-client.development.js:8331
+logCaughtError @ react-dom-client.development.js:8367
+runWithFiberInDEV @ react-dom-client.development.js:1519
+inst.componentDidCatch.update.callback @ react-dom-client.development.js:8414
+callCallback @ react-dom-client.development.js:5363
+commitCallbacks @ react-dom-client.development.js:5383
+runWithFiberInDEV @ react-dom-client.development.js:1519
+commitClassCallbacks @ react-dom-client.development.js:12067
+commitLayoutEffectOnFiber @ react-dom-client.development.js:12688
+recursivelyTraverseLayoutEffects @ react-dom-client.development.js:13590
+commitLayoutEffectOnFiber @ react-dom-client.development.js:12693
+flushLayoutEffects @ react-dom-client.development.js:15559
+commitRoot @ react-dom-client.development.js:15402
+commitRootWhenReady @ react-dom-client.development.js:14652
+performWorkOnRoot @ react-dom-client.development.js:14575
+performSyncWorkOnRoot @ react-dom-client.development.js:16231
+flushSyncWorkAcrossRoots_impl @ react-dom-client.development.js:16079
+processRootScheduleInMicrotask @ react-dom-client.development.js:16116
+(anonymous) @ react-dom-client.development.js:16250
+<SelectItem>
+exports.jsxDEV @ react-jsx-dev-runtime.development.js:346
+SelectItem @ select.jsx:96
+react-stack-bottom-frame @ react-dom-client.development.js:23863
+renderWithHooks @ react-dom-client.development.js:5529
+updateFunctionComponent @ react-dom-client.development.js:8897
+beginWork @ react-dom-client.development.js:10522
+runWithFiberInDEV @ react-dom-client.development.js:1519
+performUnitOfWork @ react-dom-client.development.js:15132
+workLoopSync @ react-dom-client.development.js:14956
+renderRootSync @ react-dom-client.development.js:14936
+performWorkOnRoot @ react-dom-client.development.js:14462
+performSyncWorkOnRoot @ react-dom-client.development.js:16231
+flushSyncWorkAcrossRoots_impl @ react-dom-client.development.js:16079
+processRootScheduleInMicrotask @ react-dom-client.development.js:16116
+(anonymous) @ react-dom-client.development.js:16250
+<SelectItem>
+exports.jsxDEV @ react-jsx-dev-runtime.development.js:346
+MapEditor @ MapEditor.jsx:799
+react-stack-bottom-frame @ react-dom-client.development.js:23863
+renderWithHooks @ react-dom-client.development.js:5529
+updateFunctionComponent @ react-dom-client.development.js:8897
+beginWork @ react-dom-client.development.js:10522
+runWithFiberInDEV @ react-dom-client.development.js:1519
+performUnitOfWork @ react-dom-client.development.js:15132
+workLoopSync @ react-dom-client.development.js:14956
+renderRootSync @ react-dom-client.development.js:14936
+performWorkOnRoot @ react-dom-client.development.js:14419
+performSyncWorkOnRoot @ react-dom-client.development.js:16231
+flushSyncWorkAcrossRoots_impl @ react-dom-client.development.js:16079
+processRootScheduleInMicrotask @ react-dom-client.development.js:16116
+(anonymous) @ react-dom-client.development.js:16250
+main.jsx:18 Game Error: Error: A <Select.Item /> must have a value prop that is not an empty string. This is because the Select value can be set to an empty string to clear the selection and show the placeholder.
+    at SelectItem (select.tsx:1278:13)
+    at react-stack-bottom-frame (react-dom-client.development.js:23863:20)
+    at renderWithHooks (react-dom-client.development.js:5529:22)
+    at updateForwardRef (react-dom-client.development.js:8645:19)
+    at beginWork (react-dom-client.development.js:10861:18)
+    at runWithFiberInDEV (react-dom-client.development.js:1519:30)
+    at performUnitOfWork (react-dom-client.development.js:15132:22)
+    at workLoopSync (react-dom-client.development.js:14956:41)
+    at renderRootSync (react-dom-client.development.js:14936:11)
+    at performWorkOnRoot (react-dom-client.development.js:14462:44) {componentStack: '\n    at SelectItem (https://8fd875ec-178f-4d95-992…1pzch30a.sisko.replit.dev:5173/src/main.jsx:10:5)'}
+overrideMethod @ hook.js:608
+componentDidCatch @ main.jsx:18
+react-stack-bottom-frame @ react-dom-client.development.js:23916
+inst.componentDidCatch.update.callback @ react-dom-client.development.js:8425
+callCallback @ react-dom-client.development.js:5363
+commitCallbacks @ react-dom-client.development.js:5383
+runWithFiberInDEV @ react-dom-client.development.js:1519
+commitClassCallbacks @ react-dom-client.development.js:12067
+commitLayoutEffectOnFiber @ react-dom-client.development.js:12688
+recursivelyTraverseLayoutEffects @ react-dom-client.development.js:13590
+commitLayoutEffectOnFiber @ react-dom-client.development.js:12693
+flushLayoutEffects @ react-dom-client.development.js:15559
+commitRoot @ react-dom-client.development.js:15402
+commitRootWhenReady @ react-dom-client.development.js:14652
+performWorkOnRoot @ react-dom-client.development.js:14575
+performSyncWorkOnRoot @ react-dom-client.development.js:16231
+flushSyncWorkAcrossRoots_impl @ react-dom-client.development.js:16079
+processRootScheduleInMicrotask @ react-dom-client.development.js:16116
+(anonymous) @ react-dom-client.development.js:16250
