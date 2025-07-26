@@ -37,35 +37,49 @@ class BabylonCharacter {
   }
 
   /**
-   * Initialize and load character
+   * Initialize minimal character
    */
   async init() {
-    console.log('BabylonCharacter: Loading character...')
+    console.log('BabylonCharacter: Creating minimal character...')
+
+    // Skip model loading to save memory - go straight to procedural
+    console.log('BabylonCharacter: Using procedural character to save memory')
+    return await this.createMinimalCharacter()
+  }
+
+  /**
+   * Create ultra-minimal character
+   */
+  async createMinimalCharacter() {
+    console.log('BabylonCharacter: Creating ultra-minimal character...')
 
     try {
-      // Load GLB character model
-      this.characterMesh = await this.loadCharacterModel()
-      console.log('BabylonCharacter: GLB model loaded successfully')
+      // Create minimal character group
+      this.characterGroup = new BABYLON.TransformNode('minimalCharacterGroup', this.scene)
+      
+      // Simple capsule body only
+      this.characterMesh = BABYLON.MeshBuilder.CreateCapsule('minimalBody', {
+        radius: 0.5,
+        height: 2
+      }, this.scene)
 
-      // Setup physics BEFORE parenting (required by Babylon.js physics)
-      this.setupPhysics()
+      // Ultra-simple material
+      const material = new BABYLON.StandardMaterial('minimalMaterial', this.scene)
+      material.diffuseColor = BABYLON.Color3.FromHexString(this.element.color || '#FF4500')
+      this.characterMesh.material = material
 
-      // Create character group and parent the mesh
-      this.characterGroup = new BABYLON.TransformNode('characterGroup', this.scene)
+      // Parent to group
       this.characterMesh.parent = this.characterGroup
 
-      // Add elemental effects
-      await this.createElementalEffects()
+      // Position at origin
+      this.characterGroup.position = new BABYLON.Vector3(0, 1, 0)
 
-      // Setup animations
-      this.setupAnimations()
-
-      console.log('BabylonCharacter: GLB character with effects loaded successfully!')
+      console.log('BabylonCharacter: Minimal character created successfully')
       return this.characterGroup
 
-    } catch {
-      console.warn('BabylonCharacter: Could not load GLB model, creating fallback')
-      return await this.createFallbackCharacter()
+    } catch (error) {
+      console.error('BabylonCharacter: Failed to create minimal character:', error)
+      return null
     }
   }
 

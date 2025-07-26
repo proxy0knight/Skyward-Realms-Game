@@ -43,21 +43,35 @@ const GameScene = ({ player, onPlayerUpdate, onQuestUpdate, onGameEngineReady })
       left: containerRect.left
     })
 
-    // Async initialization function
+    // Async initialization function with memory monitoring
     const initializeGame = async () => {
       try {
-        // Initialize Babylon.js game engine
-        console.log('GameScene: Creating BabylonGameEngine...')
+        // Check available memory before starting
+        if (performance.memory) {
+          const memInfo = performance.memory
+          const usedMB = memInfo.usedJSHeapSize / 1024 / 1024
+          const limitMB = memInfo.jsHeapSizeLimit / 1024 / 1024
+          
+          console.log(`GameScene: Memory check - Used: ${usedMB.toFixed(1)}MB / Limit: ${limitMB.toFixed(1)}MB`)
+          
+          if (usedMB > limitMB * 0.6) {
+            console.warn('GameScene: High memory usage detected, forcing cleanup')
+            if (window.gc) window.gc()
+          }
+        }
+
+        // Initialize Babylon.js game engine with minimal settings
+        console.log('GameScene: Creating minimal BabylonGameEngine...')
         const gameEngine = new BabylonGameEngine()
         gameEngineRef.current = gameEngine
 
-        console.log('GameScene: Initializing BabylonGameEngine...')
+        console.log('GameScene: Initializing minimal BabylonGameEngine...')
         const initSuccess = await gameEngine.init(mountRef.current)
         if (!initSuccess) {
           console.error('GameScene: Failed to initialize Babylon.js game engine')
           return
         }
-        console.log('GameScene: BabylonGameEngine initialized successfully')
+        console.log('GameScene: Minimal BabylonGameEngine initialized successfully')
 
       // Initialize player manager
       console.log('GameScene: Creating PlayerManager...')
@@ -179,21 +193,33 @@ const GameScene = ({ player, onPlayerUpdate, onQuestUpdate, onGameEngineReady })
     // Call the async initialization function
     initializeGame()
 
-    // Cleanup function
+    // Cleanup function with aggressive memory cleanup
     return () => {
+      console.log('GameScene: Starting aggressive cleanup...')
+      
       if (gameEngineRef.current) {
-        console.log('GameScene: Cleaning up game engine...')
+        console.log('GameScene: Disposing game engine...')
         gameEngineRef.current.dispose()
         gameEngineRef.current = null
       }
+      
       if (playerManagerRef.current) {
         playerManagerRef.current = null
       }
 
-      // Force garbage collection if available
-      if (window.gc) {
-        window.gc()
-      }
+      // Clear any remaining references
+      isInitializedRef.current = false
+
+      // Force multiple garbage collections
+      setTimeout(() => {
+        if (window.gc) {
+          window.gc()
+          setTimeout(() => window.gc(), 100)
+          setTimeout(() => window.gc(), 200)
+        }
+      }, 100)
+      
+      console.log('GameScene: Aggressive cleanup completed')
     }
   }, []) // Remove dependencies to prevent re-initialization
 

@@ -1,41 +1,84 @@
-// Lazy imports for better memory management
+// Minimal memory footprint - lazy imports
 let BABYLON = null
 let BabylonCharacter = null
 let CannonJSPlugin = null
 let idbGet = null
 
-// Asset cache for models and textures
+// Lightweight caches with size limits
 const assetCache = new Map()
 const modelCache = new Map()
+const MAX_CACHE_SIZE = 10 // Limit cache size
 
-// Lazy import function
+// Memory monitoring
+const memoryStats = {
+  meshCount: 0,
+  textureCount: 0,
+  materialCount: 0
+}
+
+// Lazy import function with minimal modules
 async function loadBabylonModules() {
   if (!BABYLON) {
-    console.log('BabylonGameEngine: Loading Babylon.js modules...')
-    BABYLON = await import('@babylonjs/core')
-    await import('@babylonjs/loaders/glTF')
+    console.log('BabylonGameEngine: Loading minimal Babylon.js modules...')
     
-    // Import character after Babylon is loaded
+    // Load only core modules
+    BABYLON = await import('@babylonjs/core/Engines/engine')
+    const sceneModule = await import('@babylonjs/core/scene')
+    BABYLON.Scene = sceneModule.Scene
+    
+    const vectorModule = await import('@babylonjs/core/Maths/math.vector')
+    BABYLON.Vector3 = vectorModule.Vector3
+    BABYLON.Color3 = vectorModule.Color3
+    BABYLON.Color4 = vectorModule.Color4
+    
+    const meshModule = await import('@babylonjs/core/Meshes/mesh')
+    BABYLON.Mesh = meshModule.Mesh
+    
+    const meshBuilderModule = await import('@babylonjs/core/Meshes/meshBuilder')
+    BABYLON.MeshBuilder = meshBuilderModule.MeshBuilder
+    
+    const cameraModule = await import('@babylonjs/core/Cameras/arcRotateCamera')
+    BABYLON.ArcRotateCamera = cameraModule.ArcRotateCamera
+    
+    const lightModule = await import('@babylonjs/core/Lights/hemisphericLight')
+    BABYLON.HemisphericLight = lightModule.HemisphericLight
+    
+    const materialModule = await import('@babylonjs/core/Materials/standardMaterial')
+    BABYLON.StandardMaterial = materialModule.StandardMaterial
+    
+    // Import character after minimal Babylon is loaded
     const characterModule = await import('./BabylonCharacter.js')
     BabylonCharacter = characterModule.default
     
-    // Import physics plugin
-    const physicsModule = await import('@babylonjs/core/Physics/Plugins/cannonJSPlugin')
-    CannonJSPlugin = physicsModule.CannonJSPlugin
-    
-    // Import camera controls and inputs
-    await import('@babylonjs/core/Cameras/arcRotateCamera')
-    await import('@babylonjs/core/Cameras/universalCamera')
-    await import('@babylonjs/core/Cameras/Inputs/arcRotateCameraPointersInput')
-    await import('@babylonjs/core/Cameras/Inputs/arcRotateCameraKeyboardMoveInput')
-    
-    // Import idb-keyval
-    const idbModule = await import('idb-keyval')
-    idbGet = idbModule.get
-    
-    console.log('BabylonGameEngine: Babylon.js modules loaded successfully')
+    console.log('BabylonGameEngine: Minimal Babylon.js modules loaded')
   }
   return BABYLON
+}
+
+// Cache management with size limits
+function addToCache(cache, key, value) {
+  if (cache.size >= MAX_CACHE_SIZE) {
+    const firstKey = cache.keys().next().value
+    cache.delete(firstKey)
+  }
+  cache.set(key, value)
+}
+
+// Memory cleanup helper
+function forceGarbageCollection() {
+  if (window.gc) {
+    window.gc()
+  }
+  
+  // Clear caches if memory is high
+  if (performance.memory) {
+    const used = performance.memory.usedJSHeapSize / 1024 / 1024 // MB
+    if (used > 100) { // If using more than 100MB
+      assetCache.clear()
+      modelCache.clear()
+      console.log('BabylonGameEngine: Cleared caches due to high memory usage')
+    }
+  }
 }
 
 const PHYSICS_BOXES_KEY = 'skyward_physics_boxes_'
@@ -90,53 +133,50 @@ class BabylonGameEngine {
       this.canvas.style.outline = 'none'
       container.appendChild(this.canvas)
       
-      // Create Babylon.js engine with optimized settings for memory
-      this.engine = new BABYLON.Engine(this.canvas, true, {
-        powerPreference: 'default', // Use default instead of high-performance
-        antialias: false, // Disable antialiasing to save memory
-        stencil: false, // Disable stencil buffer
-        alpha: false,
+      // Create minimal Babylon.js engine for low memory usage
+      this.engine = new BABYLON.Engine(this.canvas, false, {
+        powerPreference: 'low-power', // Prioritize low power consumption
+        antialias: false, // No antialiasing
+        stencil: false, // No stencil buffer
+        alpha: false, // No alpha channel
         premultipliedAlpha: false,
         preserveDrawingBuffer: false,
         doNotHandleContextLost: true,
-        adaptToDeviceRatio: false // Disable device ratio adaptation
+        adaptToDeviceRatio: false, // Fixed ratio
+        failIfMajorPerformanceCaveat: false // Allow low-end GPUs
       })
       
-      // Enable WebGL2 features
+      // Aggressive memory settings
       this.engine.enableOfflineSupport = false
-      this.engine.setHardwareScalingLevel(1 / Math.min(window.devicePixelRatio, 2))
+      this.engine.setHardwareScalingLevel(2) // Render at half resolution
+      this.engine.disableManifestCheck = true
       
-      // Create scene
+      // Create minimal scene
       this.scene = new BABYLON.Scene(this.engine)
-      this.scene.actionManager = new BABYLON.ActionManager(this.scene)
-      
-      // Store reference to this engine in scene for character access
       this.scene.gameEngine = this
       
-      // Enable physics with Cannon.js
-      await this.setupPhysics()
+      // Disable expensive features
+      this.scene.fogEnabled = false
+      this.scene.shadowsEnabled = false
+      this.scene.particlesEnabled = false
+      this.scene.spritesEnabled = false
+      this.scene.skeletonsEnabled = false
+      this.scene.audioEnabled = false
       
-      // Setup camera
-      this.setupCamera()
+      // Setup minimal camera
+      this.setupMinimalCamera()
       
-      // Setup lighting
-      await this.setupLighting()
+      // Setup basic lighting only
+      this.setupBasicLighting()
       
-      // Setup input
-      this.setupInput()
+      // Skip physics for now to save memory
+      console.log('BabylonGameEngine: Skipping physics to save memory')
+      
+      // Create minimal world
+      await this.createMinimalWorld()
 
-      // Ensure default map exists before loading
-      this.ensureDefaultMapExists()
-      
-      // Load map data before creating world
-      const startingMapId = this.getStartingMapId()
-      this.mapData = this.loadMapData(startingMapId)
-      console.log('BabylonGameEngine: Loaded map data for:', startingMapId, 'Size:', this.mapData?.length || 'null')
-      
-      await this.createWorld()
-
-      // Setup rendering optimizations
-      this.setupOptimizations()
+      // Setup aggressive optimizations
+      this.setupAggressiveOptimizations()
       
       // Start render loop
       this.startRenderLoop()
@@ -386,7 +426,95 @@ class BabylonGameEngine {
   }
 
   /**
-   * Setup camera with advanced controls
+   * Setup minimal camera
+   */
+  setupMinimalCamera() {
+    try {
+      // Create basic camera
+      this.camera = new BABYLON.ArcRotateCamera(
+        'camera',
+        -Math.PI / 2,
+        Math.PI / 2.5,
+        10,
+        BABYLON.Vector3.Zero(),
+        this.scene
+      )
+      
+      // Minimal settings
+      this.camera.setTarget(BABYLON.Vector3.Zero())
+      this.camera.lowerRadiusLimit = 5
+      this.camera.upperRadiusLimit = 20
+      
+      console.log('BabylonGameEngine: Minimal camera created')
+    } catch (error) {
+      console.error('Camera setup failed:', error)
+    }
+  }
+
+  /**
+   * Setup basic lighting only
+   */
+  setupBasicLighting() {
+    try {
+      // Single hemispheric light
+      const light = new BABYLON.HemisphericLight('basicLight', new BABYLON.Vector3(0, 1, 0), this.scene)
+      light.intensity = 1
+      console.log('BabylonGameEngine: Basic lighting created')
+    } catch (error) {
+      console.error('Lighting setup failed:', error)
+    }
+  }
+
+  /**
+   * Create minimal world
+   */
+  async createMinimalWorld() {
+    console.log('BabylonGameEngine: Creating minimal world...')
+    
+    // Create simple ground plane
+    try {
+      const ground = BABYLON.MeshBuilder.CreateGround('ground', {
+        width: 20,
+        height: 20
+      }, this.scene)
+      
+      const material = new BABYLON.StandardMaterial('groundMat', this.scene)
+      material.diffuseColor = new BABYLON.Color3(0.3, 0.6, 0.3)
+      ground.material = material
+      
+      memoryStats.meshCount++
+      memoryStats.materialCount++
+      
+      console.log('BabylonGameEngine: Minimal ground created')
+    } catch (error) {
+      console.error('Failed to create minimal world:', error)
+    }
+  }
+
+  /**
+   * Setup aggressive optimizations
+   */
+  setupAggressiveOptimizations() {
+    console.log('BabylonGameEngine: Applying aggressive optimizations...')
+    
+    if (!this.scene) return
+    
+    // Disable all expensive features
+    this.scene.frustumCullingEnabled = true
+    this.scene.occlusionQueryEnabled = false // Disable to save memory
+    this.scene.cleanCachedTextureBuffer()
+    
+    // Set very aggressive hardware scaling
+    this.engine.setHardwareScalingLevel(3) // Render at 1/3 resolution
+    
+    // Limit render targets
+    this.scene.customRenderTargets = []
+    
+    console.log('BabylonGameEngine: Aggressive optimizations applied')
+  }
+
+  /**
+   * Setup camera with advanced controls (LEGACY - keeping for compatibility)
    */
   setupCamera() {
     try {
