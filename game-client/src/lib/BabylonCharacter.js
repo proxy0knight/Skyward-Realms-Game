@@ -113,9 +113,9 @@ class BabylonCharacter {
     const modelPaths = [
       `/character/${this.element.id}.glb`,
       `/assets/models/character/${this.element.id}.glb`,
+      `/assets/models/${this.element.id}.glb`,
       `/assets/models/characters/${this.element.id}.glb`,
-      `/assets/models/characters/${this.element.id}_character.glb`,
-      `/assets/models/${this.element.id}.glb`
+      `/assets/models/characters/${this.element.id}_character.glb`
     ]
 
     // Try each path until one works
