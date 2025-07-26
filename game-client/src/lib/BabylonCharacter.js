@@ -82,52 +82,60 @@ class BabylonCharacter {
   }
 
   /**
-   * Load GLB character model based on element
+   * Load GLB character model based on element (optimized)
    */
   async loadCharacterModel() {
+    // Check memory before loading
+    if (performance.memory) {
+      const memoryInfo = performance.memory
+      const usedMemory = memoryInfo.usedJSHeapSize / memoryInfo.totalJSHeapSize
+      
+      if (usedMemory > 0.7) {
+        console.warn('BabylonCharacter: High memory usage, using lightweight character')
+        throw new Error('Memory constrained - using procedural character')
+      }
+    }
+
     // Support modelId at both playerData.modelId and playerData.element.modelId
     const modelId = this.playerData.modelId || (this.playerData.element && this.playerData.element.modelId)
     if (modelId) {
       console.log('BabylonCharacter: Attempting to load custom model from IndexedDB with modelId:', modelId)
-      const base64 = await idbGet(modelId)
-      if (base64) {
-        try {
+      try {
+        const base64 = await idbGet(modelId)
+        if (base64) {
           const result = await BABYLON.SceneLoader.ImportMeshAsync('', '', base64, this.scene)
           // Find first valid mesh
           const validMesh = result.meshes.find(m => m && m instanceof BABYLON.Mesh && m.getTotalVertices && m.getTotalVertices() > 0)
           if (validMesh) {
             console.log('BabylonCharacter: Successfully loaded custom model from IndexedDB:', modelId, 'Mesh:', validMesh.name)
             return validMesh
-          } else {
-            console.warn('BabylonCharacter: No valid mesh found in imported GLB for modelId:', modelId, 'Meshes:', result.meshes)
           }
-        } catch (e) {
-          console.warn('BabylonCharacter: Failed to load custom model from IndexedDB, falling back to procedural character.', e)
         }
-      } else {
-        console.warn('BabylonCharacter: No base64 data found in IndexedDB for modelId:', modelId)
+      } catch (e) {
+        console.warn('BabylonCharacter: Failed to load custom model from IndexedDB:', e)
       }
     }
 
-    // Try loading from available model paths (check what actually exists)
-    const modelPaths = [
-      `/character/${this.element.id}.glb`,
-      `/assets/models/character/${this.element.id}.glb`,
-      `/assets/models/${this.element.id}.glb`,
-      `/assets/models/characters/${this.element.id}.glb`,
-      `/assets/models/characters/${this.element.id}_character.glb`
-    ]
-
-    // Try each path until one works
-    for (const modelPath of modelPaths) {
+    // Only try the most likely path to reduce failed requests
+    const primaryPath = `/character/${this.element.id}.glb`
+    
+    try {
+      console.log(`BabylonCharacter: Attempting to load model: ${primaryPath}`)
+      const characterMesh = await this.loadSingleModel(primaryPath)
+      console.log(`✅ Loaded character model: ${primaryPath}`)
+      return characterMesh
+    } catch (error) {
+      console.log(`Failed to load ${primaryPath}:`, error.message)
+      
+      // Try one fallback path
       try {
-        console.log(`BabylonCharacter: Attempting to load model: ${modelPath}`)
-        const characterMesh = await this.loadSingleModel(modelPath)
-        console.log(`✅ Loaded character model: ${modelPath}`)
+        const fallbackPath = `/assets/models/character/${this.element.id}.glb`
+        console.log(`BabylonCharacter: Trying fallback: ${fallbackPath}`)
+        const characterMesh = await this.loadSingleModel(fallbackPath)
+        console.log(`✅ Loaded fallback character model: ${fallbackPath}`)
         return characterMesh
-      } catch (error) {
-        console.log(`Failed to load ${modelPath}:`, error.message)
-        continue
+      } catch (fallbackError) {
+        console.log(`Fallback also failed: ${fallbackError.message}`)
       }
     }
 

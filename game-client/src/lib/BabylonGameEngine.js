@@ -1,16 +1,42 @@
-import * as BABYLON from '@babylonjs/core'
-import '@babylonjs/loaders/glTF'
-import BabylonCharacter from './BabylonCharacter.js'
+// Lazy imports for better memory management
+let BABYLON = null
+let BabylonCharacter = null
+let CannonJSPlugin = null
+let idbGet = null
 
-// Import physics plugin
-import { CannonJSPlugin } from '@babylonjs/core/Physics/Plugins/cannonJSPlugin'
+// Asset cache for models and textures
+const assetCache = new Map()
+const modelCache = new Map()
 
-// Import camera controls and inputs
-import '@babylonjs/core/Cameras/arcRotateCamera'
-import '@babylonjs/core/Cameras/universalCamera'
-import '@babylonjs/core/Cameras/Inputs/arcRotateCameraPointersInput'
-import '@babylonjs/core/Cameras/Inputs/arcRotateCameraKeyboardMoveInput'
-import { get as idbGet } from 'idb-keyval'
+// Lazy import function
+async function loadBabylonModules() {
+  if (!BABYLON) {
+    console.log('BabylonGameEngine: Loading Babylon.js modules...')
+    BABYLON = await import('@babylonjs/core')
+    await import('@babylonjs/loaders/glTF')
+    
+    // Import character after Babylon is loaded
+    const characterModule = await import('./BabylonCharacter.js')
+    BabylonCharacter = characterModule.default
+    
+    // Import physics plugin
+    const physicsModule = await import('@babylonjs/core/Physics/Plugins/cannonJSPlugin')
+    CannonJSPlugin = physicsModule.CannonJSPlugin
+    
+    // Import camera controls and inputs
+    await import('@babylonjs/core/Cameras/arcRotateCamera')
+    await import('@babylonjs/core/Cameras/universalCamera')
+    await import('@babylonjs/core/Cameras/Inputs/arcRotateCameraPointersInput')
+    await import('@babylonjs/core/Cameras/Inputs/arcRotateCameraKeyboardMoveInput')
+    
+    // Import idb-keyval
+    const idbModule = await import('idb-keyval')
+    idbGet = idbModule.get
+    
+    console.log('BabylonGameEngine: Babylon.js modules loaded successfully')
+  }
+  return BABYLON
+}
 
 const PHYSICS_BOXES_KEY = 'skyward_physics_boxes_'
 
@@ -53,6 +79,9 @@ class BabylonGameEngine {
     try {
       console.log('BabylonGameEngine: Starting initialization...')
       
+      // Lazy load Babylon.js modules
+      await loadBabylonModules()
+      
       // Create canvas
       this.canvas = document.createElement('canvas')
       this.canvas.style.width = '100%'
@@ -61,15 +90,16 @@ class BabylonGameEngine {
       this.canvas.style.outline = 'none'
       container.appendChild(this.canvas)
       
-      // Create Babylon.js engine with advanced features
+      // Create Babylon.js engine with optimized settings for memory
       this.engine = new BABYLON.Engine(this.canvas, true, {
-        powerPreference: 'high-performance',
-        antialias: true,
-        stencil: true,
+        powerPreference: 'default', // Use default instead of high-performance
+        antialias: false, // Disable antialiasing to save memory
+        stencil: false, // Disable stencil buffer
         alpha: false,
         premultipliedAlpha: false,
         preserveDrawingBuffer: false,
-        doNotHandleContextLost: true
+        doNotHandleContextLost: true,
+        adaptToDeviceRatio: false // Disable device ratio adaptation
       })
       
       // Enable WebGL2 features
@@ -688,7 +718,7 @@ class BabylonGameEngine {
     console.log('BabylonGameEngine: Creating game world from map data...')
     if (!this.mapData) {
       console.warn('No map data found! Falling back to default terrain.')
-      await this.createTerrain() // fallback
+      await this.loadEssentialAssets() // Load only essential assets
       return
     }
     // Load tool-asset assignments
@@ -1318,13 +1348,212 @@ class BabylonGameEngine {
   }
 
   /**
-   * Dispose resources
+   * Chunk loading for large models
+   */
+  async loadModelChunk(modelPath, chunkSize = 1024 * 1024) { // 1MB chunks
+    if (modelCache.has(modelPath)) {
+      return modelCache.get(modelPath)
+    }
+
+    try {
+      const response = await fetch(modelPath)
+      if (!response.ok) throw new Error(`Failed to load ${modelPath}`)
+      
+      const chunks = []
+      const reader = response.body.getReader()
+      
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        chunks.push(value)
+      }
+      
+      const blob = new Blob(chunks)
+      const arrayBuffer = await blob.arrayBuffer()
+      
+      // Cache the model data
+      modelCache.set(modelPath, arrayBuffer)
+      
+      return arrayBuffer
+    } catch (error) {
+      console.warn(`Failed to load model chunk ${modelPath}:`, error)
+      throw error
+    }
+  }
+
+  /**
+   * Unload unused assets to free memory
+   */
+  unloadUnusedAssets() {
+    if (!this.scene) return
+    
+    console.log('BabylonGameEngine: Cleaning up unused assets...')
+    
+    // Clear texture cache
+    this.scene.textures.forEach(texture => {
+      if (texture.isReady() && texture.getInternalTexture()) {
+        texture.dispose()
+      }
+    })
+    
+    // Clear unused meshes
+    this.scene.meshes.forEach(mesh => {
+      if (mesh.metadata?.temporary) {
+        mesh.dispose()
+      }
+    })
+    
+    // Clear material cache
+    this.scene.materials.forEach(material => {
+      if (!material.isFrozen && material.getActiveTextures().length === 0) {
+        material.dispose()
+      }
+    })
+    
+    // Force garbage collection if available
+    if (window.gc) {
+      window.gc()
+    }
+    
+    console.log('BabylonGameEngine: Asset cleanup completed')
+  }
+
+  /**
+   * Load only essential assets
+   */
+  async loadEssentialAssets() {
+    console.log('BabylonGameEngine: Loading essential assets only...')
+    
+    // Only load basic terrain and player character
+    const essentialAssets = [
+      'terrain',
+      'player_character'
+    ]
+    
+    for (const assetType of essentialAssets) {
+      if (assetCache.has(assetType)) continue
+      
+      try {
+        // Load asset based on type
+        switch (assetType) {
+          case 'terrain':
+            await this.createTerrain()
+            break
+          case 'player_character':
+            // Character will be loaded when needed
+            break
+        }
+        
+        assetCache.set(assetType, true)
+      } catch (error) {
+        console.warn(`Failed to load essential asset ${assetType}:`, error)
+      }
+    }
+  }
+
+  /**
+   * Optimize rendering settings for low-end devices
+   */
+  optimizeForLowEnd() {
+    if (!this.scene || !this.engine) return
+    
+    console.log('BabylonGameEngine: Applying low-end optimizations...')
+    
+    // Reduce hardware scaling
+    this.engine.setHardwareScalingLevel(2) // Render at half resolution
+    
+    // Disable expensive features
+    this.scene.fogEnabled = false
+    this.scene.shadowsEnabled = false
+    this.scene.particlesEnabled = false
+    this.scene.spritesEnabled = false
+    this.scene.skeletonsEnabled = false
+    
+    // Reduce texture quality
+    this.scene.textures.forEach(texture => {
+      if (texture.getSize) {
+        const size = texture.getSize()
+        if (size.width > 512) {
+          texture.updateSamplingMode(BABYLON.Texture.NEAREST_SAMPLINGMODE)
+        }
+      }
+    })
+    
+    // Optimize materials
+    this.scene.materials.forEach(material => {
+      if (material.freeze) {
+        material.freeze()
+      }
+    })
+    
+    console.log('BabylonGameEngine: Low-end optimizations applied')
+  }
+
+  /**
+   * Memory-aware asset loading
+   */
+  async loadAssetMemoryAware(assetId, priority = 'normal') {
+    // Check available memory (if supported)
+    const memoryInfo = performance.memory
+    if (memoryInfo) {
+      const usedMemory = memoryInfo.usedJSHeapSize / memoryInfo.totalJSHeapSize
+      
+      if (usedMemory > 0.8) { // If using more than 80% memory
+        console.warn('BabylonGameEngine: High memory usage, cleaning up before loading new assets')
+        this.unloadUnusedAssets()
+        
+        // If still high memory, skip non-essential assets
+        if (priority === 'low') {
+          console.warn('BabylonGameEngine: Skipping low priority asset due to memory constraints')
+          return null
+        }
+      }
+    }
+    
+    return await this.loadAsset(assetId)
+  }
+
+  /**
+   * Dispose resources with proper cleanup
    */
   dispose() {
+    console.log('BabylonGameEngine: Starting disposal...')
+    
     this.stop()
+    
+    // Clear all caches
+    assetCache.clear()
+    modelCache.clear()
+    
+    // Dispose scene properly
     if (this.scene) {
+      // Dispose all meshes
+      this.scene.meshes.slice().forEach(mesh => mesh.dispose())
+      
+      // Dispose all materials
+      this.scene.materials.slice().forEach(material => material.dispose())
+      
+      // Dispose all textures
+      this.scene.textures.slice().forEach(texture => texture.dispose())
+      
+      // Dispose scene
       this.scene.dispose()
+      this.scene = null
     }
+    
+    // Dispose engine
+    if (this.engine) {
+      this.engine.dispose()
+      this.engine = null
+    }
+    
+    // Remove canvas
+    if (this.canvas && this.canvas.parentNode) {
+      this.canvas.parentNode.removeChild(this.canvas)
+      this.canvas = null
+    }
+    
+    console.log('BabylonGameEngine: Disposal completed')
   }
 
   /**

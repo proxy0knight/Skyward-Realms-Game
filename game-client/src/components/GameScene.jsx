@@ -19,7 +19,7 @@ const GameScene = ({ player, onPlayerUpdate, onQuestUpdate, onGameEngineReady })
   useEffect(() => {
     console.log('GameScene: Initializing 3D game...')
     console.log('GameScene: Player data:', player)
-    
+
     if (!mountRef.current) {
       console.error('GameScene: Mount ref is null')
       return
@@ -30,7 +30,7 @@ const GameScene = ({ player, onPlayerUpdate, onQuestUpdate, onGameEngineReady })
       console.log('GameScene: Already initialized, skipping...')
       return
     }
-    
+
     // Mark as initializing to prevent race conditions
     isInitializedRef.current = true
 
@@ -50,7 +50,7 @@ const GameScene = ({ player, onPlayerUpdate, onQuestUpdate, onGameEngineReady })
         console.log('GameScene: Creating BabylonGameEngine...')
         const gameEngine = new BabylonGameEngine()
         gameEngineRef.current = gameEngine
-        
+
         console.log('GameScene: Initializing BabylonGameEngine...')
         const initSuccess = await gameEngine.init(mountRef.current)
         if (!initSuccess) {
@@ -63,7 +63,7 @@ const GameScene = ({ player, onPlayerUpdate, onQuestUpdate, onGameEngineReady })
       console.log('GameScene: Creating PlayerManager...')
       const playerManager = new PlayerManager(gameEngine)
       playerManagerRef.current = playerManager
-      
+
       // Load or create player
       let playerData = playerManager.loadPlayerData()
       if (!playerData) {
@@ -109,10 +109,10 @@ const GameScene = ({ player, onPlayerUpdate, onQuestUpdate, onGameEngineReady })
         } : { y: 0, x: 0 }
         })
         }
-        
+
         // Update mouse lock status from Babylon.js engine
         setMouseLocked(gameEngine.isMouseLocked || false)
-        
+
         // Babylon.js camera debug - only log occasionally to reduce spam
         if (gameEngine.camera && Math.random() < 0.01) {
           console.log('Babylon Camera state:', {
@@ -121,7 +121,7 @@ const GameScene = ({ player, onPlayerUpdate, onQuestUpdate, onGameEngineReady })
             radius: gameEngine.camera.radius.toFixed(2)
           })
         }
-        
+
         // Update player stats in UI
         if (onPlayerUpdate) {
           const updatedPlayer = playerManager.getLocalPlayer()
@@ -181,22 +181,19 @@ const GameScene = ({ player, onPlayerUpdate, onQuestUpdate, onGameEngineReady })
 
     // Cleanup function
     return () => {
-      console.log('GameScene: Cleaning up...')
-      // Don't reset isInitializedRef here to prevent re-initialization during React strict mode
-      // Only cleanup if we're actually unmounting, not during React strict mode double-invocation
-      
       if (gameEngineRef.current) {
-        console.log('GameScene: Stopping game engine...')
-        gameEngineRef.current.stop()
-        // Don't dispose immediately - let React handle the cleanup properly
-        setTimeout(() => {
-          if (gameEngineRef.current) {
-            gameEngineRef.current.dispose()
-            gameEngineRef.current = null
-          }
-        }, 100)
+        console.log('GameScene: Cleaning up game engine...')
+        gameEngineRef.current.dispose()
+        gameEngineRef.current = null
+      }
+      if (playerManagerRef.current) {
+        playerManagerRef.current = null
       }
 
+      // Force garbage collection if available
+      if (window.gc) {
+        window.gc()
+      }
     }
   }, []) // Remove dependencies to prevent re-initialization
 
@@ -212,7 +209,7 @@ const GameScene = ({ player, onPlayerUpdate, onQuestUpdate, onGameEngineReady })
           console.log('Player position reset')
         }
         break
-        
+
       case 'KeyF':
         // Toggle fullscreen
         if (document.fullscreenElement) {
@@ -221,7 +218,7 @@ const GameScene = ({ player, onPlayerUpdate, onQuestUpdate, onGameEngineReady })
           document.documentElement.requestFullscreen()
         }
         break
-        
+
       default:
         // Let other keys pass through to game engine
         break
@@ -252,4 +249,3 @@ const GameScene = ({ player, onPlayerUpdate, onQuestUpdate, onGameEngineReady })
 }
 
 export default GameScene
-
