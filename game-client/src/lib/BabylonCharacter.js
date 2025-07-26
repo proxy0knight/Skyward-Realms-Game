@@ -37,49 +37,35 @@ class BabylonCharacter {
   }
 
   /**
-   * Initialize minimal character
+   * Initialize and load character
    */
   async init() {
-    console.log('BabylonCharacter: Creating minimal character...')
-
-    // Skip model loading to save memory - go straight to procedural
-    console.log('BabylonCharacter: Using procedural character to save memory')
-    return await this.createMinimalCharacter()
-  }
-
-  /**
-   * Create ultra-minimal character
-   */
-  async createMinimalCharacter() {
-    console.log('BabylonCharacter: Creating ultra-minimal character...')
+    console.log('BabylonCharacter: Loading character...')
 
     try {
-      // Create minimal character group
-      this.characterGroup = new BABYLON.TransformNode('minimalCharacterGroup', this.scene)
-      
-      // Simple capsule body only
-      this.characterMesh = BABYLON.MeshBuilder.CreateCapsule('minimalBody', {
-        radius: 0.5,
-        height: 2
-      }, this.scene)
+      // Load GLB character model
+      this.characterMesh = await this.loadCharacterModel()
+      console.log('BabylonCharacter: GLB model loaded successfully')
 
-      // Ultra-simple material
-      const material = new BABYLON.StandardMaterial('minimalMaterial', this.scene)
-      material.diffuseColor = BABYLON.Color3.FromHexString(this.element.color || '#FF4500')
-      this.characterMesh.material = material
+      // Setup physics BEFORE parenting (required by Babylon.js physics)
+      this.setupPhysics()
 
-      // Parent to group
+      // Create character group and parent the mesh
+      this.characterGroup = new BABYLON.TransformNode('characterGroup', this.scene)
       this.characterMesh.parent = this.characterGroup
 
-      // Position at origin
-      this.characterGroup.position = new BABYLON.Vector3(0, 1, 0)
+      // Add elemental effects
+      await this.createElementalEffects()
 
-      console.log('BabylonCharacter: Minimal character created successfully')
+      // Setup animations
+      this.setupAnimations()
+
+      console.log('BabylonCharacter: GLB character with effects loaded successfully!')
       return this.characterGroup
 
-    } catch (error) {
-      console.error('BabylonCharacter: Failed to create minimal character:', error)
-      return null
+    } catch {
+      console.warn('BabylonCharacter: Could not load GLB model, creating fallback')
+      return await this.createFallbackCharacter()
     }
   }
 
@@ -96,60 +82,59 @@ class BabylonCharacter {
   }
 
   /**
-   * Load GLB character model based on element (optimized)
+   * Load GLB character model based on element
    */
   async loadCharacterModel() {
-    // Check memory before loading
-    if (performance.memory) {
-      const memoryInfo = performance.memory
-      const usedMemory = memoryInfo.usedJSHeapSize / memoryInfo.totalJSHeapSize
-      
-      if (usedMemory > 0.7) {
-        console.warn('BabylonCharacter: High memory usage, using lightweight character')
-        throw new Error('Memory constrained - using procedural character')
-      }
-    }
-
     // Support modelId at both playerData.modelId and playerData.element.modelId
     const modelId = this.playerData.modelId || (this.playerData.element && this.playerData.element.modelId)
     if (modelId) {
       console.log('BabylonCharacter: Attempting to load custom model from IndexedDB with modelId:', modelId)
-      try {
-        const base64 = await idbGet(modelId)
-        if (base64) {
+      const base64 = await idbGet(modelId)
+      if (base64) {
+        try {
           const result = await BABYLON.SceneLoader.ImportMeshAsync('', '', base64, this.scene)
           // Find first valid mesh
           const validMesh = result.meshes.find(m => m && m instanceof BABYLON.Mesh && m.getTotalVertices && m.getTotalVertices() > 0)
           if (validMesh) {
             console.log('BabylonCharacter: Successfully loaded custom model from IndexedDB:', modelId, 'Mesh:', validMesh.name)
             return validMesh
+          } else {
+            console.warn('BabylonCharacter: No valid mesh found in imported GLB for modelId:', modelId, 'Meshes:', result.meshes)
           }
+        } catch (e) {
+          console.warn('BabylonCharacter: Failed to load custom model from IndexedDB, falling back to procedural character.', e)
         }
-      } catch (e) {
-        console.warn('BabylonCharacter: Failed to load custom model from IndexedDB:', e)
+      } else {
+        console.warn('BabylonCharacter: No base64 data found in IndexedDB for modelId:', modelId)
       }
     }
 
-    // Only try the most likely path to reduce failed requests
-    const primaryPath = `/character/${this.element.id}.glb`
-    
-    try {
-      console.log(`BabylonCharacter: Attempting to load model: ${primaryPath}`)
-      const characterMesh = await this.loadSingleModel(primaryPath)
-      console.log(`✅ Loaded character model: ${primaryPath}`)
-      return characterMesh
-    } catch (error) {
-      console.log(`Failed to load ${primaryPath}:`, error.message)
-      
-      // Try one fallback path
+    // Try loading from available model paths (check what actually exists)
+    const modelPaths = [
+      `/character/${this.element.id}.glb`,
+      `/assets/models/character/${this.element.id}.glb`,
+      `/assets/models/characters/${this.element.id}.glb`,
+      `/assets/models/characters/${this.element.id}_character.glb`,
+      `/assets/models/${this.element.id}.glb`
+    ]
+
+    // Try each path until one works
+    for (const modelPath of modelPaths) {
+      // Check if file exists first
+      const fileExists = await this.checkFileExists(modelPath)
+      if (!fileExists) {
+        console.log(`BabylonCharacter: Model file not found: ${modelPath}`)
+        continue
+      }
+
       try {
-        const fallbackPath = `/assets/models/character/${this.element.id}.glb`
-        console.log(`BabylonCharacter: Trying fallback: ${fallbackPath}`)
-        const characterMesh = await this.loadSingleModel(fallbackPath)
-        console.log(`✅ Loaded fallback character model: ${fallbackPath}`)
+        console.log(`BabylonCharacter: Loading model: ${modelPath}`)
+        const characterMesh = await this.loadSingleModel(modelPath)
+        console.log(`✅ Loaded character model: ${modelPath}`)
         return characterMesh
-      } catch (fallbackError) {
-        console.log(`Fallback also failed: ${fallbackError.message}`)
+      } catch (error) {
+        console.log(`Failed to load ${modelPath}:`, error.message)
+        continue
       }
     }
 

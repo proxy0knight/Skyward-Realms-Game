@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
-import { ArrowLeft, Sparkles, Flame, Droplets, Mountain, Wind, ChevronLeft } from 'lucide-react'
+import { ArrowLeft, Sparkles, Flame, Droplets, Mountain, Wind } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 const DEFAULT_ELEMENTS = [
@@ -87,33 +87,12 @@ const CharacterSelection = ({ selectedElement, onSelectElement, onStartGame, onB
   }
 
   return (
-    <div className="character-selection-container relative overflow-hidden">
-      {/* Enhanced Background */}
-      <div className="fixed inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 opacity-95"></div>
-      <div className="fixed inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZGVmcz4KICAgIDxwYXR0ZXJuIGlkPSJzdGFycyIgeD0iMCIgeT0iMCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj4KICAgICAgPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0iIzhhNWNmNiIgb3BhY2l0eT0iMC4zIi8+CiAgICA8L3BhdHRlcm4+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjc3RhcnMkIi8+Cjwvc3ZnPg==')] opacity-20"></div>
-
-      <div className="character-selection-header relative z-10">
-        <button 
-          onClick={onBack}
-          className="back-button group hover:scale-110 transition-all duration-300"
-        >
-          <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform duration-300" />
-          العودة للقائمة
-        </button>
-
-        <div className="header-content">
-          <h1 className="main-title text-4xl md:text-6xl font-black bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 bg-clip-text text-transparent mb-4">
-            اختر عنصرك السحري
-          </h1>
-          <p className="subtitle text-lg md:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
-            كل عنصر يمنحك قوى وقدرات فريدة في عالم السماء المليء بالمغامرات والأسرار
-          </p>
-          <div className="flex items-center justify-center gap-4 mt-4 text-sm text-gray-400">
-            <Sparkles className="w-4 h-4 animate-pulse" />
-            <span>اختر بحكمة، فكل عنصر له مسار مختلف</span>
-            <Sparkles className="w-4 h-4 animate-pulse" />
-          </div>
-        </div>
+    <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-2 relative">
+      {/* Animated background elements */}
+      <div className="fixed inset-0 opacity-20 pointer-events-none">
+        <div className="absolute top-10 left-10 w-32 h-32 bg-purple-500 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-10 right-10 w-40 h-40 bg-orange-500 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 w-24 h-24 bg-blue-500 rounded-full blur-2xl animate-pulse delay-500"></div>
       </div>
 
       <div className="w-full flex flex-col items-center justify-center min-h-[80vh] relative z-10 py-2 sm:py-4 px-2 sm:px-4">
@@ -225,3 +204,4 @@ const CharacterSelection = ({ selectedElement, onSelectElement, onStartGame, onB
 }
 
 export default CharacterSelection
+

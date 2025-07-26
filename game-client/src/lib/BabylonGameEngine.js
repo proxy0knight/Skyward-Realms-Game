@@ -1,85 +1,16 @@
-// Minimal memory footprint - lazy imports
-let BABYLON = null
-let BabylonCharacter = null
-let CannonJSPlugin = null
-let idbGet = null
+import * as BABYLON from '@babylonjs/core'
+import '@babylonjs/loaders/glTF'
+import BabylonCharacter from './BabylonCharacter.js'
 
-// Lightweight caches with size limits
-const assetCache = new Map()
-const modelCache = new Map()
-const MAX_CACHE_SIZE = 10 // Limit cache size
+// Import physics plugin
+import { CannonJSPlugin } from '@babylonjs/core/Physics/Plugins/cannonJSPlugin'
 
-// Memory monitoring
-const memoryStats = {
-  meshCount: 0,
-  textureCount: 0,
-  materialCount: 0
-}
-
-// Lazy import function with minimal modules
-async function loadBabylonModules() {
-  if (!BABYLON) {
-    console.log('BabylonGameEngine: Loading minimal Babylon.js modules...')
-    
-    // Load only core modules
-    BABYLON = await import('@babylonjs/core/Engines/engine')
-    const sceneModule = await import('@babylonjs/core/scene')
-    BABYLON.Scene = sceneModule.Scene
-    
-    const vectorModule = await import('@babylonjs/core/Maths/math.vector')
-    BABYLON.Vector3 = vectorModule.Vector3
-    BABYLON.Color3 = vectorModule.Color3
-    BABYLON.Color4 = vectorModule.Color4
-    
-    const meshModule = await import('@babylonjs/core/Meshes/mesh')
-    BABYLON.Mesh = meshModule.Mesh
-    
-    const meshBuilderModule = await import('@babylonjs/core/Meshes/meshBuilder')
-    BABYLON.MeshBuilder = meshBuilderModule.MeshBuilder
-    
-    const cameraModule = await import('@babylonjs/core/Cameras/arcRotateCamera')
-    BABYLON.ArcRotateCamera = cameraModule.ArcRotateCamera
-    
-    const lightModule = await import('@babylonjs/core/Lights/hemisphericLight')
-    BABYLON.HemisphericLight = lightModule.HemisphericLight
-    
-    const materialModule = await import('@babylonjs/core/Materials/standardMaterial')
-    BABYLON.StandardMaterial = materialModule.StandardMaterial
-    
-    // Import character after minimal Babylon is loaded
-    const characterModule = await import('./BabylonCharacter.js')
-    BabylonCharacter = characterModule.default
-    
-    console.log('BabylonGameEngine: Minimal Babylon.js modules loaded')
-  }
-  return BABYLON
-}
-
-// Cache management with size limits
-function addToCache(cache, key, value) {
-  if (cache.size >= MAX_CACHE_SIZE) {
-    const firstKey = cache.keys().next().value
-    cache.delete(firstKey)
-  }
-  cache.set(key, value)
-}
-
-// Memory cleanup helper
-function forceGarbageCollection() {
-  if (window.gc) {
-    window.gc()
-  }
-  
-  // Clear caches if memory is high
-  if (performance.memory) {
-    const used = performance.memory.usedJSHeapSize / 1024 / 1024 // MB
-    if (used > 100) { // If using more than 100MB
-      assetCache.clear()
-      modelCache.clear()
-      console.log('BabylonGameEngine: Cleared caches due to high memory usage')
-    }
-  }
-}
+// Import camera controls and inputs
+import '@babylonjs/core/Cameras/arcRotateCamera'
+import '@babylonjs/core/Cameras/universalCamera'
+import '@babylonjs/core/Cameras/Inputs/arcRotateCameraPointersInput'
+import '@babylonjs/core/Cameras/Inputs/arcRotateCameraKeyboardMoveInput'
+import { get as idbGet } from 'idb-keyval'
 
 const PHYSICS_BOXES_KEY = 'skyward_physics_boxes_'
 
@@ -122,9 +53,6 @@ class BabylonGameEngine {
     try {
       console.log('BabylonGameEngine: Starting initialization...')
       
-      // Lazy load Babylon.js modules
-      await loadBabylonModules()
-      
       // Create canvas
       this.canvas = document.createElement('canvas')
       this.canvas.style.width = '100%'
@@ -133,50 +61,52 @@ class BabylonGameEngine {
       this.canvas.style.outline = 'none'
       container.appendChild(this.canvas)
       
-      // Create minimal Babylon.js engine for low memory usage
-      this.engine = new BABYLON.Engine(this.canvas, false, {
-        powerPreference: 'low-power', // Prioritize low power consumption
-        antialias: false, // No antialiasing
-        stencil: false, // No stencil buffer
-        alpha: false, // No alpha channel
+      // Create Babylon.js engine with advanced features
+      this.engine = new BABYLON.Engine(this.canvas, true, {
+        powerPreference: 'high-performance',
+        antialias: true,
+        stencil: true,
+        alpha: false,
         premultipliedAlpha: false,
         preserveDrawingBuffer: false,
-        doNotHandleContextLost: true,
-        adaptToDeviceRatio: false, // Fixed ratio
-        failIfMajorPerformanceCaveat: false // Allow low-end GPUs
+        doNotHandleContextLost: true
       })
       
-      // Aggressive memory settings
+      // Enable WebGL2 features
       this.engine.enableOfflineSupport = false
-      this.engine.setHardwareScalingLevel(2) // Render at half resolution
-      this.engine.disableManifestCheck = true
+      this.engine.setHardwareScalingLevel(1 / Math.min(window.devicePixelRatio, 2))
       
-      // Create minimal scene
+      // Create scene
       this.scene = new BABYLON.Scene(this.engine)
+      this.scene.actionManager = new BABYLON.ActionManager(this.scene)
+      
+      // Store reference to this engine in scene for character access
       this.scene.gameEngine = this
       
-      // Disable expensive features
-      this.scene.fogEnabled = false
-      this.scene.shadowsEnabled = false
-      this.scene.particlesEnabled = false
-      this.scene.spritesEnabled = false
-      this.scene.skeletonsEnabled = false
-      this.scene.audioEnabled = false
+      // Enable physics with Cannon.js
+      await this.setupPhysics()
       
-      // Setup minimal camera
-      this.setupMinimalCamera()
+      // Setup camera
+      this.setupCamera()
       
-      // Setup basic lighting only
-      this.setupBasicLighting()
+      // Setup lighting
+      await this.setupLighting()
       
-      // Skip physics for now to save memory
-      console.log('BabylonGameEngine: Skipping physics to save memory')
-      
-      // Create minimal world
-      await this.createMinimalWorld()
+      // Setup input
+      this.setupInput()
 
-      // Setup aggressive optimizations
-      this.setupAggressiveOptimizations()
+      // Ensure default map exists before loading
+      this.ensureDefaultMapExists()
+      
+      // Load map data before creating world
+      const startingMapId = this.getStartingMapId()
+      this.mapData = this.loadMapData(startingMapId)
+      console.log('BabylonGameEngine: Loaded map data for:', startingMapId, 'Size:', this.mapData?.length || 'null')
+      
+      await this.createWorld()
+
+      // Setup rendering optimizations
+      this.setupOptimizations()
       
       // Start render loop
       this.startRenderLoop()
@@ -426,95 +356,7 @@ class BabylonGameEngine {
   }
 
   /**
-   * Setup minimal camera
-   */
-  setupMinimalCamera() {
-    try {
-      // Create basic camera
-      this.camera = new BABYLON.ArcRotateCamera(
-        'camera',
-        -Math.PI / 2,
-        Math.PI / 2.5,
-        10,
-        BABYLON.Vector3.Zero(),
-        this.scene
-      )
-      
-      // Minimal settings
-      this.camera.setTarget(BABYLON.Vector3.Zero())
-      this.camera.lowerRadiusLimit = 5
-      this.camera.upperRadiusLimit = 20
-      
-      console.log('BabylonGameEngine: Minimal camera created')
-    } catch (error) {
-      console.error('Camera setup failed:', error)
-    }
-  }
-
-  /**
-   * Setup basic lighting only
-   */
-  setupBasicLighting() {
-    try {
-      // Single hemispheric light
-      const light = new BABYLON.HemisphericLight('basicLight', new BABYLON.Vector3(0, 1, 0), this.scene)
-      light.intensity = 1
-      console.log('BabylonGameEngine: Basic lighting created')
-    } catch (error) {
-      console.error('Lighting setup failed:', error)
-    }
-  }
-
-  /**
-   * Create minimal world
-   */
-  async createMinimalWorld() {
-    console.log('BabylonGameEngine: Creating minimal world...')
-    
-    // Create simple ground plane
-    try {
-      const ground = BABYLON.MeshBuilder.CreateGround('ground', {
-        width: 20,
-        height: 20
-      }, this.scene)
-      
-      const material = new BABYLON.StandardMaterial('groundMat', this.scene)
-      material.diffuseColor = new BABYLON.Color3(0.3, 0.6, 0.3)
-      ground.material = material
-      
-      memoryStats.meshCount++
-      memoryStats.materialCount++
-      
-      console.log('BabylonGameEngine: Minimal ground created')
-    } catch (error) {
-      console.error('Failed to create minimal world:', error)
-    }
-  }
-
-  /**
-   * Setup aggressive optimizations
-   */
-  setupAggressiveOptimizations() {
-    console.log('BabylonGameEngine: Applying aggressive optimizations...')
-    
-    if (!this.scene) return
-    
-    // Disable all expensive features
-    this.scene.frustumCullingEnabled = true
-    this.scene.occlusionQueryEnabled = false // Disable to save memory
-    this.scene.cleanCachedTextureBuffer()
-    
-    // Set very aggressive hardware scaling
-    this.engine.setHardwareScalingLevel(3) // Render at 1/3 resolution
-    
-    // Limit render targets
-    this.scene.customRenderTargets = []
-    
-    console.log('BabylonGameEngine: Aggressive optimizations applied')
-  }
-
-  /**
-   * Setup camera with advanced controls (LEGACY - keeping for compatibility)
+   * Setup camera with advanced controls
    */
   setupCamera() {
     try {
@@ -846,7 +688,7 @@ class BabylonGameEngine {
     console.log('BabylonGameEngine: Creating game world from map data...')
     if (!this.mapData) {
       console.warn('No map data found! Falling back to default terrain.')
-      await this.loadEssentialAssets() // Load only essential assets
+      await this.createTerrain() // fallback
       return
     }
     // Load tool-asset assignments
@@ -1476,212 +1318,13 @@ class BabylonGameEngine {
   }
 
   /**
-   * Chunk loading for large models
-   */
-  async loadModelChunk(modelPath, chunkSize = 1024 * 1024) { // 1MB chunks
-    if (modelCache.has(modelPath)) {
-      return modelCache.get(modelPath)
-    }
-
-    try {
-      const response = await fetch(modelPath)
-      if (!response.ok) throw new Error(`Failed to load ${modelPath}`)
-      
-      const chunks = []
-      const reader = response.body.getReader()
-      
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        chunks.push(value)
-      }
-      
-      const blob = new Blob(chunks)
-      const arrayBuffer = await blob.arrayBuffer()
-      
-      // Cache the model data
-      modelCache.set(modelPath, arrayBuffer)
-      
-      return arrayBuffer
-    } catch (error) {
-      console.warn(`Failed to load model chunk ${modelPath}:`, error)
-      throw error
-    }
-  }
-
-  /**
-   * Unload unused assets to free memory
-   */
-  unloadUnusedAssets() {
-    if (!this.scene) return
-    
-    console.log('BabylonGameEngine: Cleaning up unused assets...')
-    
-    // Clear texture cache
-    this.scene.textures.forEach(texture => {
-      if (texture.isReady() && texture.getInternalTexture()) {
-        texture.dispose()
-      }
-    })
-    
-    // Clear unused meshes
-    this.scene.meshes.forEach(mesh => {
-      if (mesh.metadata?.temporary) {
-        mesh.dispose()
-      }
-    })
-    
-    // Clear material cache
-    this.scene.materials.forEach(material => {
-      if (!material.isFrozen && material.getActiveTextures().length === 0) {
-        material.dispose()
-      }
-    })
-    
-    // Force garbage collection if available
-    if (window.gc) {
-      window.gc()
-    }
-    
-    console.log('BabylonGameEngine: Asset cleanup completed')
-  }
-
-  /**
-   * Load only essential assets
-   */
-  async loadEssentialAssets() {
-    console.log('BabylonGameEngine: Loading essential assets only...')
-    
-    // Only load basic terrain and player character
-    const essentialAssets = [
-      'terrain',
-      'player_character'
-    ]
-    
-    for (const assetType of essentialAssets) {
-      if (assetCache.has(assetType)) continue
-      
-      try {
-        // Load asset based on type
-        switch (assetType) {
-          case 'terrain':
-            await this.createTerrain()
-            break
-          case 'player_character':
-            // Character will be loaded when needed
-            break
-        }
-        
-        assetCache.set(assetType, true)
-      } catch (error) {
-        console.warn(`Failed to load essential asset ${assetType}:`, error)
-      }
-    }
-  }
-
-  /**
-   * Optimize rendering settings for low-end devices
-   */
-  optimizeForLowEnd() {
-    if (!this.scene || !this.engine) return
-    
-    console.log('BabylonGameEngine: Applying low-end optimizations...')
-    
-    // Reduce hardware scaling
-    this.engine.setHardwareScalingLevel(2) // Render at half resolution
-    
-    // Disable expensive features
-    this.scene.fogEnabled = false
-    this.scene.shadowsEnabled = false
-    this.scene.particlesEnabled = false
-    this.scene.spritesEnabled = false
-    this.scene.skeletonsEnabled = false
-    
-    // Reduce texture quality
-    this.scene.textures.forEach(texture => {
-      if (texture.getSize) {
-        const size = texture.getSize()
-        if (size.width > 512) {
-          texture.updateSamplingMode(BABYLON.Texture.NEAREST_SAMPLINGMODE)
-        }
-      }
-    })
-    
-    // Optimize materials
-    this.scene.materials.forEach(material => {
-      if (material.freeze) {
-        material.freeze()
-      }
-    })
-    
-    console.log('BabylonGameEngine: Low-end optimizations applied')
-  }
-
-  /**
-   * Memory-aware asset loading
-   */
-  async loadAssetMemoryAware(assetId, priority = 'normal') {
-    // Check available memory (if supported)
-    const memoryInfo = performance.memory
-    if (memoryInfo) {
-      const usedMemory = memoryInfo.usedJSHeapSize / memoryInfo.totalJSHeapSize
-      
-      if (usedMemory > 0.8) { // If using more than 80% memory
-        console.warn('BabylonGameEngine: High memory usage, cleaning up before loading new assets')
-        this.unloadUnusedAssets()
-        
-        // If still high memory, skip non-essential assets
-        if (priority === 'low') {
-          console.warn('BabylonGameEngine: Skipping low priority asset due to memory constraints')
-          return null
-        }
-      }
-    }
-    
-    return await this.loadAsset(assetId)
-  }
-
-  /**
-   * Dispose resources with proper cleanup
+   * Dispose resources
    */
   dispose() {
-    console.log('BabylonGameEngine: Starting disposal...')
-    
     this.stop()
-    
-    // Clear all caches
-    assetCache.clear()
-    modelCache.clear()
-    
-    // Dispose scene properly
     if (this.scene) {
-      // Dispose all meshes
-      this.scene.meshes.slice().forEach(mesh => mesh.dispose())
-      
-      // Dispose all materials
-      this.scene.materials.slice().forEach(material => material.dispose())
-      
-      // Dispose all textures
-      this.scene.textures.slice().forEach(texture => texture.dispose())
-      
-      // Dispose scene
       this.scene.dispose()
-      this.scene = null
     }
-    
-    // Dispose engine
-    if (this.engine) {
-      this.engine.dispose()
-      this.engine = null
-    }
-    
-    // Remove canvas
-    if (this.canvas && this.canvas.parentNode) {
-      this.canvas.parentNode.removeChild(this.canvas)
-      this.canvas = null
-    }
-    
-    console.log('BabylonGameEngine: Disposal completed')
   }
 
   /**
