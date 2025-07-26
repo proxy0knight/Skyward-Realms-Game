@@ -6,7 +6,6 @@ class BabylonCharacter {
   constructor(scene, playerData) {
     this.scene = scene
     this.playerData = playerData
-    this.gameEngine = scene.gameEngine // Store reference to game engine
 
     // Character components
     this.characterMesh = null
@@ -275,90 +274,61 @@ class BabylonCharacter {
    */
   setupPhysics() {
     if (!this.characterMesh) {
-      console.warn('BabylonCharacter: No valid character mesh for physics. Creating physics box.')
-      // Create a physics box for the character even without mesh
-      this.createPhysicsBox()
+      console.warn('BabylonCharacter: No valid character mesh for physics. Attempting to use ensurePhysicsBox as fallback.')
+      if (this.scene && this.scene.gameEngine && typeof this.scene.gameEngine.ensurePhysicsBox === 'function') {
+        // Use a default position for the player (e.g., 0,1,0)
+        this.scene.gameEngine.ensurePhysicsBox([], new BABYLON.Vector3(0, 1, 0), {width: 1, height: 2, depth: 1})
+      }
       return
     }
-    
     // Add physics impostor only if physics engine is available
     if (this.scene.getPhysicsEngine()) {
       try {
-        // Create physics impostor for the character mesh
-        this.characterMesh.physicsImpostor = new BABYLON.PhysicsImpostor(
-          this.characterMesh,
-          BABYLON.PhysicsImpostor.BoxImpostor, // Use box instead of capsule for better stability
-          { 
-            mass: 1, 
-            restitution: 0.0, // No bouncing
-            friction: 1.0,    // High friction to prevent sliding
-            ignoreCollisions: false
-          },
-          this.scene
-        )
-        
-        // Lock rotation to prevent character from tipping over
-        if (this.characterMesh.physicsImpostor.physicsBody) {
-          this.characterMesh.physicsImpostor.physicsBody.fixedRotation = true
-          this.characterMesh.physicsImpostor.physicsBody.updateMassProperties()
+        if (this.characterMesh && this.characterMesh instanceof BABYLON.Mesh && this.characterMesh.getTotalVertices && this.characterMesh.getTotalVertices() > 0) {
+          this.characterMesh.physicsImpostor = new BABYLON.PhysicsImpostor(
+            this.characterMesh,
+            BABYLON.PhysicsImpostor.CapsuleImpostor,
+            { 
+              mass: 1, 
+              restitution: 0.1, 
+              friction: 0.8,
+              // Enable collision detection
+              ignoreCollisions: false
+            },
+            this.scene
+          )
+        } else {
+          console.warn('BabylonCharacter: characterMesh is not a valid mesh for physics impostor. Using ensurePhysicsBox as fallback.')
+          if (this.scene && this.scene.gameEngine && typeof this.scene.gameEngine.ensurePhysicsBox === 'function') {
+            this.scene.gameEngine.ensurePhysicsBox([this.characterMesh], this.characterMesh.position || new BABYLON.Vector3(0, 1, 0), {width: 1, height: 2, depth: 1})
+          }
+          return
         }
-        
-        console.log('BabylonCharacter: Physics impostor created successfully')
-      } catch (error) {
-        console.warn('BabylonCharacter: Could not create physics impostor:', error)
-        this.createPhysicsBox()
+      } catch {
+        console.warn('BabylonCharacter: Could not create physics impostor')
+        this.characterMesh.physicsImpostor = null
+        console.log('BabylonCharacter: Physics disabled for this character')
         return
       }
-      
-      // Initialize physics body position
+      // Prevent character from falling through terrain
       if (this.characterMesh.physicsImpostor) {
+        // Add a small delay to ensure physics impostor is fully initialized
         setTimeout(() => {
-          this.initializePhysicsPosition()
-          this.setupGroundDetection()
+          try {
+            if (this.characterMesh.physicsImpostor && this.characterMesh.physicsImpostor.physicsBody) {
+              this.characterMesh.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero())
+              this.characterMesh.physicsImpostor.setAngularVelocity(BABYLON.Vector3.Zero())
+            }
+          } catch {
+            console.warn('BabylonCharacter: Could not set initial velocity')
+          }
         }, 100)
+        // Add ground detection
+        this.setupGroundDetection()
       }
+      console.log('BabylonCharacter: Physics setup complete')
     } else {
       console.log('BabylonCharacter: Physics not available, using visual-only character')
-    }
-  }
-
-  /**
-   * Create a physics box as fallback
-   */
-  createPhysicsBox() {
-    if (!this.scene.gameEngine) return
-    
-    const position = this.characterGroup ? this.characterGroup.position : new BABYLON.Vector3(0, 2, 0)
-    this.scene.gameEngine.ensurePhysicsBox(
-      this.characterMesh ? [this.characterMesh] : [], 
-      position, 
-      {width: 1, height: 2, depth: 1}
-    )
-  }
-
-  /**
-   * Initialize physics position and apply gravity
-   */
-  initializePhysicsPosition() {
-    if (!this.characterMesh || !this.characterMesh.physicsImpostor) return
-    
-    try {
-      // Set initial position slightly above ground
-      const currentPos = this.characterMesh.position.clone()
-      currentPos.y = Math.max(currentPos.y, 2) // Ensure character starts above ground
-      
-      this.characterMesh.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero())
-      this.characterMesh.physicsImpostor.setAngularVelocity(BABYLON.Vector3.Zero())
-      
-      // Apply small downward force to ensure grounding
-      setTimeout(() => {
-        if (this.characterMesh.physicsImpostor) {
-          this.characterMesh.physicsImpostor.applyImpulse(new BABYLON.Vector3(0, -2, 0), this.characterMesh.position)
-        }
-      }, 200)
-      
-    } catch (error) {
-      console.warn('BabylonCharacter: Failed to initialize physics position:', error)
     }
   }
 
@@ -665,23 +635,10 @@ class BabylonCharacter {
     if (!this.characterGroup) return
     const deltaTime = this.scene.getEngine().getDeltaTime() / 1000
     const targetSpeed = isRunning ? this.runSpeed : this.moveSpeed
-    
     // Only use X/Z for movement
     const moveDir = new BABYLON.Vector3(direction.x, 0, direction.z)
     if (moveDir.length() > 0) {
       moveDir.normalize()
-      
-      // Check map boundaries before applying movement
-      const currentPos = this.getPosition()
-      const futurePos = currentPos.add(moveDir.scale(targetSpeed * deltaTime))
-      
-      if (!this.isWithinMapBounds(futurePos)) {
-        // Don't move if it would go outside map bounds
-        this.velocity.x = this._approach(this.velocity.x, 0, this.deceleration * deltaTime)
-        this.velocity.z = this._approach(this.velocity.z, 0, this.deceleration * deltaTime)
-        return
-      }
-      
       // Accelerate towards target speed
       const desiredVelocity = moveDir.scale(targetSpeed)
       this.velocity.x = this._approach(this.velocity.x, desiredVelocity.x, this.acceleration * deltaTime)
@@ -691,83 +648,24 @@ class BabylonCharacter {
       this.velocity.x = this._approach(this.velocity.x, 0, this.deceleration * deltaTime)
       this.velocity.z = this._approach(this.velocity.z, 0, this.deceleration * deltaTime)
     }
-    
-    // Apply movement with boundary checking
-    this.applyMovementWithBounds(deltaTime)
-  }
-
-  /**
-   * Apply movement while respecting map boundaries
-   */
-  applyMovementWithBounds(deltaTime) {
-    const currentPos = this.getPosition()
-    const newPos = currentPos.add(new BABYLON.Vector3(this.velocity.x * deltaTime, 0, this.velocity.z * deltaTime))
-    
-    // Clamp position to map bounds
-    const clampedPos = this.clampToMapBounds(newPos)
-    
+    // Apply movement
     if (this.characterMesh && this.characterMesh.physicsImpostor) {
       try {
         const currentVelocity = this.characterMesh.physicsImpostor.getLinearVelocity()
         if (currentVelocity) {
-          // Check if we hit a boundary and stop movement in that direction
-          const velocityX = (clampedPos.x !== newPos.x) ? 0 : this.velocity.x
-          const velocityZ = (clampedPos.z !== newPos.z) ? 0 : this.velocity.z
-          
           this.characterMesh.physicsImpostor.setLinearVelocity(
-            new BABYLON.Vector3(velocityX, currentVelocity.y, velocityZ)
+            new BABYLON.Vector3(this.velocity.x, currentVelocity.y, this.velocity.z)
           )
         }
       } catch {
         // Fallback to direct movement
-        this.setPosition(clampedPos)
+        this.characterGroup.position.addInPlace(new BABYLON.Vector3(this.velocity.x * deltaTime, 0, this.velocity.z * deltaTime))
       }
       this.checkCollisions(new BABYLON.Vector3(this.velocity.x, 0, this.velocity.z))
     } else {
       // Fallback: direct movement
-      this.setPosition(clampedPos)
+      this.characterGroup.position.addInPlace(new BABYLON.Vector3(this.velocity.x * deltaTime, 0, this.velocity.z * deltaTime))
     }
-  }
-
-  /**
-   * Check if position is within map boundaries
-   */
-  isWithinMapBounds(position) {
-    const mapData = this.gameEngine?.mapData
-    if (!mapData || !Array.isArray(mapData)) {
-      // If no map data, use default bounds
-      return position.x >= -50 && position.x <= 50 && position.z >= -50 && position.z <= 50
-    }
-    
-    const mapWidth = mapData[0]?.length || 16
-    const mapHeight = mapData.length || 16
-    
-    return position.x >= -0.5 && position.x <= mapWidth - 0.5 && 
-           position.z >= -0.5 && position.z <= mapHeight - 0.5
-  }
-
-  /**
-   * Clamp position to map boundaries
-   */
-  clampToMapBounds(position) {
-    const mapData = this.gameEngine?.mapData
-    if (!mapData || !Array.isArray(mapData)) {
-      // If no map data, use default bounds
-      return new BABYLON.Vector3(
-        Math.max(-50, Math.min(50, position.x)),
-        position.y,
-        Math.max(-50, Math.min(50, position.z))
-      )
-    }
-    
-    const mapWidth = mapData[0]?.length || 16
-    const mapHeight = mapData.length || 16
-    
-    return new BABYLON.Vector3(
-      Math.max(-0.5, Math.min(mapWidth - 0.5, position.x)),
-      position.y,
-      Math.max(-0.5, Math.min(mapHeight - 0.5, position.z))
-    )
   }
 
   /**
