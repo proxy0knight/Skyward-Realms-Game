@@ -50,9 +50,9 @@ const ASSET_CATEGORIES = {
 }
 
 const MapEditor = ({ gameEngine, onMapUpdate }) => {
-  const [selectedTool, setSelectedTool] = useState('terrain')
   const [selectedTerrain, setSelectedTerrain] = useState('grass')
   const [selectedAsset, setSelectedAsset] = useState(null)
+  const [selectedModel, setSelectedModel] = useState('')
   const [selectedSpawnAsset, setSelectedSpawnAsset] = useState(null)
   const [mapData, setMapData] = useState(null)
   const [savedMaps, setSavedMaps] = useState([])
@@ -69,7 +69,6 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
   const [newMapName, setNewMapName] = useState('')
   const [newMapSize, setNewMapSize] = useState(32)
   const canvasRef = useRef(null)
-  const [availableAssets, setAvailableAssets] = useState([])
   const [teleportAreas, setTeleportAreas] = useState([])
   const [selectedTeleportTarget, setSelectedTeleportTarget] = useState('')
   const [startingMapId, setStartingMapId] = useState(null)
@@ -90,6 +89,32 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
       }
     }
     loadSavedMaps()
+  }, [])
+
+  // Load available assets
+  useEffect(() => {
+    const loadAssets = async () => {
+      try {
+        // This would typically load from your asset management system
+        const mockAssets = [
+          { id: 'tree_oak', name: 'Oak Tree', category: 'vegetation', path: '/assets/models/trees/oak.glb', height: 2.5 },
+          { id: 'tree_pine', name: 'Pine Tree', category: 'vegetation', path: '/assets/models/trees/pine.glb', height: 3.0 },
+          { id: 'rock_01', name: 'Rock Small', category: 'props', path: '/assets/models/rocks/rock_01.glb', height: 0.5 },
+          { id: 'rock_02', name: 'Rock Large', category: 'props', path: '/assets/models/rocks/rock_02.glb', height: 1.2 },
+          { id: 'house_01', name: 'Basic House', category: 'structures', path: '/assets/models/buildings/house_01.glb', height: 4.0 },
+          { id: 'tower_01', name: 'Watch Tower', category: 'structures', path: '/assets/models/buildings/tower_01.glb', height: 8.0 },
+          { id: 'crystal', name: 'Magic Crystal', category: 'effects', path: '/assets/models/effects/crystal.glb', height: 1.0 },
+          { id: 'portal', name: 'Portal', category: 'effects', path: '/assets/models/effects/portal.glb', height: 2.0 },
+          { id: 'warrior', name: 'Warrior', category: 'characters', path: '/assets/models/characters/warrior.glb', height: 1.8 },
+          { id: 'mage', name: 'Mage', category: 'characters', path: '/assets/models/characters/mage.glb', height: 1.7 }
+        ]
+        setAvailableAssets(mockAssets)
+      } catch (error) {
+        console.error('Failed to load assets:', error)
+      }
+    }
+
+    loadAssets()
   }, [])
 
   // Set starting map
@@ -135,32 +160,6 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
       }
     }
   }, [gridSize, cellSize, currentMapId])
-
-  // Load available assets
-  useEffect(() => {
-    const loadAssets = async () => {
-      try {
-        // This would typically load from your asset management system
-        const mockAssets = [
-          { id: 'tree_oak', name: 'Oak Tree', category: 'vegetation', path: '/assets/models/trees/oak.glb', height: 2.5 },
-          { id: 'tree_pine', name: 'Pine Tree', category: 'vegetation', path: '/assets/models/trees/pine.glb', height: 3.0 },
-          { id: 'rock_01', name: 'Rock Small', category: 'props', path: '/assets/models/rocks/rock_01.glb', height: 0.5 },
-          { id: 'rock_02', name: 'Rock Large', category: 'props', path: '/assets/models/rocks/rock_02.glb', height: 1.2 },
-          { id: 'house_01', name: 'Basic House', category: 'structures', path: '/assets/models/buildings/house_01.glb', height: 4.0 },
-          { id: 'tower_01', name: 'Watch Tower', category: 'structures', path: '/assets/models/buildings/tower_01.glb', height: 8.0 },
-          { id: 'crystal', name: 'Magic Crystal', category: 'effects', path: '/assets/models/effects/crystal.glb', height: 1.0 },
-          { id: 'portal', name: 'Portal', category: 'effects', path: '/assets/models/effects/portal.glb', height: 2.0 },
-          { id: 'warrior', name: 'Warrior', category: 'characters', path: '/assets/models/characters/warrior.glb', height: 1.8 },
-          { id: 'mage', name: 'Mage', category: 'characters', path: '/assets/models/characters/mage.glb', height: 1.7 }
-        ]
-        setAvailableAssets(mockAssets)
-      } catch (error) {
-        console.error('Failed to load assets:', error)
-      }
-    }
-
-    loadAssets()
-  }, [])
 
   // Create new map
   const createNewMap = () => {
@@ -211,7 +210,7 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
         setMapData(loadedMap)
         setGridSize(loadedMap.size)
         setCurrentMapId(mapId)
-        
+
         if (gameEngine && onMapUpdate) {
           onMapUpdate(loadedMap)
         }
@@ -301,7 +300,7 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
         ctx.moveTo(pos, 0)
         ctx.lineTo(pos, canvas.height)
         ctx.stroke()
-        
+
         ctx.beginPath()
         ctx.moveTo(0, pos)
         ctx.lineTo(canvas.width, pos)
@@ -331,16 +330,16 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
     const rect = canvas.getBoundingClientRect()
     const scaleX = canvas.width / rect.width
     const scaleY = canvas.height / rect.height
-    
+
     const canvasX = (event.clientX - rect.left) * scaleX
     const canvasY = (event.clientY - rect.top) * scaleY
-    
+
     const x = Math.floor(canvasX / (canvas.width / gridSize))
     const z = Math.floor(canvasY / (canvas.height / gridSize))
 
     if (x >= 0 && x < gridSize && z >= 0 && z < gridSize) {
       setSelectedCell({ x, z })
-      
+
       // Apply tool
       applyTool(x, z)
     }
@@ -356,20 +355,20 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
       for (let dz = -Math.floor(brushSize/2); dz <= Math.floor(brushSize/2); dz++) {
         const cellX = x + dx
         const cellZ = z + dz
-        
+
         if (cellX >= 0 && cellX < gridSize && cellZ >= 0 && cellZ < gridSize) {
           const cell = cells[cellX][cellZ]
-          
+
           switch (selectedTool) {
             case 'terrain':
               cell.terrain = selectedTerrain
               cell.height = TERRAIN_TYPES[selectedTerrain].height
               break
-              
+
             case 'height':
               // Height modification would be handled by separate sliders
               break
-              
+
             case 'asset':
               if (selectedAsset && !cell.objects.find(obj => obj.assetId === selectedAsset.id)) {
                 cell.objects.push({
@@ -382,11 +381,11 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
                 })
               }
               break
-              
+
             case 'spawn':
               cell.flags.spawn = true
               break
-              
+
             case 'teleport':
               if (selectedTeleportTarget) {
                 cell.flags.teleport = {
@@ -395,7 +394,7 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
                 }
               }
               break
-              
+
             case 'erase':
               cell.objects = []
               cell.flags = {}
@@ -408,7 +407,7 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
 
     newMapData.cells = cells
     setMapData(newMapData)
-    
+
     // Sync with 3D world
     if (gameEngine && onMapUpdate) {
       onMapUpdate(newMapData)
@@ -421,7 +420,7 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
     const newMapData = { ...mapData }
     newMapData.cells[selectedCell.x][selectedCell.z].height = height
     setMapData(newMapData)
-    
+
     if (gameEngine && onMapUpdate) {
       onMapUpdate(newMapData)
     }
@@ -444,22 +443,22 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
     }
 
     setSpawnAreas(prev => [...prev, newSpawnArea])
-    
+
     // Mark cells as spawn area
     const newMapData = { ...mapData }
     const cells = newMapData.cells.map(row => [...row])
-    
+
     for (let dx = -2; dx <= 2; dx++) {
       for (let dz = -2; dz <= 2; dz++) {
         const cellX = selectedCell.x + dx
         const cellZ = selectedCell.z + dz
-        
+
         if (cellX >= 0 && cellX < gridSize && cellZ >= 0 && cellZ < gridSize) {
           cells[cellX][cellZ].spawnArea = newSpawnArea.id
         }
       }
     }
-    
+
     newMapData.cells = cells
     setMapData(newMapData)
   }
@@ -478,16 +477,16 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
     }
 
     setTeleportAreas(prev => [...prev, newTeleportArea])
-    
+
     // Mark cells as teleport area
     const newMapData = { ...mapData }
     const cells = newMapData.cells.map(row => [...row])
-    
+
     for (let dx = -1; dx <= 1; dx++) {
       for (let dz = -1; dz <= 1; dz++) {
         const cellX = selectedCell.x + dx
         const cellZ = selectedCell.z + dz
-        
+
         if (cellX >= 0 && cellX < gridSize && cellZ >= 0 && cellZ < gridSize) {
           cells[cellX][cellZ].flags.teleport = {
             toMapId: selectedTeleportTarget,
@@ -496,10 +495,10 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
         }
       }
     }
-    
+
     newMapData.cells = cells
     setMapData(newMapData)
-    
+
     if (gameEngine && onMapUpdate) {
       onMapUpdate(newMapData)
     }
@@ -514,12 +513,12 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
       const mapJson = JSON.stringify(mapData, null, 2)
       const blob = new Blob([mapJson], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
-      
+
       const a = document.createElement('a')
       a.href = url
       a.download = `${mapData.name}.json`
       a.click()
-      
+
       URL.revokeObjectURL(url)
     } catch (error) {
       console.error('Failed to export map:', error)
@@ -535,7 +534,7 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
       const loadedMapData = JSON.parse(text)
       setMapData(loadedMapData)
       setGridSize(loadedMapData.size)
-      
+
       if (gameEngine && onMapUpdate) {
         onMapUpdate(loadedMapData)
       }
@@ -567,17 +566,17 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
                 ))}
               </SelectContent>
             </Select>
-            
+
             <Button size="sm" onClick={() => setShowCreateMapDialog(true)}>
               <Plus className="w-4 h-4 mr-2" />
               New Map
             </Button>
-            
+
             <Button size="sm" variant="outline" onClick={() => setAsStartingMap(currentMapId)}>
               <Target className="w-4 h-4 mr-2" />
               Set as Starting Map
             </Button>
-            
+
             <Button onClick={saveMap} size="sm" variant="outline">
               <Save className="w-4 h-4 mr-2" />
               Save
@@ -663,7 +662,7 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="flex items-center gap-2">
                 <Switch checked={showGrid} onCheckedChange={setShowGrid} />
                 <Label>Show Grid</Label>
@@ -744,7 +743,7 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
                   Portal
                 </TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="terrain" className="space-y-3">
                 <div>
                   <Label className="text-xs">Terrain Type</Label>
@@ -767,7 +766,7 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-2">
                   {Object.entries(TERRAIN_TYPES).map(([key, terrain]) => (
                     <Button
@@ -786,8 +785,28 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
                   ))}
                 </div>
               </TabsContent>
-              
+
               <TabsContent value="asset" className="space-y-3">
+                <div>
+                  <Label className="text-xs">3D Model Assignment</Label>
+                  <Select value={selectedAsset} onValueChange={setSelectedAsset}>
+                    <SelectTrigger className="h-8">
+                      <SelectValue placeholder="Select 3D model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">No Model</SelectItem>
+                      {availableAssets.filter(asset => asset.type === 'model').map((asset) => (
+                        <SelectItem key={asset.id} value={asset.id}>
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 bg-blue-500 rounded" />
+                            {asset.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div>
                   <Label className="text-xs">Asset Category</Label>
                   <Select value={selectedAsset?.category || ''} onValueChange={(category) => {
