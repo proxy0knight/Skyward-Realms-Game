@@ -1,0 +1,26 @@
+{
+  "name": "skyward-realms-game",
+  "version": "1.0.0",
+  "description": "A modern 3D fantasy RPG game built with React, Babylon.js, and cutting-edge web technologies",
+  "keywords": ["game", "3d", "react", "babylonjs", "rpg", "fantasy"],
+  "author": "Skyward Realms Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/proxy0knight/Skyward-Realms-Game.git"
+  },
+  "workspaces": [
+    "game-client"
+  ],
+  "scripts": {
+    "dev": "cd game-client && pnpm run dev",
+    "build": "cd game-client && pnpm run build",
+    "lint": "cd game-client && pnpm run lint",
+    "preview": "cd game-client && pnpm run preview",
+    "install-all": "pnpm install && cd game-client && pnpm install"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}

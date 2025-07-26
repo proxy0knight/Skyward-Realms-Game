@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { X, User, Crown } from 'lucide-react'
 
-const DialoguePanel = ({ isOpen, onClose, character, dialogue, onChoiceSelect }) => {
+const DialoguePanel = ({ isOpen, onClose, dialogue, onChoiceSelect }) => {
   const [currentDialogue, setCurrentDialogue] = useState(dialogue)
   const [isTyping, setIsTyping] = useState(false)
   const [displayedText, setDisplayedText] = useState('')

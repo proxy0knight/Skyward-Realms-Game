@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import MainMenu from './components/MainMenu'
 import CharacterSelection from './components/CharacterSelection'
 import GameScene from './components/GameScene'
@@ -8,14 +8,14 @@ import SkillsPanel from './components/SkillsPanel'
 import MapPanel from './components/MapPanel'
 import DialoguePanel from './components/DialoguePanel'
 import QuestPanel from './components/QuestPanel'
-import AdminPanel from './components/AdminPanel'
 import AdminAccess from './components/AdminAccess'
+import AdminDashboard from './components/AdminDashboard'
 import CombatTestPanel from './components/CombatTestPanel'
 import StoryTestPanel from './components/StoryTestPanel'
 import { Flame, Droplets, Mountain, Wind } from 'lucide-react'
 
 function App() {
-  const [gameState, setGameState] = useState('menu') // 'menu', 'character-selection', 'playing', 'admin-access', 'admin'
+  const [gameState, setGameState] = useState('menu') // 'menu', 'character-selection', 'playing', 'admin-access', 'admin', 'asset-manager'
   const [player, setPlayer] = useState(null)
   const [selectedElement, setSelectedElement] = useState(null)
   const [activePanel, setActivePanel] = useState(null)
@@ -24,7 +24,7 @@ function App() {
   const [questData, setQuestData] = useState({ activeQuests: [], storyProgress: {} })
   const [showCombatTest, setShowCombatTest] = useState(false)
   const [showStoryTest, setShowStoryTest] = useState(false)
-  const [gameEngine, setGameEngine] = useState(null)
+  const [gameEngine, setGameEngine] = useState(null) // eslint-disable-line no-unused-vars
 
   const elements = [
     {
@@ -120,9 +120,9 @@ function App() {
     setQuestData(newQuestData)
   }
 
-  const handlePanelToggle = (panelName) => {
+  const handlePanelToggle = useCallback((panelName) => {
     setActivePanel(activePanel === panelName ? null : panelName)
-  }
+  }, [activePanel])
 
   const handleAdminAccess = () => {
     setGameState('admin-access')
@@ -136,9 +136,25 @@ function App() {
     setGameState('menu')
   }
 
+
+
   const handleGameEngineReady = (engine) => {
+    console.log('Game engine ready:', engine)
     setGameEngine(engine)
   }
+
+  // Keyboard shortcut for asset manager (Ctrl+Shift+A)
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.ctrlKey && event.shiftKey && event.key === 'A') {
+        event.preventDefault()
+        setGameState('asset-manager')
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -177,7 +193,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyPress)
     return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [gameState, activePanel, showCombatTest, showStoryTest])
+  }, [gameState, activePanel, showCombatTest, showStoryTest, handlePanelToggle])
 
   return (
     <div className="w-full min-h-screen bg-black">
@@ -190,7 +206,11 @@ function App() {
       )}
       
       {gameState === 'admin' && (
-        <AdminPanel onBack={handleBackFromAdmin} />
+        <AdminDashboard />
+      )}
+      
+      {gameState === 'asset-manager' && (
+        <AdminDashboard />
       )}
       
       {gameState === 'character-selection' && (

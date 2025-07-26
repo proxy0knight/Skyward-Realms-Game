@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge.jsx'
 import { X, MapPin, Users, Flame, Droplets, Mountain, Wind, Crown, Sword } from 'lucide-react'
 import './InventoryPanel.css'
 
-const MapPanel = ({ isOpen, onClose, player }) => {
+const MapPanel = ({ isOpen, onClose }) => {
   const mapRegions = [
     {
       id: 'fire_realm',

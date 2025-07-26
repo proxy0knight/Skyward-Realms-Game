@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
@@ -16,7 +16,7 @@ const StoryTestPanel = ({ isOpen, onClose }) => {
     terra: { level: 0, trust: 0, respect: 0, friendship: 0 },
     zephyr: { level: 0, trust: 0, respect: 0, friendship: 0 }
   })
-  const [storyFlags, setStoryFlags] = useState(new Set())
+  const [storyFlags] = useState(new Set())
   const [dialogueHistory, setDialogueHistory] = useState([])
 
   const characters = {
@@ -161,9 +161,7 @@ const StoryTestPanel = ({ isOpen, onClose }) => {
     })
   }
 
-  const addStoryFlag = (flag) => {
-    setStoryFlags(prev => new Set([...prev, flag]))
-  }
+
 
   const startDialogue = (characterId, dialogueId = 'first_meeting') => {
     const character = characters[characterId]
