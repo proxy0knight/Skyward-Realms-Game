@@ -113,22 +113,15 @@ class BabylonCharacter {
     const modelPaths = [
       `/character/${this.element.id}.glb`,
       `/assets/models/character/${this.element.id}.glb`,
+      `/assets/models/${this.element.id}.glb`,
       `/assets/models/characters/${this.element.id}.glb`,
-      `/assets/models/characters/${this.element.id}_character.glb`,
-      `/assets/models/${this.element.id}.glb`
+      `/assets/models/characters/${this.element.id}_character.glb`
     ]
 
     // Try each path until one works
     for (const modelPath of modelPaths) {
-      // Check if file exists first
-      const fileExists = await this.checkFileExists(modelPath)
-      if (!fileExists) {
-        console.log(`BabylonCharacter: Model file not found: ${modelPath}`)
-        continue
-      }
-
       try {
-        console.log(`BabylonCharacter: Loading model: ${modelPath}`)
+        console.log(`BabylonCharacter: Attempting to load model: ${modelPath}`)
         const characterMesh = await this.loadSingleModel(modelPath)
         console.log(`✅ Loaded character model: ${modelPath}`)
         return characterMesh
