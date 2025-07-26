@@ -124,49 +124,114 @@ class BabylonGameEngine {
    * Get starting map ID from localStorage
    */
   getStartingMapId() {
+    // Check for MapEditor format first
+    const startId = localStorage.getItem('startingMapId')
+    if (startId) {
+      return startId
+    }
+    
+    // Fallback to old format
     const idx = JSON.parse(localStorage.getItem('skyward_maps_index') || '[]')
-    let startId = localStorage.getItem('skyward_starting_map')
-    if (!startId && idx.length > 0) startId = idx[0].id
+    let oldStartId = localStorage.getItem('skyward_starting_map')
+    if (!oldStartId && idx.length > 0) oldStartId = idx[0].id
+    
+    // Check saved maps from MapEditor
+    const savedMaps = JSON.parse(localStorage.getItem('savedMaps') || '[]')
+    if (savedMaps.length > 0) {
+      return savedMaps[0].id
+    }
     
     // If no maps exist, create a default one
-    if (!startId || startId === 'default') {
+    if (!oldStartId || oldStartId === 'default') {
       this.ensureDefaultMapExists()
       return 'default'
     }
     
-    return startId
+    return oldStartId
   }
 
   /**
    * Load map data by ID
    */
   loadMapData(mapId) {
-    const data = localStorage.getItem('skyward_world_map_' + mapId)
+    // Try MapEditor format first
+    let data = localStorage.getItem('map_' + mapId)
+    
+    // Fallback to old format
+    if (!data) {
+      data = localStorage.getItem('skyward_world_map_' + mapId)
+    }
+    
     if (!data) {
       console.warn('BabylonGameEngine: No map data found for mapId:', mapId)
       
       // If it's the default map, create it
       if (mapId === 'default') {
         this.ensureDefaultMapExists()
-        const defaultData = localStorage.getItem('skyward_world_map_default')
+        const defaultData = localStorage.getItem('skyward_world_map_default') || localStorage.getItem('map_default')
         if (defaultData) {
           return JSON.parse(defaultData)
         }
       }
       return null
     }
+    
     const parsed = JSON.parse(data)
+    
+    // Handle MapEditor format (object with cells array)
+    if (parsed && parsed.cells && Array.isArray(parsed.cells)) {
+      console.log('BabylonGameEngine: Converting MapEditor format to engine format')
+      return this.convertMapEditorFormat(parsed)
+    }
+    
+    // Handle old engine format (direct 2D array)
     if (!parsed || !Array.isArray(parsed) || parsed.length === 0) {
       console.warn('BabylonGameEngine: Loaded map data is empty or invalid for mapId:', mapId)
+      return null
     }
+    
     return parsed
+  }
+
+  /**
+   * Convert MapEditor format to engine format
+   */
+  convertMapEditorFormat(mapData) {
+    const { cells, size } = mapData
+    const engineFormat = []
+    
+    for (let z = 0; z < size; z++) {
+      engineFormat[z] = []
+      for (let x = 0; x < size; x++) {
+        const cell = cells[x] && cells[x][z] ? cells[x][z] : { terrain: 'grass', height: 0, objects: [], flags: {} }
+        
+        engineFormat[z][x] = {
+          type: cell.terrain || 'grass',
+          asset: null,
+          flags: cell.flags || {},
+          terrainHeightIndex: cell.height || 0,
+          objects: (cell.objects || []).map(obj => ({
+            assetId: obj.assetId,
+            heightIndex: obj.heightOffset || 0
+          }))
+        }
+        
+        // Handle spawn areas
+        if (cell.spawnArea) {
+          engineFormat[z][x].flags.spawn = { heightIndex: 0 }
+        }
+      }
+    }
+    
+    console.log('BabylonGameEngine: Converted MapEditor format, size:', size + 'x' + size)
+    return engineFormat
   }
 
   /**
    * Ensure default map exists
    */
   ensureDefaultMapExists() {
-    const existingMap = localStorage.getItem('skyward_world_map_default')
+    const existingMap = localStorage.getItem('skyward_world_map_default') || localStorage.getItem('map_default')
     if (existingMap) return
     
     console.log('BabylonGameEngine: Creating default map...')
@@ -200,12 +265,41 @@ class BabylonGameEngine {
       }
     }
     
+    // Save in old format
     localStorage.setItem('skyward_world_map_default', JSON.stringify(def))
     
-    // Update maps index
+    // Also save in MapEditor format
+    const mapEditorFormat = {
+      id: 'default',
+      name: 'Default World',
+      size: size,
+      cellSize: 10,
+      cells: Array(size).fill(null).map((_, x) => 
+        Array(size).fill(null).map((_, z) => ({
+          x,
+          z,
+          terrain: def[z][x].type,
+          height: def[z][x].terrainHeightIndex,
+          objects: def[z][x].objects || [],
+          flags: def[z][x].flags || {},
+          spawnArea: null
+        }))
+      ),
+      spawnPoints: [],
+      teleports: [],
+      createdAt: Date.now()
+    }
+    
+    localStorage.setItem('map_default', JSON.stringify(mapEditorFormat))
+    
+    // Update both map indexes
     const mapsIndex = [{ id: 'default', name: 'Default World', size, isStarting: true }]
     localStorage.setItem('skyward_maps_index', JSON.stringify(mapsIndex))
     localStorage.setItem('skyward_starting_map', 'default')
+    
+    const savedMaps = [{ id: 'default', name: 'Default World', size }]
+    localStorage.setItem('savedMaps', JSON.stringify(savedMaps))
+    localStorage.setItem('startingMapId', 'default')
     
     console.log('BabylonGameEngine: Default map created with size', size + 'x' + size)
   }

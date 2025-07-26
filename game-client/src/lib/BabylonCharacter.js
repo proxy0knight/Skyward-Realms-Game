@@ -6,16 +6,16 @@ class BabylonCharacter {
   constructor(scene, playerData) {
     this.scene = scene
     this.playerData = playerData
-    
+
     // Character components
     this.characterMesh = null
     this.characterGroup = null
     this.elementalEffects = []
-    
+
     // Animation
     this.animationGroups = []
     this.currentAnimation = null
-    
+
     // Movement
     this.moveSpeed = 5
     this.runSpeed = 10 // New: running speed
@@ -28,10 +28,10 @@ class BabylonCharacter {
     this.groundCheckRayLength = 1.2 // New: ray length for ground check
     this.cameraMode = 'third' // New: camera mode (third/first)
     this.position = BABYLON.Vector3.Zero()
-    
+
     // Element system
     this.element = playerData.element || { id: 'fire', name: 'النار', color: '#FF4500' }
-    
+
     console.log('BabylonCharacter: Initialized for element:', this.element.name)
   }
 
@@ -40,28 +40,28 @@ class BabylonCharacter {
    */
   async init() {
     console.log('BabylonCharacter: Loading character...')
-    
+
     try {
       // Load GLB character model
       this.characterMesh = await this.loadCharacterModel()
       console.log('BabylonCharacter: GLB model loaded successfully')
-      
+
       // Setup physics BEFORE parenting (required by Babylon.js physics)
       this.setupPhysics()
-      
+
       // Create character group and parent the mesh
       this.characterGroup = new BABYLON.TransformNode('characterGroup', this.scene)
       this.characterMesh.parent = this.characterGroup
-      
+
       // Add elemental effects
       await this.createElementalEffects()
-      
+
       // Setup animations
       this.setupAnimations()
-      
+
       console.log('BabylonCharacter: GLB character with effects loaded successfully!')
       return this.characterGroup
-      
+
     } catch {
       console.warn('BabylonCharacter: Could not load GLB model, creating fallback')
       return await this.createFallbackCharacter()
@@ -107,15 +107,16 @@ class BabylonCharacter {
         console.warn('BabylonCharacter: No base64 data found in IndexedDB for modelId:', modelId)
       }
     }
-    
+
     // Try loading from available model paths (check what actually exists)
     const modelPaths = [
-      `/assets/models/character/${this.element.id}.glb`,
       `/character/${this.element.id}.glb`,
+      `/assets/models/character/${this.element.id}.glb`,
       `/assets/models/characters/${this.element.id}.glb`,
+      `/assets/models/characters/${this.element.id}_character.glb`,
       `/assets/models/${this.element.id}.glb`
     ]
-    
+
     // Try each path until one works
     for (const modelPath of modelPaths) {
       // Check if file exists first
@@ -124,7 +125,7 @@ class BabylonCharacter {
         console.log(`BabylonCharacter: Model file not found: ${modelPath}`)
         continue
       }
-      
+
       try {
         console.log(`BabylonCharacter: Loading model: ${modelPath}`)
         const characterMesh = await this.loadSingleModel(modelPath)
@@ -135,7 +136,7 @@ class BabylonCharacter {
         continue
       }
     }
-    
+
     // If we get here, no models were found - this will trigger fallback creation
     console.log('BabylonCharacter: No 3D models found, will use procedural character')
     throw new Error(`No character models found for element: ${this.element.id}`)
@@ -152,23 +153,23 @@ class BabylonCharacter {
         modelPath,
         this.scene,
         (meshes, particleSystems, skeletons, animationGroups) => {
-          
+
           // Get the main character mesh (usually the first or root mesh)
           let characterMesh = meshes[0]
-          
+
           // If multiple meshes, merge them into one
           if (meshes.length > 1) {
             characterMesh = BABYLON.Mesh.MergeMeshes(meshes.filter(mesh => mesh.material), true, true)
             characterMesh.name = `${this.element.id}_character`
           }
-          
+
           // Scale and position
           characterMesh.scaling = new BABYLON.Vector3(2, 2, 2)
           characterMesh.position = new BABYLON.Vector3(0, 0, 0)
-          
+
           // Apply element-based material modifications
           this.applyElementalMaterials(characterMesh)
-          
+
           // Enable shadows
           characterMesh.receiveShadows = true
           if (this.scene.lights && this.scene.lights[0] && this.scene.lights[0].getShadowGenerator) {
@@ -177,10 +178,10 @@ class BabylonCharacter {
               shadowGenerator.addShadowCaster(characterMesh)
             }
           }
-          
+
           // Store animation groups
           this.animationGroups = animationGroups
-          
+
           resolve(characterMesh)
         },
         (progress) => {
@@ -199,22 +200,22 @@ class BabylonCharacter {
    */
   applyElementalMaterials(mesh) {
     const elementColors = this.getElementColors()
-    
+
     mesh.getChildMeshes().forEach(childMesh => {
       if (childMesh.material) {
         // Clone material to avoid affecting other instances
         const material = childMesh.material.clone(`${childMesh.name}_${this.element.id}_material`)
-        
+
         // Apply element-based modifications
         if (material.diffuseTexture) {
           // Add color tinting
           material.diffuseColor = BABYLON.Color3.FromHexString(elementColors.primary)
         }
-        
+
         // Add emissive glow
         material.emissiveColor = BABYLON.Color3.FromHexString(elementColors.glow)
         material.emissiveIntensity = 0.1
-        
+
         childMesh.material = material
       }
     })
@@ -225,16 +226,16 @@ class BabylonCharacter {
    */
   async createFallbackCharacter() {
     console.log('BabylonCharacter: Creating fallback procedural character...')
-    
+
     const characterGroup = new BABYLON.TransformNode('fallbackCharacterGroup', this.scene)
     const elementColors = this.getElementColors()
-    
+
     // Create body
     const body = BABYLON.MeshBuilder.CreateCapsule('body', {
       radius: 0.5,
       height: 2
     }, this.scene)
-    
+
     // Body material
     const bodyMaterial = new BABYLON.PBRMaterial('bodyMaterial', this.scene)
     bodyMaterial.baseColor = BABYLON.Color3.FromHexString(elementColors.primary)
@@ -243,28 +244,28 @@ class BabylonCharacter {
     bodyMaterial.emissiveColor = BABYLON.Color3.FromHexString(elementColors.glow)
     bodyMaterial.emissiveIntensity = 0.1
     body.material = bodyMaterial
-    
+
     // Create head
     const head = BABYLON.MeshBuilder.CreateSphere('head', {
       diameter: 0.8
     }, this.scene)
     head.position.y = 1.2
-    
+
     const headMaterial = bodyMaterial.clone('headMaterial')
     headMaterial.emissiveIntensity = 0.2
     head.material = headMaterial
-    
+
     // Parent to group
     body.parent = characterGroup
     head.parent = characterGroup
-    
+
     // Enable shadows
     body.receiveShadows = true
     head.receiveShadows = true
-    
+
     this.characterGroup = characterGroup
     this.characterMesh = body
-    
+
     return characterGroup
   }
 
@@ -336,29 +337,29 @@ class BabylonCharacter {
    */
   setupGroundDetection() {
     if (!this.characterMesh || !this.scene) return
-    
+
     // Store reference to engine for terrain detection
     this.gameEngine = this.scene.gameEngine
-    
+
     // Register render loop for ground check
     this.scene.registerBeforeRender(() => {
       if (!this.characterMesh) return
-      
+
       const position = this.characterMesh.position
-      
+
       // Check if character fell below safe height
       if (position.y < -10) {
         // Get terrain height at current position
         const terrainHeight = this.gameEngine?.getTerrainHeight?.(position.x, position.z) || 1
-        
+
         // Reset position to terrain surface
         this.characterMesh.position.y = terrainHeight + 2
-        
+
         // Reset physics if available
         if (this.characterMesh.physicsImpostor) {
           this.characterMesh.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero())
         }
-        
+
         console.log('BabylonCharacter: Respawned on terrain at height', terrainHeight)
       }
     })
@@ -369,7 +370,7 @@ class BabylonCharacter {
    */
   async createElementalEffects() {
     const elementColors = this.getElementColors()
-    
+
     switch (this.element.id) {
       case 'fire':
         await this.createFireEffects(elementColors)
@@ -384,7 +385,7 @@ class BabylonCharacter {
         await this.createAirEffects(elementColors)
         break
     }
-    
+
     console.log('BabylonCharacter: Elemental effects created')
   }
 
@@ -400,39 +401,39 @@ class BabylonCharacter {
     } catch {
       console.log('BabylonCharacter: Using procedural fire texture')
     }
-    
+
     // Emitter
     fireParticles.emitter = this.characterGroup
     fireParticles.minEmitBox = new BABYLON.Vector3(-0.5, 0, -0.5)
     fireParticles.maxEmitBox = new BABYLON.Vector3(0.5, 2, 0.5)
-    
+
     // Colors
     fireParticles.color1 = BABYLON.Color4.FromHexString(colors.primary + 'FF')
     fireParticles.color2 = BABYLON.Color4.FromHexString(colors.glow + 'FF')
     fireParticles.colorDead = new BABYLON.Color4(0, 0, 0, 0)
-    
+
     // Size
     fireParticles.minSize = 0.1
     fireParticles.maxSize = 0.3
-    
+
     // Life time
     fireParticles.minLifeTime = 0.3
     fireParticles.maxLifeTime = 1.0
-    
+
     // Emission rate
     fireParticles.emitRate = 20
-    
+
     // Direction
     fireParticles.direction1 = new BABYLON.Vector3(-0.5, 1, -0.5)
     fireParticles.direction2 = new BABYLON.Vector3(0.5, 2, 0.5)
-    
+
     // Speed
     fireParticles.minEmitPower = 1
     fireParticles.maxEmitPower = 3
-    
+
     // Start the system
     fireParticles.start()
-    
+
     this.elementalEffects.push(fireParticles)
   }
 
@@ -447,24 +448,24 @@ class BabylonCharacter {
     } catch {
       console.log('BabylonCharacter: Using procedural water texture')
     }
-    
+
     waterParticles.emitter = this.characterGroup
     waterParticles.minEmitBox = new BABYLON.Vector3(-1, 0.5, -1)
     waterParticles.maxEmitBox = new BABYLON.Vector3(1, 2.5, 1)
-    
+
     waterParticles.color1 = BABYLON.Color4.FromHexString(colors.primary + 'AA')
     waterParticles.color2 = BABYLON.Color4.FromHexString(colors.glow + 'AA')
-    
+
     waterParticles.minSize = 0.05
     waterParticles.maxSize = 0.15
-    
+
     waterParticles.minLifeTime = 1.0
     waterParticles.maxLifeTime = 2.0
-    
+
     waterParticles.emitRate = 15
-    
+
     waterParticles.gravity = new BABYLON.Vector3(0, -2, 0)
-    
+
     waterParticles.start()
     this.elementalEffects.push(waterParticles)
   }
@@ -480,12 +481,12 @@ class BabylonCharacter {
         height: 0.1 + Math.random() * 0.1,
         depth: 0.1 + Math.random() * 0.1
       }, this.scene)
-      
+
       const rockMaterial = new BABYLON.PBRMaterial('rockMaterial_' + i, this.scene)
       rockMaterial.baseColor = BABYLON.Color3.FromHexString(colors.primary)
       rockMaterial.roughness = 0.9
       rock.material = rockMaterial
-      
+
       // Position around character
       const angle = (i / 6) * Math.PI * 2
       const radius = 1.5
@@ -494,10 +495,10 @@ class BabylonCharacter {
         1 + Math.random() * 1,
         Math.sin(angle) * radius
       )
-      
+
       rock.parent = this.characterGroup
       this.elementalEffects.push(rock)
-      
+
       // Animate floating
       rock.animations = []
       BABYLON.Animation.CreateAndStartAnimation(
@@ -524,32 +525,32 @@ class BabylonCharacter {
     } catch {
       console.log('BabylonCharacter: Using procedural wind texture')
     }
-    
+
     windParticles.emitter = this.characterGroup
-    
+
     // Spiral emission
     windParticles.startPositionFunction = (worldMatrix, positionToUpdate) => {
       const time = Date.now() * 0.001
       const radius = 1.5
       const height = Math.random() * 3
       const angle = time + Math.random() * Math.PI * 2
-      
+
       positionToUpdate.x = Math.cos(angle) * radius
       positionToUpdate.y = height
       positionToUpdate.z = Math.sin(angle) * radius
     }
-    
+
     windParticles.color1 = BABYLON.Color4.FromHexString(colors.primary + '66')
     windParticles.color2 = BABYLON.Color4.FromHexString(colors.glow + '66')
-    
+
     windParticles.minSize = 0.05
     windParticles.maxSize = 0.2
-    
+
     windParticles.minLifeTime = 2.0
     windParticles.maxLifeTime = 4.0
-    
+
     windParticles.emitRate = 25
-    
+
     windParticles.start()
     this.elementalEffects.push(windParticles)
   }
@@ -564,7 +565,7 @@ class BabylonCharacter {
         ag.name.toLowerCase().includes('idle') || 
         ag.name.toLowerCase().includes('stand')
       )
-      
+
       if (idleAnimation) {
         this.currentAnimation = idleAnimation
         idleAnimation.start(true) // Loop
@@ -585,12 +586,12 @@ class BabylonCharacter {
     const animation = this.animationGroups.find(ag => 
       ag.name.toLowerCase().includes(animationName.toLowerCase())
     )
-    
+
     if (animation) {
       if (this.currentAnimation) {
         this.currentAnimation.stop()
       }
-      
+
       this.currentAnimation = animation
       animation.start(true)
       console.log('BabylonCharacter: Playing animation:', animation.name)
@@ -623,7 +624,7 @@ class BabylonCharacter {
         glow: '#E0F6FF'
       }
     }
-    
+
     return colorSchemes[this.element.id] || colorSchemes.fire
   }
 
@@ -681,18 +682,18 @@ class BabylonCharacter {
    */
   checkCollisions(moveVector) {
     if (!this.scene || !this.characterMesh) return
-    
+
     const origin = this.characterMesh.position.clone()
     const direction = moveVector.normalize()
     const ray = new BABYLON.Ray(origin, direction)
-    
+
     // Check collision with terrain and objects
     const hit = this.scene.pickWithRay(ray, (mesh) => {
       return mesh !== this.characterMesh && 
              mesh !== this.characterGroup && 
              mesh.checkCollisions !== false
     })
-    
+
     // If collision detected and close, stop movement
     if (hit && hit.hit && hit.distance < 2) {
       // Reset velocity to prevent clipping
@@ -724,13 +725,13 @@ class BabylonCharacter {
    */
   isPositionValid(position) {
     if (!this.scene) return true
-    
+
     // Simple bounds check
     const maxDistance = 100 // Maximum distance from origin
     if (position.length() > maxDistance) {
       return false
     }
-    
+
     return true
   }
 
@@ -790,19 +791,19 @@ class BabylonCharacter {
   dispose() {
     // Stop animations
     this.animationGroups.forEach(ag => ag.stop())
-    
+
     // Dispose effects
     this.elementalEffects.forEach(effect => {
       if (effect.dispose) {
         effect.dispose()
       }
     })
-    
+
     // Dispose character
     if (this.characterGroup) {
       this.characterGroup.dispose()
     }
-    
+
     console.log('BabylonCharacter: Disposed')
   }
 }
