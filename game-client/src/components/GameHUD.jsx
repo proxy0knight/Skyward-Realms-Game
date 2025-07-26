@@ -108,7 +108,7 @@ const GameHUD = ({ player, onTogglePanel, activePanel }) => {
   return (
     <>
       {/* Responsive Magical Background Particles */}
-      <div className="fixed inset-0 pointer-events-none z-5 opacity-20">
+      <div className="fixed inset-0 pointer-events-none z-10 opacity-20">
         {Array.from({ length: 12 }, (_, i) => (
           <div
             key={i}
@@ -129,7 +129,7 @@ const GameHUD = ({ player, onTogglePanel, activePanel }) => {
       </div>
 
       {/* Responsive Top Bar - Game Status & System Info */}
-      <div className="fixed top-0 left-0 right-0 z-30 p-2 sm:p-4">
+      <div className="fixed top-0 left-0 right-0 z-50 p-2 sm:p-4">
         <div className="max-w-screen-2xl mx-auto">
           <div className="bg-black/40 backdrop-blur-lg rounded-xl sm:rounded-2xl border border-purple-500/20 shadow-2xl">
             <div className="flex items-center justify-between p-2 sm:p-4">
@@ -190,7 +190,7 @@ const GameHUD = ({ player, onTogglePanel, activePanel }) => {
       </div>
 
       {/* Responsive Player Stats Panel - Adapts to viewport */}
-      <div className="fixed top-16 sm:top-20 lg:top-24 right-2 sm:right-4 z-20" data-ui-element="player-stats">
+      <div className="fixed top-16 sm:top-20 lg:top-24 right-2 sm:right-4 z-40" data-ui-element="player-stats">
         <div className="bg-black/40 backdrop-blur-lg rounded-2xl sm:rounded-3xl p-3 sm:p-4 lg:p-6 border border-purple-500/20 shadow-2xl w-64 sm:w-72 lg:w-80 xl:w-96 relative overflow-hidden">
           {/* Background glow effect */}
           <div className={`absolute inset-0 bg-gradient-to-br ${elementGradient} opacity-5 rounded-2xl sm:rounded-3xl`} />
@@ -382,7 +382,7 @@ const GameHUD = ({ player, onTogglePanel, activePanel }) => {
       </div>
 
       {/* Responsive Navigation - Adapts position based on viewport */}
-      <div className={`fixed z-20 ${isDesktop ? 'left-4 top-1/2 -translate-y-1/2' : 'bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2'}`} data-ui-element="quick-actions">
+      <div className={`fixed z-40 ${isDesktop ? 'left-4 top-1/2 -translate-y-1/2' : 'bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2'}`} data-ui-element="quick-actions">
         <div className="bg-black/40 backdrop-blur-lg rounded-2xl sm:rounded-3xl p-2 sm:p-3 lg:p-4 border border-purple-500/20 shadow-2xl relative overflow-hidden">
           {/* Background glow */}
           <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 via-pink-600/10 to-orange-600/10 rounded-2xl sm:rounded-3xl" />
@@ -445,7 +445,7 @@ const GameHUD = ({ player, onTogglePanel, activePanel }) => {
       </div>
 
       {/* Responsive Mini Map - Position adapts to viewport */}
-      <div className="fixed bottom-2 sm:bottom-4 right-2 sm:right-4 lg:bottom-auto lg:top-1/3 z-20" data-ui-element="mini-map">
+      <div className="fixed bottom-2 sm:bottom-4 right-2 sm:right-4 lg:bottom-auto lg:top-1/3 z-40" data-ui-element="mini-map">
         <div className="bg-black/40 backdrop-blur-lg rounded-2xl sm:rounded-3xl p-2 sm:p-3 lg:p-4 border border-purple-500/20 shadow-2xl w-40 h-24 sm:w-48 sm:h-28 lg:w-64 lg:h-40 relative overflow-hidden">
           {/* Background effect */}
           <div className="absolute inset-0 bg-gradient-to-tl from-green-600/10 via-blue-600/10 to-purple-600/10 rounded-2xl sm:rounded-3xl" />
@@ -495,7 +495,7 @@ const GameHUD = ({ player, onTogglePanel, activePanel }) => {
       </div>
 
       {/* Responsive Skills Quick Bar - Adapts to available space */}
-      <div className="fixed bottom-16 sm:bottom-20 left-2 sm:left-4 lg:bottom-4 z-20" data-ui-element="skills-bar">
+      <div className="fixed bottom-16 sm:bottom-20 left-2 sm:left-4 lg:bottom-4 z-40" data-ui-element="skills-bar">
         <div className="bg-black/40 backdrop-blur-lg rounded-2xl sm:rounded-3xl p-2 sm:p-3 lg:p-4 border border-purple-500/20 shadow-2xl relative overflow-hidden">
           {/* Background glow */}
           <div className="absolute inset-0 bg-gradient-to-tr from-orange-600/10 via-red-600/10 to-pink-600/10 rounded-2xl sm:rounded-3xl" />

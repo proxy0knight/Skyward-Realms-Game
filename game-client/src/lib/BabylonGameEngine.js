@@ -1,6 +1,8 @@
 import * as BABYLON from '@babylonjs/core'
 import '@babylonjs/loaders/glTF'
 import BabylonCharacter from './BabylonCharacter.js'
+import PerformanceOptimizer from './PerformanceOptimizer.js'
+import AssetLoader from './AssetLoader.js'
 
 // Import physics plugin
 import { CannonJSPlugin } from '@babylonjs/core/Physics/Plugins/cannonJSPlugin'
@@ -31,6 +33,10 @@ class BabylonGameEngine {
     this.characterSystem = null
     this.audioSystem = null
     
+    // Memory and Performance Management
+    this.performanceOptimizer = null
+    this.assetLoader = null
+    
     // Character
     this.babylonCharacter = null
     
@@ -59,6 +65,8 @@ class BabylonGameEngine {
       this.canvas.style.height = '100%'
       this.canvas.style.display = 'block'
       this.canvas.style.outline = 'none'
+      this.canvas.style.position = 'relative'
+      this.canvas.style.zIndex = '1'
       container.appendChild(this.canvas)
       
       // Create Babylon.js engine with advanced features
@@ -82,6 +90,17 @@ class BabylonGameEngine {
       
       // Store reference to this engine in scene for character access
       this.scene.gameEngine = this
+      
+      // Initialize performance optimizer
+      this.performanceOptimizer = new PerformanceOptimizer(this)
+      
+      // Initialize asset loader with memory management
+      this.assetLoader = new AssetLoader(this.scene, {
+        enableMemoryManagement: true,
+        maxMemoryMB: 1024, // 1GB limit for all assets
+        maxModels: 100, // Maximum 100 models
+        debugMode: false // Set to true for debugging
+      })
       
       // Enable physics with Cannon.js
       await this.setupPhysics()
@@ -1322,9 +1341,33 @@ class BabylonGameEngine {
    */
   dispose() {
     this.stop()
+    
+    // Dispose character with memory cleanup
+    if (this.babylonCharacter) {
+      this.babylonCharacter.dispose()
+    }
+    
+    // Dispose performance optimizer
+    if (this.performanceOptimizer) {
+      this.performanceOptimizer.dispose()
+    }
+    
+    // Dispose asset loader and free memory
+    if (this.assetLoader) {
+      this.assetLoader.dispose()
+    }
+    
+    // Dispose scene
     if (this.scene) {
       this.scene.dispose()
     }
+    
+    // Dispose engine
+    if (this.engine) {
+      this.engine.dispose()
+    }
+    
+    console.log('BabylonGameEngine: Disposed with complete memory cleanup')
   }
 
   /**

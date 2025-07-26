@@ -8,9 +8,9 @@ import { fileURLToPath, URL } from "node:url";
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
-    allowedHosts: [
-      "8fd875ec-178f-4d95-992c-dee70a423c43-00-hief1pzch30a.sisko.replit.dev",
-    ],
+    host: true,
+    allowedHosts: true,
+    cors: true,
   },
   resolve: {
     alias: {

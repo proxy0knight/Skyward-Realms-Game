@@ -1,12 +1,21 @@
 import * as BABYLON from '@babylonjs/core'
 import '@babylonjs/loaders/glTF'
 import { get as idbGet } from 'idb-keyval'
+import AssetLoader from './AssetLoader.js'
 
 class BabylonCharacter {
   constructor(scene, playerData) {
     this.scene = scene
     this.playerData = playerData
     this.gameEngine = scene.gameEngine // Store reference to game engine
+
+    // Initialize asset loader with memory management
+    this.assetLoader = new AssetLoader(scene, {
+      enableMemoryManagement: true,
+      maxMemoryMB: 256, // Limit character assets to 256MB
+      maxModels: 20, // Limit to 20 character models
+      debugMode: false // Set to true for debugging
+    })
 
     // Character components
     this.characterMesh = null
@@ -43,183 +52,84 @@ class BabylonCharacter {
     console.log('BabylonCharacter: Loading character...')
 
     try {
-      // Load GLB character model
-      this.characterMesh = await this.loadCharacterModel()
-      console.log('BabylonCharacter: GLB model loaded successfully')
+      // Load GLB character model using AssetLoader with memory management
+      this.characterMesh = await this.assetLoader.loadCharacterModel(this.element, this.playerData)
+      
+      if (this.characterMesh) {
+        console.log('BabylonCharacter: GLB model loaded successfully')
 
-      // Setup physics BEFORE parenting (required by Babylon.js physics)
-      this.setupPhysics()
+        // Setup physics BEFORE parenting (required by Babylon.js physics)
+        this.setupPhysics()
 
-      // Create character group and parent the mesh
-      this.characterGroup = new BABYLON.TransformNode('characterGroup', this.scene)
-      this.characterMesh.parent = this.characterGroup
+        // Create character group and parent the mesh
+        this.characterGroup = new BABYLON.TransformNode('characterGroup', this.scene)
+        this.characterMesh.parent = this.characterGroup
 
-      // Add elemental effects
-      await this.createElementalEffects()
+        // Add elemental effects
+        await this.createElementalEffects()
 
-      // Setup animations
-      this.setupAnimations()
+        // Setup animations
+        this.setupAnimations()
 
-      console.log('BabylonCharacter: GLB character with effects loaded successfully!')
-      return this.characterGroup
+        console.log('BabylonCharacter: GLB character with effects loaded successfully!')
+        return this.characterGroup
+      } else {
+        throw new Error('No 3D model available')
+      }
 
-    } catch {
-      console.warn('BabylonCharacter: Could not load GLB model, creating fallback')
+    } catch (error) {
+      console.warn('BabylonCharacter: Could not load GLB model, creating fallback:', error.message)
       return await this.createFallbackCharacter()
     }
   }
 
   /**
-   * Check if a file exists without causing errors
+   * Apply elemental materials to loaded character mesh
    */
-  async checkFileExists(filePath) {
+  applyElementalMaterials(characterMesh) {
+    if (!characterMesh || !characterMesh.material) return
+
     try {
-      const response = await fetch(filePath, { method: 'HEAD' })
-      return response.ok
-    } catch {
-      return false
-    }
-  }
-
-  /**
-   * Load GLB character model based on element
-   */
-  async loadCharacterModel() {
-    // Support modelId at both playerData.modelId and playerData.element.modelId
-    const modelId = this.playerData.modelId || (this.playerData.element && this.playerData.element.modelId)
-    if (modelId) {
-      console.log('BabylonCharacter: Attempting to load custom model from IndexedDB with modelId:', modelId)
-      const base64 = await idbGet(modelId)
-      if (base64) {
-        try {
-          const result = await BABYLON.SceneLoader.ImportMeshAsync('', '', base64, this.scene)
-          // Find first valid mesh
-          const validMesh = result.meshes.find(m => m && m instanceof BABYLON.Mesh && m.getTotalVertices && m.getTotalVertices() > 0)
-          if (validMesh) {
-            console.log('BabylonCharacter: Successfully loaded custom model from IndexedDB:', modelId, 'Mesh:', validMesh.name)
-            return validMesh
-          } else {
-            console.warn('BabylonCharacter: No valid mesh found in imported GLB for modelId:', modelId, 'Meshes:', result.meshes)
+      const material = characterMesh.material
+      
+      // Apply element-specific color tinting
+      switch (this.element.id) {
+        case 'fire':
+          if (material.diffuseColor) {
+            material.diffuseColor = BABYLON.Color3.FromHexString('#FF4500')
           }
-        } catch (e) {
-          console.warn('BabylonCharacter: Failed to load custom model from IndexedDB, falling back to procedural character.', e)
-        }
-      } else {
-        console.warn('BabylonCharacter: No base64 data found in IndexedDB for modelId:', modelId)
-      }
-    }
-
-    // Try loading from available model paths (check what actually exists)
-    const modelPaths = [
-      `/character/${this.element.id}.glb`,
-      `/assets/models/character/${this.element.id}.glb`,
-      `/assets/models/characters/${this.element.id}.glb`,
-      `/assets/models/characters/${this.element.id}_character.glb`,
-      `/assets/models/${this.element.id}.glb`
-    ]
-
-    // Try each path until one works
-    for (const modelPath of modelPaths) {
-      // Check if file exists first
-      const fileExists = await this.checkFileExists(modelPath)
-      if (!fileExists) {
-        console.log(`BabylonCharacter: Model file not found: ${modelPath}`)
-        continue
-      }
-
-      try {
-        console.log(`BabylonCharacter: Loading model: ${modelPath}`)
-        const characterMesh = await this.loadSingleModel(modelPath)
-        console.log(`✅ Loaded character model: ${modelPath}`)
-        return characterMesh
-      } catch (error) {
-        console.log(`Failed to load ${modelPath}:`, error.message)
-        continue
-      }
-    }
-
-    // If we get here, no models were found - this will trigger fallback creation
-    console.log('BabylonCharacter: No 3D models found, will use procedural character')
-    throw new Error(`No character models found for element: ${this.element.id}`)
-  }
-
-  /**
-   * Load a single model file
-   */
-  async loadSingleModel(modelPath) {
-    return new Promise((resolve, reject) => {
-      BABYLON.SceneLoader.ImportMesh(
-        '',
-        '',
-        modelPath,
-        this.scene,
-        (meshes, particleSystems, skeletons, animationGroups) => {
-
-          // Get the main character mesh (usually the first or root mesh)
-          let characterMesh = meshes[0]
-
-          // If multiple meshes, merge them into one
-          if (meshes.length > 1) {
-            characterMesh = BABYLON.Mesh.MergeMeshes(meshes.filter(mesh => mesh.material), true, true)
-            characterMesh.name = `${this.element.id}_character`
+          if (material.emissiveColor) {
+            material.emissiveColor = BABYLON.Color3.FromHexString('#FF6600')
           }
-
-          // Scale and position
-          characterMesh.scaling = new BABYLON.Vector3(2, 2, 2)
-          characterMesh.position = new BABYLON.Vector3(0, 0, 0)
-
-          // Apply element-based material modifications
-          this.applyElementalMaterials(characterMesh)
-
-          // Enable shadows
-          characterMesh.receiveShadows = true
-          if (this.scene.lights && this.scene.lights[0] && this.scene.lights[0].getShadowGenerator) {
-            const shadowGenerator = this.scene.lights[0].getShadowGenerator()
-            if (shadowGenerator) {
-              shadowGenerator.addShadowCaster(characterMesh)
-            }
+          break
+        case 'water':
+          if (material.diffuseColor) {
+            material.diffuseColor = BABYLON.Color3.FromHexString('#0080FF')
           }
-
-          // Store animation groups
-          this.animationGroups = animationGroups
-
-          resolve(characterMesh)
-        },
-        (progress) => {
-          console.log('BabylonCharacter: Loading progress:', (progress.loaded / progress.total * 100).toFixed(1) + '%')
-        },
-        (error) => {
-          console.error('BabylonCharacter: Failed to load model:', error)
-          reject(error)
-        }
-      )
-    })
-  }
-
-  /**
-   * Apply element-based material modifications
-   */
-  applyElementalMaterials(mesh) {
-    const elementColors = this.getElementColors()
-
-    mesh.getChildMeshes().forEach(childMesh => {
-      if (childMesh.material) {
-        // Clone material to avoid affecting other instances
-        const material = childMesh.material.clone(`${childMesh.name}_${this.element.id}_material`)
-
-        // Apply element-based modifications
-        if (material.diffuseTexture) {
-          // Add color tinting
-          material.diffuseColor = BABYLON.Color3.FromHexString(elementColors.primary)
-        }
-
-        // Add emissive glow
-        material.emissiveColor = BABYLON.Color3.FromHexString(elementColors.glow)
-        material.emissiveIntensity = 0.1
-
-        childMesh.material = material
+          if (material.emissiveColor) {
+            material.emissiveColor = BABYLON.Color3.FromHexString('#0066CC')
+          }
+          break
+        case 'earth':
+          if (material.diffuseColor) {
+            material.diffuseColor = BABYLON.Color3.FromHexString('#8B4513')
+          }
+          if (material.emissiveColor) {
+            material.emissiveColor = BABYLON.Color3.FromHexString('#A0522D')
+          }
+          break
+        case 'air':
+          if (material.diffuseColor) {
+            material.diffuseColor = BABYLON.Color3.FromHexString('#87CEEB')
+          }
+          if (material.emissiveColor) {
+            material.emissiveColor = BABYLON.Color3.FromHexString('#B0E0E6')
+          }
+          break
       }
-    })
+    } catch (error) {
+      console.warn('BabylonCharacter: Failed to apply elemental materials:', error)
+    }
   }
 
   /**
@@ -906,7 +816,12 @@ class BabylonCharacter {
       this.characterGroup.dispose()
     }
 
-    console.log('BabylonCharacter: Disposed')
+    // Dispose asset loader and free memory
+    if (this.assetLoader) {
+      this.assetLoader.dispose()
+    }
+
+    console.log('BabylonCharacter: Disposed with memory cleanup')
   }
 }
 
