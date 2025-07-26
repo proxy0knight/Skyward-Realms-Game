@@ -70,6 +70,9 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
   const [newMapSize, setNewMapSize] = useState(32)
   const canvasRef = useRef(null)
   const [availableAssets, setAvailableAssets] = useState([])
+  const [teleportAreas, setTeleportAreas] = useState([])
+  const [selectedTeleportTarget, setSelectedTeleportTarget] = useState('')
+  const [startingMapId, setStartingMapId] = useState(null)
 
   // Load saved maps from localStorage
   useEffect(() => {
@@ -77,8 +80,10 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
       try {
         const maps = JSON.parse(localStorage.getItem('savedMaps') || '[]')
         setSavedMaps(maps)
+        const startingMap = localStorage.getItem('startingMapId')
+        setStartingMapId(startingMap)
         if (maps.length > 0 && !currentMapId) {
-          setCurrentMapId(maps[0].id)
+          setCurrentMapId(startingMap || maps[0].id)
         }
       } catch (error) {
         console.error('Failed to load saved maps:', error)
@@ -86,6 +91,15 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
     }
     loadSavedMaps()
   }, [])
+
+  // Set starting map
+  const setAsStartingMap = (mapId) => {
+    if (mapId) {
+      localStorage.setItem('startingMapId', mapId)
+      setStartingMapId(mapId)
+      console.log(`Map ${mapId} set as starting map`)
+    }
+  }
 
   // Initialize map data
   useEffect(() => {
@@ -373,6 +387,15 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
               cell.flags.spawn = true
               break
               
+            case 'teleport':
+              if (selectedTeleportTarget) {
+                cell.flags.teleport = {
+                  toMapId: selectedTeleportTarget,
+                  teleportId: `teleport_${Date.now()}`
+                }
+              }
+              break
+              
             case 'erase':
               cell.objects = []
               cell.flags = {}
@@ -441,6 +464,47 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
     setMapData(newMapData)
   }
 
+  const createTeleportArea = () => {
+    if (!selectedCell || !selectedTeleportTarget) return
+
+    const teleportId = `teleport_${Date.now()}`
+    const newTeleportArea = {
+      id: teleportId,
+      name: `Portal to ${savedMaps.find(m => m.id === selectedTeleportTarget)?.name || 'Unknown'}`,
+      position: { x: selectedCell.x, z: selectedCell.z },
+      targetMapId: selectedTeleportTarget,
+      size: { width: 3, height: 3 },
+      active: true
+    }
+
+    setTeleportAreas(prev => [...prev, newTeleportArea])
+    
+    // Mark cells as teleport area
+    const newMapData = { ...mapData }
+    const cells = newMapData.cells.map(row => [...row])
+    
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dz = -1; dz <= 1; dz++) {
+        const cellX = selectedCell.x + dx
+        const cellZ = selectedCell.z + dz
+        
+        if (cellX >= 0 && cellX < gridSize && cellZ >= 0 && cellZ < gridSize) {
+          cells[cellX][cellZ].flags.teleport = {
+            toMapId: selectedTeleportTarget,
+            teleportId: teleportId
+          }
+        }
+      }
+    }
+    
+    newMapData.cells = cells
+    setMapData(newMapData)
+    
+    if (gameEngine && onMapUpdate) {
+      onMapUpdate(newMapData)
+    }
+  }
+
   const saveMap = async () => {
     saveCurrentMap()
   }
@@ -498,6 +562,7 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
                 {savedMaps.map(map => (
                   <SelectItem key={map.id} value={map.id}>
                     {map.name} ({map.size}x{map.size})
+                    {startingMapId === map.id && ' ⭐'}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -506,6 +571,11 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
             <Button size="sm" onClick={() => setShowCreateMapDialog(true)}>
               <Plus className="w-4 h-4 mr-2" />
               New Map
+            </Button>
+            
+            <Button size="sm" variant="outline" onClick={() => setAsStartingMap(currentMapId)}>
+              <Target className="w-4 h-4 mr-2" />
+              Set as Starting Map
             </Button>
             
             <Button onClick={saveMap} size="sm" variant="outline">
@@ -656,7 +726,7 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
           {/* Tools Panel */}
           <div className="space-y-4">
             <Tabs value={selectedTool} onValueChange={setSelectedTool}>
-              <TabsList className="grid grid-cols-3 gap-1">
+              <TabsList className="grid grid-cols-4 gap-1">
                 <TabsTrigger value="terrain" className="text-xs">
                   <Mountain className="w-3 h-3 mr-1" />
                   Terrain
@@ -668,6 +738,10 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
                 <TabsTrigger value="spawn" className="text-xs">
                   <Target className="w-3 h-3 mr-1" />
                   Spawn
+                </TabsTrigger>
+                <TabsTrigger value="teleport" className="text-xs">
+                  <Zap className="w-3 h-3 mr-1" />
+                  Portal
                 </TabsTrigger>
               </TabsList>
               
@@ -840,6 +914,90 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
                   Create Spawn Area
                 </Button>
               </TabsContent>
+
+              <TabsContent value="teleport" className="space-y-3">
+                <div>
+                  <Label className="text-xs">Target Map</Label>
+                  <Select value={selectedTeleportTarget} onValueChange={setSelectedTeleportTarget}>
+                    <SelectTrigger className="w-full mt-1">
+                      <SelectValue placeholder="Select target map" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {savedMaps
+                        .filter(map => map.id !== currentMapId)
+                        .map(map => (
+                          <SelectItem key={map.id} value={map.id}>
+                            {map.name} ({map.size}x{map.size})
+                            {startingMapId === map.id && ' ⭐'}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs">Portal Settings</Label>
+                  <div className="space-y-2">
+                    <div>
+                      <Label className="text-xs">Portal Size</Label>
+                      <Select defaultValue="3">
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1x1 (Small)</SelectItem>
+                          <SelectItem value="3">3x3 (Medium)</SelectItem>
+                          <SelectItem value="5">5x5 (Large)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={createTeleportArea} 
+                  disabled={!selectedCell || !selectedTeleportTarget}
+                  className="w-full"
+                >
+                  <Zap className="w-3 h-3 mr-1" />
+                  Create Portal
+                </Button>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold">Active Portals</Label>
+                  <ScrollArea className="h-24">
+                    <div className="space-y-1">
+                      {teleportAreas.map(area => (
+                        <div key={area.id} className="flex items-center justify-between p-2 border rounded">
+                          <div className="flex-1">
+                            <div className="text-xs font-medium">{area.name}</div>
+                            <div className="text-xs text-gray-500">
+                              To: {savedMaps.find(m => m.id === area.targetMapId)?.name || 'Unknown'}
+                            </div>
+                          </div>
+                          <Button size="sm" variant="ghost" onClick={() => {
+                            setTeleportAreas(prev => prev.filter(a => a.id !== area.id))
+                            // Remove from map cells
+                            const newMapData = { ...mapData }
+                            const cells = newMapData.cells.map(row => [...row])
+                            cells.forEach(row => {
+                              row.forEach(cell => {
+                                if (cell.flags.teleport?.teleportId === area.id) {
+                                  delete cell.flags.teleport
+                                }
+                              })
+                            })
+                            newMapData.cells = cells
+                            setMapData(newMapData)
+                          }}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+              </TabsContent>
             </Tabs>
 
             <Separator />
@@ -848,6 +1006,14 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
             <div className="space-y-2">
               <Label className="text-sm font-semibold">Special Tools</Label>
               <div className="grid grid-cols-1 gap-2">
+                <Button
+                  variant={selectedTool === 'teleport' ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedTool('teleport')}
+                >
+                  <Zap className="w-3 h-3 mr-1" />
+                  Portal
+                </Button>
                 <Button
                   variant={selectedTool === 'erase' ? "default" : "outline"}
                   size="sm"
