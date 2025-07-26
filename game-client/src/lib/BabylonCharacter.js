@@ -82,60 +82,59 @@ class BabylonCharacter {
   }
 
   /**
-   * Load GLB character model based on element (optimized)
+   * Load GLB character model based on element
    */
   async loadCharacterModel() {
-    // Check memory before loading
-    if (performance.memory) {
-      const memoryInfo = performance.memory
-      const usedMemory = memoryInfo.usedJSHeapSize / memoryInfo.totalJSHeapSize
-      
-      if (usedMemory > 0.7) {
-        console.warn('BabylonCharacter: High memory usage, using lightweight character')
-        throw new Error('Memory constrained - using procedural character')
-      }
-    }
-
     // Support modelId at both playerData.modelId and playerData.element.modelId
     const modelId = this.playerData.modelId || (this.playerData.element && this.playerData.element.modelId)
     if (modelId) {
       console.log('BabylonCharacter: Attempting to load custom model from IndexedDB with modelId:', modelId)
-      try {
-        const base64 = await idbGet(modelId)
-        if (base64) {
+      const base64 = await idbGet(modelId)
+      if (base64) {
+        try {
           const result = await BABYLON.SceneLoader.ImportMeshAsync('', '', base64, this.scene)
           // Find first valid mesh
           const validMesh = result.meshes.find(m => m && m instanceof BABYLON.Mesh && m.getTotalVertices && m.getTotalVertices() > 0)
           if (validMesh) {
             console.log('BabylonCharacter: Successfully loaded custom model from IndexedDB:', modelId, 'Mesh:', validMesh.name)
             return validMesh
+          } else {
+            console.warn('BabylonCharacter: No valid mesh found in imported GLB for modelId:', modelId, 'Meshes:', result.meshes)
           }
+        } catch (e) {
+          console.warn('BabylonCharacter: Failed to load custom model from IndexedDB, falling back to procedural character.', e)
         }
-      } catch (e) {
-        console.warn('BabylonCharacter: Failed to load custom model from IndexedDB:', e)
+      } else {
+        console.warn('BabylonCharacter: No base64 data found in IndexedDB for modelId:', modelId)
       }
     }
 
-    // Only try the most likely path to reduce failed requests
-    const primaryPath = `/character/${this.element.id}.glb`
-    
-    try {
-      console.log(`BabylonCharacter: Attempting to load model: ${primaryPath}`)
-      const characterMesh = await this.loadSingleModel(primaryPath)
-      console.log(`✅ Loaded character model: ${primaryPath}`)
-      return characterMesh
-    } catch (error) {
-      console.log(`Failed to load ${primaryPath}:`, error.message)
-      
-      // Try one fallback path
+    // Try loading from available model paths (check what actually exists)
+    const modelPaths = [
+      `/character/${this.element.id}.glb`,
+      `/assets/models/character/${this.element.id}.glb`,
+      `/assets/models/characters/${this.element.id}.glb`,
+      `/assets/models/characters/${this.element.id}_character.glb`,
+      `/assets/models/${this.element.id}.glb`
+    ]
+
+    // Try each path until one works
+    for (const modelPath of modelPaths) {
+      // Check if file exists first
+      const fileExists = await this.checkFileExists(modelPath)
+      if (!fileExists) {
+        console.log(`BabylonCharacter: Model file not found: ${modelPath}`)
+        continue
+      }
+
       try {
-        const fallbackPath = `/assets/models/character/${this.element.id}.glb`
-        console.log(`BabylonCharacter: Trying fallback: ${fallbackPath}`)
-        const characterMesh = await this.loadSingleModel(fallbackPath)
-        console.log(`✅ Loaded fallback character model: ${fallbackPath}`)
+        console.log(`BabylonCharacter: Loading model: ${modelPath}`)
+        const characterMesh = await this.loadSingleModel(modelPath)
+        console.log(`✅ Loaded character model: ${modelPath}`)
         return characterMesh
-      } catch (fallbackError) {
-        console.log(`Fallback also failed: ${fallbackError.message}`)
+      } catch (error) {
+        console.log(`Failed to load ${modelPath}:`, error.message)
+        continue
       }
     }
 

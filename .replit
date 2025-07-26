@@ -8,23 +8,15 @@ channel = "stable-25_05"
 run = ["sh", "-c", "pnpm run dev"]
 
 [[ports]]
-localPort = 5000
-externalPort = 80
-
-[[ports]]
-localPort = 5001
-externalPort = 3000
-
-[[ports]]
 localPort = 5173
 externalPort = 5173
 exposeLocalhost = true
 
 [workflows]
-runButton = "Run"
+runButton = "Development Server"
 
 [[workflows.workflow]]
-name = "Run"
+name = "Development Server"
 author = 40873790
 mode = "sequential"
 
