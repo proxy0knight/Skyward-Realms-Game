@@ -791,12 +791,19 @@ const MapEditor = ({ gameEngine, onMapUpdate }) => {
               <TabsContent value="asset" className="space-y-3">
                 <div>
                   <Label className="text-xs">3D Model Assignment</Label>
-                  <Select value={selectedAsset} onValueChange={setSelectedAsset}>
+                  <Select value={selectedAsset?.id || 'none'} onValueChange={(value) => {
+                    if (value === 'none') {
+                      setSelectedAsset(null)
+                    } else {
+                      const asset = availableAssets.find(a => a.id === value)
+                      setSelectedAsset(asset)
+                    }
+                  }}>
                     <SelectTrigger className="h-8">
                       <SelectValue placeholder="Select 3D model" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No Model</SelectItem>
+                      <SelectItem value="none">No Model</SelectItem>
                       {availableAssets.filter(asset => asset.type === 'model').map((asset) => (
                         <SelectItem key={asset.id} value={asset.id}>
                           <div className="flex items-center gap-2">
